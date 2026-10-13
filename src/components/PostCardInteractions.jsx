@@ -1,0 +1,472 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+  getPostInteractionSummary,
+  likePost,
+  addComment,
+  getComments,
+  deleteComment,
+  toggleSavePost,
+  subscribeToPostInteractions
+} from '../lib/postInteractionService';
+import InAppShareModal from './InAppShareModal';
+import PostLikersModal from './PostLikersModal';
+
+function formatTimeAgo(isoString) {
+  if (!isoString) return 'Just now';
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+export default function PostCardInteractions({ post, onSaveToggle }) {
+  const { user: currentUser } = useAuth();
+
+  const [likeCount, setLikeCount] = useState(post?.likes_count || 0);
+  const [commentCount, setCommentCount] = useState(post?.comments_count || 0);
+  const [shareCount, setShareCount] = useState(0);
+  const [saveCount, setSaveCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showLikersModal, setShowLikersModal] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const fetchInteractions = useCallback(async () => {
+    if (!post?.id) return;
+    const summary = await getPostInteractionSummary(post.id, currentUser?.id);
+    setLikeCount(summary.likeCount);
+    setCommentCount(summary.commentCount);
+    setShareCount(summary.shareCount);
+    setSaveCount(summary.saveCount);
+    setIsLiked(summary.likedByMe);
+    setIsSaved(summary.savedByMe);
+  }, [post?.id, currentUser?.id]);
+
+  useEffect(() => {
+    fetchInteractions();
+    const unsub = subscribeToPostInteractions(post?.id, fetchInteractions);
+    return () => unsub();
+  }, [post?.id, fetchInteractions]);
+
+  // 1. LIKE / UNLIKE HANDLER (TRIGGERS ONLY ON HEART CLICK)
+  const handleLike = async (e) => {
+    if (e) e.stopPropagation();
+    if (!currentUser?.id) {
+      alert('Please sign in to like posts.');
+      return;
+    }
+    if (isLiking) return;
+
+    setIsLiking(true);
+    const prevLiked = isLiked;
+    const prevCount = likeCount;
+
+    // Optimistic UI update
+    setIsLiked(!prevLiked);
+    setLikeCount(prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1);
+
+    try {
+      const res = await likePost(post.id, currentUser.id, post.author_id);
+      setIsLiked(res.liked);
+      setLikeCount(res.count);
+    } catch (err) {
+      console.error('[PostCardInteractions] Like error:', err);
+      setIsLiked(prevLiked);
+      setLikeCount(prevCount);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  // 1B. OPEN LIKERS LIST (TRIGGERS WHEN CLICKING LIKE COUNT TEXT)
+  const handleOpenLikers = (e) => {
+    if (e) e.stopPropagation();
+    if (likeCount > 0) {
+      setShowLikersModal(true);
+    }
+  };
+
+  // 2. TOGGLE COMMENTS
+  const handleToggleComments = async () => {
+    const nextState = !showComments;
+    setShowComments(nextState);
+
+    if (nextState && post?.id) {
+      setLoadingComments(true);
+      const list = await getComments(post.id);
+      setComments(list);
+      setLoadingComments(false);
+    }
+  };
+
+  // 3. SUBMIT COMMENT
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!currentUser?.id) {
+      alert('Please sign in to comment.');
+      return;
+    }
+    if (!commentText.trim() || isSubmittingComment) return;
+
+    const textToSubmit = commentText.trim();
+    setIsSubmittingComment(true);
+    setCommentText('');
+
+    try {
+      const newComment = await addComment(post.id, currentUser.id, textToSubmit, post.author_id);
+      if (newComment) {
+        setComments((prev) => [...prev, newComment]);
+        setCommentCount((prev) => prev + 1);
+      }
+    } catch (err) {
+      console.error('[PostCardInteractions] Comment error:', err);
+      setCommentText(textToSubmit);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  // 4. DELETE COMMENT
+  const handleDeleteComment = async (commentId) => {
+    if (!currentUser?.id || !commentId) return;
+
+    try {
+      const ok = await deleteComment(commentId, currentUser.id);
+      if (ok) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setCommentCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (err) {
+      console.error('[PostCardInteractions] Delete comment error:', err);
+    }
+  };
+
+  // 5. SHARE HANDLER (OPENS IN-APP SHARE SELECTION MODAL)
+  const handleOpenShare = () => {
+    if (!currentUser?.id) {
+      alert('Please sign in to share posts.');
+      return;
+    }
+    setShowShareModal(true);
+  };
+
+  // 6. SAVE / UNSAVE HANDLER
+  const handleSave = async () => {
+    if (!currentUser?.id) {
+      alert('Please sign in to save posts.');
+      return;
+    }
+    if (isSaving) return;
+
+    setIsSaving(true);
+    const prevSaved = isSaved;
+    const prevCount = saveCount;
+
+    // Optimistic UI update
+    setIsSaved(!prevSaved);
+    setSaveCount(prevSaved ? Math.max(0, prevCount - 1) : prevCount + 1);
+
+    try {
+      const res = await toggleSavePost(post.id, currentUser.id);
+      setIsSaved(res.saved);
+      setSaveCount(res.count);
+      if (onSaveToggle) {
+        onSaveToggle(res.saved, post.id);
+      }
+    } catch (err) {
+      console.error('[PostCardInteractions] Save error:', err);
+      setIsSaved(prevSaved);
+      setSaveCount(prevCount);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div
+          style={{
+            fontSize: '12px',
+            color: '#15803d',
+            backgroundColor: '#dcfce7',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            marginBottom: '8px',
+            textAlign: 'center',
+            fontWeight: '600'
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Interaction Buttons Row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Like Group: Heart icon toggles like; Count text opens Likers Modal */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: '16px',
+            backgroundColor: isLiked ? '#fef2f2' : 'transparent',
+            padding: '2px 6px'
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleLike}
+            disabled={isLiking}
+            title={isLiked ? 'Unlike' : 'Like'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px 4px',
+              fontSize: '15px',
+              transition: 'transform 0.15s ease'
+            }}
+          >
+            <span>{isLiked ? '❤️' : '🤍'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenLikers}
+            disabled={likeCount === 0}
+            title={likeCount > 0 ? 'View who liked this post' : ''}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: likeCount > 0 ? 'pointer' : 'default',
+              padding: '4px 6px',
+              color: isLiked ? '#ef4444' : 'var(--text-main, #1e3860)',
+              fontWeight: isLiked ? '700' : '600',
+              fontSize: '13px',
+              textDecoration: likeCount > 0 ? 'none' : 'none'
+            }}
+          >
+            <span>{likeCount}</span>
+          </button>
+        </div>
+
+        {/* Comment Button */}
+        <button
+          type="button"
+          onClick={handleToggleComments}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 10px',
+            borderRadius: '16px',
+            color: 'var(--text-main, #1e3860)',
+            fontWeight: '600',
+            fontSize: '13px',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span style={{ fontSize: '15px' }}>💬</span>
+          <span>{commentCount}</span>
+        </button>
+
+        {/* In-App Share Button */}
+        <button
+          type="button"
+          onClick={handleOpenShare}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 10px',
+            borderRadius: '16px',
+            color: 'var(--text-main, #1e3860)',
+            fontWeight: '600',
+            fontSize: '13px',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span style={{ fontSize: '15px' }}>↗️</span>
+          <span>{shareCount > 0 ? shareCount : 'Share'}</span>
+        </button>
+
+        {/* Save Button */}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 10px',
+            borderRadius: '16px',
+            color: isSaved ? '#2563eb' : 'var(--text-main, #1e3860)',
+            fontWeight: isSaved ? '700' : '600',
+            fontSize: '13px',
+            transition: 'all 0.15s ease',
+            backgroundColor: isSaved ? '#eff6ff' : 'transparent'
+          }}
+        >
+          <span style={{ fontSize: '15px' }}>{isSaved ? '🔖' : '📑'}</span>
+          <span>{isSaved ? 'Saved' : 'Save'}</span>
+        </button>
+      </div>
+
+      {/* Expandable Comments Drawer */}
+      {showComments && (
+        <div style={{ marginTop: '12px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '700', color: 'var(--text-main, #1e3860)' }}>
+            Comments ({commentCount})
+          </h4>
+
+          {/* Comments List */}
+          {loadingComments ? (
+            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '10px 0' }}>
+              Loading comments...
+            </div>
+          ) : comments.length === 0 ? (
+            <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', marginBottom: '10px' }}>
+              No comments yet. Be the first to comment!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+              {comments.map((c) => {
+                const isAuthor = currentUser?.id === c.user_id;
+                const initials = (c.profile?.name || 'User')
+                  .split(' ')
+                  .filter(Boolean)
+                  .map((n) => n[0])
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase();
+
+                return (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '6px 10px', background: '#f8fafc', borderRadius: '10px' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#bcd5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '10px', color: '#1e3860', overflow: 'hidden', flexShrink: 0 }}>
+                      {c.profile?.avatar_url ? (
+                        <img src={c.profile.avatar_url} alt={c.profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        initials
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e3860' }}>
+                          {c.profile?.name}
+                        </span>
+                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                          {formatTimeAgo(c.created_at)}
+                        </span>
+                      </div>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#334155', lineHeight: '1.4' }}>
+                        {c.content}
+                      </p>
+                    </div>
+
+                    {isAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComment(c.id)}
+                        title="Delete comment"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '11px', padding: '2px 4px' }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Comment Form Input */}
+          <form onSubmit={handleAddComment} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              disabled={isSubmittingComment}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: '16px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+                outline: 'none',
+                backgroundColor: '#ffffff'
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!commentText.trim() || isSubmittingComment}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '16px',
+                backgroundColor: commentText.trim() ? '#2563eb' : '#94a3b8',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: '600',
+                fontSize: '12px',
+                cursor: commentText.trim() ? 'pointer' : 'default',
+                transition: 'background 0.15s ease'
+              }}
+            >
+              {isSubmittingComment ? 'Sending...' : 'Send'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* In-App Share Modal */}
+      {showShareModal && (
+        <InAppShareModal
+          postId={post?.id}
+          postAuthorId={post?.author_id}
+          onClose={() => setShowShareModal(false)}
+          onShareSuccess={(newShareCount) => {
+            if (typeof newShareCount === 'number') {
+              setShareCount(newShareCount);
+            }
+          }}
+        />
+      )}
+
+      {/* Who Liked This Post Modal */}
+      {showLikersModal && (
+        <PostLikersModal
+          postId={post?.id}
+          onClose={() => setShowLikersModal(false)}
+        />
+      )}
+    </div>
+  );
+}
