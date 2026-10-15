@@ -215,63 +215,125 @@ export const getFollowStatus = async (currentUserId, targetUserId) => {
 };
 
 export const sendFollowRequest = async (currentUserId, targetUserId) => {
-  if (!currentUserId || !targetUserId || currentUserId === targetUserId) return false;
+  if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
+    return { success: false, error: 'Cannot follow yourself or invalid user IDs' };
+  }
 
-  console.log('FOLLOW REQUEST SEND', { senderId: currentUserId, receiverId: targetUserId });
+  console.log('[socialService] sendFollowRequest:', { currentUserId, targetUserId });
 
   if (isSupabaseConfigured) {
     try {
-      // Duplicate request check
-      const { data: existing } = await supabase
+      // 1. Check if a follow request already exists in Supabase
+      const { data: existing, error: existingErr } = await supabase
         .from('follow_requests')
         .select('*')
         .eq('follower_user_id', currentUserId)
         .eq('following_user_id', targetUserId)
         .maybeSingle();
 
+      if (existingErr) {
+        console.error('[socialService] Error checking existing follow request:', existingErr);
+        return { success: false, error: existingErr.message };
+      }
+
+      // Helper to fetch sender profile for notification attribution
+      const getSenderProfile = async () => {
+        try {
+          const { data: pData } = await supabase
+            .from('profiles')
+            .select('id, name, username, avatar_url, role')
+            .eq('id', currentUserId)
+            .maybeSingle();
+          if (pData) {
+            const senderName = pData.username || pData.name || 'user';
+            return {
+              username: senderName,
+              profile: {
+                id: pData.id,
+                name: pData.name || senderName,
+                username: pData.username || senderName,
+                role: pData.role || 'Member',
+                avatarUrl: pData.avatar_url || null,
+                avatar_url: pData.avatar_url || null
+              }
+            };
+          }
+        } catch (e) {}
+        return { username: 'user', profile: null };
+      };
+
       if (existing) {
-        console.log('FOLLOW REQUEST ALREADY EXISTS', existing);
+        console.log('[socialService] Existing follow request found:', existing);
+        if (existing.status === 'pending') {
+          return { success: true, status: 'pending', request: existing };
+        }
+        if (existing.status === 'accepted') {
+          return { success: true, status: 'accepted', request: existing };
+        }
+
+        // If previously rejected, allow re-requesting
+        const { data: updatedReq, error: updateErr } = await supabase
+          .from('follow_requests')
+          .update({ status: 'pending', updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (updateErr) {
+          console.error('[socialService] Error resetting follow request:', updateErr);
+          return { success: false, error: updateErr.message };
+        }
+
+        const { username: senderUsername, profile: senderProfile } = await getSenderProfile();
         await createNotification({
           recipientId: targetUserId,
           actorId: currentUserId,
           type: 'follow_request',
           title: 'Follow Request',
-          message: 'sent you a follow request',
+          message: `@${senderUsername} sent you a follow request.`,
           entityType: 'follow_request',
-          entityId: existing.id
+          entityId: updatedReq.id,
+          actorObj: senderProfile
         });
-        return true;
+
+        notifyListeners();
+        return { success: true, status: 'pending', request: updatedReq };
       }
 
-      const { data, error } = await supabase
+      // 2. Insert new follow request into Supabase
+      const { data: newReq, error: insertErr } = await supabase
         .from('follow_requests')
         .insert([{ follower_user_id: currentUserId, following_user_id: targetUserId, status: 'pending' }])
         .select()
         .single();
 
-      if (error) {
-        console.error('FOLLOW REQUEST ERROR', error);
+      if (insertErr) {
+        console.error('[socialService] Error inserting follow request:', insertErr);
+        return { success: false, error: insertErr.message };
       }
 
-      if (!error && data) {
-        console.log('FOLLOW REQUEST CREATED', data);
-        await createNotification({
-          recipientId: targetUserId,
-          actorId: currentUserId,
-          type: 'follow_request',
-          title: 'Follow Request',
-          message: 'sent you a follow request',
-          entityType: 'follow_request',
-          entityId: data.id
-        });
-        return true;
-      }
+      // 3. Immediately create notification for recipient
+      const { username: senderUsername, profile: senderProfile } = await getSenderProfile();
+      await createNotification({
+        recipientId: targetUserId,
+        actorId: currentUserId,
+        type: 'follow_request',
+        title: 'Follow Request',
+        message: `@${senderUsername} sent you a follow request.`,
+        entityType: 'follow_request',
+        entityId: newReq.id,
+        actorObj: senderProfile
+      });
+
+      notifyListeners();
+      return { success: true, status: 'pending', request: newReq };
     } catch (e) {
-      console.warn('Supabase sendFollowRequest exception:', e);
+      console.error('[socialService] sendFollowRequest exception:', e);
+      return { success: false, error: e.message || 'Failed to send follow request' };
     }
   }
 
-  // Check if request already exists locally
+  // Local fallback state
   let existingReq = localFollowRequests.find(
     (r) => r.follower_user_id === currentUserId && r.following_user_id === targetUserId
   );
@@ -292,16 +354,16 @@ export const sendFollowRequest = async (currentUserId, targetUserId) => {
     actorId: currentUserId,
     type: 'follow_request',
     title: 'Follow Request',
-    message: 'sent you a follow request',
+    message: `@${currentUserId} sent you a follow request.`,
     entityType: 'follow_request',
     entityId: existingReq.id
   });
 
-  return true;
+  return { success: true, status: 'pending', request: existingReq };
 };
 
 export const respondToFollowRequest = async (requestId, currentUserId, targetUserId, newStatus) => {
-  console.log('ACCEPTING FOLLOW REQUEST', { requestId, currentUserId, targetUserId, newStatus });
+  console.log('[socialService] respondToFollowRequest:', { requestId, currentUserId, targetUserId, newStatus });
 
   if (isSupabaseConfigured) {
     try {
@@ -315,25 +377,64 @@ export const respondToFollowRequest = async (requestId, currentUserId, targetUse
         query = query.eq('follower_user_id', targetUserId).eq('following_user_id', currentUserId);
       }
 
-      const { error } = await query;
+      const { data: updatedReq, error } = await query.select().maybeSingle();
       if (error) {
-        console.error('RESPOND TO FOLLOW REQUEST ERROR:', error);
-      } else {
-        if (newStatus === 'accepted') {
-          await createNotification({
-            recipientId: targetUserId,
-            actorId: currentUserId,
-            type: 'follow_accepted',
-            title: 'Follow Accepted',
-            message: 'accepted your follow request',
-            entityType: 'user',
-            entityId: currentUserId
-          });
-        }
-        return true;
+        console.error('[socialService] Error responding to follow request:', error);
+        return { success: false, error: error.message };
       }
+
+      // Mark the recipient's follow request notification as read
+      try {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('recipient_id', currentUserId)
+          .eq('actor_id', targetUserId)
+          .eq('type', 'follow_request');
+      } catch (err) {
+        console.warn('[socialService] Error marking notification read:', err);
+      }
+
+      // If accepted, notify the original requester
+      if (newStatus === 'accepted') {
+        let responderUsername = 'user';
+        let responderProfile = null;
+        try {
+          const { data: pData } = await supabase
+            .from('profiles')
+            .select('id, name, username, avatar_url, role')
+            .eq('id', currentUserId)
+            .maybeSingle();
+          if (pData) {
+            responderUsername = pData.username || pData.name || 'user';
+            responderProfile = {
+              id: pData.id,
+              name: pData.name || responderUsername,
+              username: pData.username || responderUsername,
+              role: pData.role || 'Member',
+              avatarUrl: pData.avatar_url || null,
+              avatar_url: pData.avatar_url || null
+            };
+          }
+        } catch (e) {}
+
+        await createNotification({
+          recipientId: targetUserId,
+          actorId: currentUserId,
+          type: 'follow_accepted',
+          title: 'Follow Accepted',
+          message: `@${responderUsername} accepted your follow request.`,
+          entityType: 'user',
+          entityId: currentUserId,
+          actorObj: responderProfile
+        });
+      }
+
+      notifyListeners();
+      return { success: true, status: newStatus, request: updatedReq };
     } catch (e) {
-      console.warn('Supabase respondToFollowRequest error:', e);
+      console.error('[socialService] respondToFollowRequest exception:', e);
+      return { success: false, error: e.message || 'Failed to respond to follow request' };
     }
   }
 
@@ -361,7 +462,7 @@ export const respondToFollowRequest = async (requestId, currentUserId, targetUse
     });
   }
 
-  return true;
+  return { success: true, status: newStatus };
 };
 
 // ==========================================

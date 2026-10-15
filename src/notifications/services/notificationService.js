@@ -96,27 +96,30 @@ export const getNotifications = async (recipientId) => {
 
   if (isSupabaseConfigured) {
     try {
-      console.log('LOADING NOTIFICATIONS FOR', recipientId);
+      console.log('[NotificationService] Fetching notifications for recipient:', recipientId);
       const { data, error } = await supabase
         .from('notifications')
-        .select('*, actor:actor_id(id, name, username, role, avatar_url)')
+        .select('*')
         .eq('recipient_id', recipientId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        // Fetch missing actor profiles if join returned null for any notification
-        const missingActorIds = Array.from(
-          new Set(data.filter((n) => !n.actor && n.actor_id).map((n) => n.actor_id))
+      if (error) {
+        console.error('[NotificationService] Error querying notifications from DB:', error);
+      } else if (data) {
+        // 1. Fetch missing actor profiles in a single batch query
+        const actorIds = Array.from(
+          new Set(data.map((n) => n.actor_id).filter(Boolean))
         );
-        const fetchedActors = {};
-        if (missingActorIds.length > 0) {
-          const { data: profilesData } = await supabase
+        const profilesMap = {};
+        if (actorIds.length > 0) {
+          const { data: profilesData, error: profErr } = await supabase
             .from('profiles')
             .select('id, name, username, role, avatar_url')
-            .in('id', missingActorIds);
-          if (profilesData) {
+            .in('id', actorIds);
+
+          if (!profErr && profilesData) {
             profilesData.forEach((p) => {
-              fetchedActors[p.id] = {
+              profilesMap[p.id] = {
                 id: p.id,
                 name: p.name || 'User',
                 username: p.username || 'user',
@@ -128,31 +131,79 @@ export const getNotifications = async (recipientId) => {
           }
         }
 
-        const dbList = data.map((n) => {
-          let actorObj = null;
-          if (n.actor) {
-            actorObj = {
-              id: n.actor.id,
-              name: n.actor.name || 'User',
-              username: n.actor.username || 'user',
-              role: n.actor.role || 'Member',
-              avatarUrl: n.actor.avatar_url || null,
-              avatar_url: n.actor.avatar_url || null
-            };
-          } else if (fetchedActors[n.actor_id]) {
-            actorObj = fetchedActors[n.actor_id];
-          } else {
-            actorObj = mockUsers.find((u) => u.id === n.actor_id) || { id: n.actor_id, name: 'User', username: 'user' };
+        // 2. Fetch follow request statuses for all follow_request notifications
+        const followRequestsMap = {};
+        const followReqEntityIds = data
+          .filter((n) => n.type === 'follow_request' && n.entity_id)
+          .map((n) => n.entity_id);
+        const followReqActorIds = data
+          .filter((n) => n.type === 'follow_request' && n.actor_id)
+          .map((n) => n.actor_id);
+
+        if (followReqEntityIds.length > 0 || followReqActorIds.length > 0) {
+          try {
+            // Check by request ID
+            if (followReqEntityIds.length > 0) {
+              const { data: frData } = await supabase
+                .from('follow_requests')
+                .select('id, follower_user_id, following_user_id, status')
+                .in('id', followReqEntityIds);
+              if (frData) {
+                frData.forEach((fr) => {
+                  followRequestsMap[fr.id] = fr.status;
+                  followRequestsMap[`${fr.follower_user_id}_${fr.following_user_id}`] = fr.status;
+                });
+              }
+            }
+
+            // Also check by follower/following pairs
+            if (followReqActorIds.length > 0) {
+              const { data: frPairs } = await supabase
+                .from('follow_requests')
+                .select('id, follower_user_id, following_user_id, status')
+                .eq('following_user_id', recipientId)
+                .in('follower_user_id', followReqActorIds);
+              if (frPairs) {
+                frPairs.forEach((fr) => {
+                  followRequestsMap[fr.id] = fr.status;
+                  followRequestsMap[`${fr.follower_user_id}_${fr.following_user_id}`] = fr.status;
+                });
+              }
+            }
+          } catch (frErr) {
+            console.warn('[NotificationService] Error loading follow request statuses:', frErr);
           }
+        }
+
+        // 3. Assemble enriched notification objects
+        const dbList = data.map((n) => {
+          const actor =
+            profilesMap[n.actor_id] ||
+            mockUsers.find((u) => u.id === n.actor_id) || {
+              id: n.actor_id,
+              name: 'User',
+              username: 'user',
+              role: 'Member',
+              avatarUrl: null,
+              avatar_url: null
+            };
+
+          let followRequestStatus = null;
+          if (n.type === 'follow_request') {
+            followRequestStatus =
+              followRequestsMap[n.entity_id] ||
+              followRequestsMap[`${n.actor_id}_${n.recipient_id}`] ||
+              'pending';
+          }
+
           return {
             ...n,
-            actor: actorObj
+            actor,
+            followRequestStatus
           };
         });
 
-        console.log('NOTIFICATIONS LOADED', dbList);
-
-        // Merge with local notifications for recipient
+        // Merge with any fresh local notifications for recipient
         const localList = localNotifications.filter((n) => n.recipient_id === recipientId);
         const map = new Map();
         dbList.forEach((n) => map.set(n.id, n));
@@ -160,12 +211,14 @@ export const getNotifications = async (recipientId) => {
           if (!map.has(n.id)) map.set(n.id, n);
         });
 
-        return Array.from(map.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      } else if (error) {
-        console.error('NOTIFICATION QUERY ERROR:', error);
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+        console.log('[NotificationService] Returning notifications count:', merged.length);
+        return merged;
       }
     } catch (e) {
-      console.warn('Supabase getNotifications error, using local fallback.', e);
+      console.warn('[NotificationService] Supabase getNotifications exception, using fallback:', e);
     }
   }
 
@@ -189,7 +242,7 @@ export const markNotificationAsRead = async (notificationId, recipientId) => {
         .update({ is_read: true })
         .match({ id: notificationId, recipient_id: recipientId });
     } catch (e) {
-      console.warn('Supabase markNotificationAsRead error.', e);
+      console.warn('[NotificationService] Supabase markNotificationAsRead error:', e);
     }
   }
 
@@ -201,6 +254,8 @@ export const markNotificationAsRead = async (notificationId, recipientId) => {
 };
 
 export const markAllNotificationsAsRead = async (recipientId) => {
+  if (!recipientId) return;
+
   if (isSupabaseConfigured) {
     try {
       await supabase
@@ -208,7 +263,7 @@ export const markAllNotificationsAsRead = async (recipientId) => {
         .update({ is_read: true })
         .eq('recipient_id', recipientId);
     } catch (e) {
-      console.warn('Supabase markAllNotificationsAsRead error.', e);
+      console.warn('[NotificationService] Supabase markAllNotificationsAsRead error:', e);
     }
   }
 
@@ -226,24 +281,26 @@ export const createNotification = async ({
   type,
   title,
   message,
-  entityType = 'user',
+  entityType = 'follow_request',
   entityId,
   actorObj = null
 }) => {
-  if (!recipientId || !actorId || recipientId === actorId) return null;
+  if (!recipientId || !actorId || recipientId === actorId) {
+    console.warn('[NotificationService] Skipped invalid or self-notification:', { recipientId, actorId });
+    return null;
+  }
 
-  const createdAt = new Date().toISOString();
-  console.log('CREATING FOLLOW NOTIFICATION', { recipientId, actorId, entityId, type });
+  console.log('[NotificationService] Creating notification:', { recipientId, actorId, type, entityId });
 
-  // Fetch real actor details from Supabase if not provided
+  // Resolve actor profile details
   let actor = actorObj;
   if (!actor && isSupabaseConfigured) {
     try {
       const { data: dbActor } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, username, role, avatar_url')
         .eq('id', actorId)
-        .single();
+        .maybeSingle();
       if (dbActor) {
         actor = {
           id: dbActor.id,
@@ -263,12 +320,48 @@ export const createNotification = async ({
     actor = mockUsers.find((u) => u.id === actorId) || {
       id: actorId,
       name: 'User',
-      username: 'user'
+      username: 'user',
+      avatarUrl: null
     };
+  }
+
+  // Construct standard notification message
+  const actorName = actor.username ? `@${actor.username}` : (actor.name || 'User');
+  let finalMessage = message;
+  if (!finalMessage) {
+    if (type === 'follow_request') {
+      finalMessage = `${actorName} sent you a follow request.`;
+    } else if (type === 'follow_accepted') {
+      finalMessage = `${actorName} accepted your follow request.`;
+    } else {
+      finalMessage = `${actorName} sent you a notification.`;
+    }
   }
 
   if (isSupabaseConfigured) {
     try {
+      // Duplicate prevention check: do not insert duplicate notification for the same entity event
+      if (entityId) {
+        const { data: existingNotif } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('recipient_id', recipientId)
+          .eq('actor_id', actorId)
+          .eq('type', type)
+          .eq('entity_id', String(entityId))
+          .maybeSingle();
+
+        if (existingNotif) {
+          console.log('[NotificationService] Notification already exists in DB:', existingNotif.id);
+          const fullExisting = {
+            ...existingNotif,
+            actor,
+            followRequestStatus: type === 'follow_request' ? 'pending' : null
+          };
+          return { success: true, notification: fullExisting, duplicate: true };
+        }
+      }
+
       const { data, error } = await supabase
         .from('notifications')
         .insert([
@@ -276,78 +369,98 @@ export const createNotification = async ({
             recipient_id: recipientId,
             actor_id: actorId,
             type,
-            title,
-            message,
+            title: title || (type === 'follow_request' ? 'Follow Request' : 'Notification'),
+            message: finalMessage,
             entity_type: entityType,
-            entity_id: String(entityId)
+            entity_id: String(entityId),
+            is_read: false
           }
         ])
         .select()
         .single();
 
       if (error) {
-        console.error('NOTIFICATION INSERT ERROR', error);
-      } else if (data) {
-        console.log('NOTIFICATION CREATED', data);
-        const fullNotif = { ...data, actor };
+        console.error('[NotificationService] DB Insert Notification Error:', error);
+        return { success: false, error };
+      }
+
+      if (data) {
+        console.log('[NotificationService] Notification successfully stored in DB:', data.id);
+        const fullNotif = {
+          ...data,
+          actor,
+          followRequestStatus: type === 'follow_request' ? 'pending' : null
+        };
         localNotifications.unshift(fullNotif);
         notifyNotificationStateChange();
-        return fullNotif;
+        return { success: true, notification: fullNotif };
       }
     } catch (e) {
-      console.warn('Supabase createNotification exception:', e);
+      console.warn('[NotificationService] Supabase createNotification exception:', e);
+      return { success: false, error: e };
     }
   }
 
+  // Local fallback
   const newNotif = {
     id: `n-${Date.now()}`,
     recipient_id: recipientId,
     actor_id: actorId,
     type,
-    title,
-    message,
+    title: title || 'Follow Request',
+    message: finalMessage,
     entity_type: entityType,
     entity_id: String(entityId),
     is_read: false,
-    created_at: createdAt,
-    actor
+    created_at: new Date().toISOString(),
+    actor,
+    followRequestStatus: type === 'follow_request' ? 'pending' : null
   };
 
   localNotifications.unshift(newNotif);
   notifyNotificationStateChange();
-  return newNotif;
+  return { success: true, notification: newNotif };
 };
 
 export const subscribeToRealtimeNotifications = (recipientId, callback) => {
+  if (!recipientId) return () => {};
+
   if (isSupabaseConfigured) {
     try {
+      const channelName = `notifications_${recipientId}_${Math.random().toString(36).substring(2, 8)}`;
+      console.log('[NotificationService] Subscribing to realtime channel:', channelName);
+
       const channel = supabase
-        .channel(`notifications:${recipientId}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'notifications',
             filter: `recipient_id=eq.${recipientId}`
           },
           (payload) => {
-            if (payload.new) {
-              callback(payload.new);
+            console.log('[NotificationService] Realtime notifications change detected:', payload);
+            if (callback) {
+              callback(payload);
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[NotificationService] Realtime channel status:', channelName, status);
+        });
 
       return () => {
+        console.log('[NotificationService] Unsubscribing realtime channel:', channelName);
         supabase.removeChannel(channel);
       };
     } catch (e) {
-      console.warn('Realtime notifications subscription error.', e);
+      console.warn('[NotificationService] Realtime notifications subscription error:', e);
     }
   }
 
   return subscribeToNotificationState(() => {
-    callback();
+    if (callback) callback();
   });
 };

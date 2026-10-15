@@ -224,26 +224,61 @@ export default function Profile({
   const handleFollow = async () => {
     if (!currentUser?.id || !activeUserId || loadingAction) return;
     setLoadingAction(true);
-    setFollowInfo((prev) => ({ ...prev, status: 'pending_sent' }));
-    await sendFollowRequest(currentUser.id, activeUserId);
-    setLoadingAction(false);
+    try {
+      const res = await sendFollowRequest(currentUser.id, activeUserId);
+      if (res && res.success) {
+        setFollowInfo((prev) => ({
+          ...prev,
+          status: res.status === 'accepted' ? 'accepted' : 'pending_sent',
+          request: res.request || prev.request
+        }));
+      } else {
+        console.error('[Profile] Follow request failed:', res?.error);
+        alert(res?.error || 'Failed to send follow request.');
+      }
+    } catch (err) {
+      console.error('[Profile] Follow exception:', err);
+      alert('An error occurred while sending follow request.');
+    } finally {
+      setLoadingAction(false);
+    }
   };
 
   const handleAccept = async () => {
-    if (!currentUser?.id || !activeUserId || loadingAction || !followInfo.request?.id) return;
+    if (!currentUser?.id || !activeUserId || loadingAction) return;
     setLoadingAction(true);
-    setFollowInfo((prev) => ({ ...prev, status: 'accepted' }));
-    setStats((prev) => ({ ...prev, followersCount: prev.followersCount + 1 }));
-    await respondToFollowRequest(followInfo.request.id, currentUser.id, activeUserId, 'accepted');
-    setLoadingAction(false);
+    try {
+      const res = await respondToFollowRequest(followInfo.request?.id, currentUser.id, activeUserId, 'accepted');
+      if (res && res.success) {
+        setFollowInfo((prev) => ({ ...prev, status: 'accepted' }));
+        setStats((prev) => ({ ...prev, followersCount: prev.followersCount + 1 }));
+      } else {
+        console.error('[Profile] Accept follow request failed:', res?.error);
+        alert(res?.error || 'Failed to accept follow request.');
+      }
+    } catch (err) {
+      console.error('[Profile] Accept exception:', err);
+    } finally {
+      setLoadingAction(false);
+    }
   };
 
   const handleReject = async () => {
     if (!currentUser?.id || !activeUserId || loadingAction) return;
     setLoadingAction(true);
-    setFollowInfo({ status: 'none', request: null });
-    await respondToFollowRequest(followInfo.request?.id, currentUser.id, activeUserId, 'rejected');
-    setLoadingAction(false);
+    try {
+      const res = await respondToFollowRequest(followInfo.request?.id, currentUser.id, activeUserId, 'rejected');
+      if (res && res.success) {
+        setFollowInfo({ status: 'none', request: null });
+      } else {
+        console.error('[Profile] Reject follow request failed:', res?.error);
+        alert(res?.error || 'Failed to reject follow request.');
+      }
+    } catch (err) {
+      console.error('[Profile] Reject exception:', err);
+    } finally {
+      setLoadingAction(false);
+    }
   };
 
   const handleStartChat = async () => {
