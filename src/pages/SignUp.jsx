@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import AuthInput from '../components/AuthInput';
 import PasswordInput from '../components/PasswordInput';
 import AuthButton from '../components/AuthButton';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 export default function SignUp() {
-  const { signup, navigateAuth } = useAuth();
+  const { signup, signInWithGoogle, oauthError, clearOauthError, navigateAuth } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export default function SignUp() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const validate = () => {
     const newErrors = {};
@@ -31,9 +33,28 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleGoogleSignUp = async () => {
+    if (isGoogleLoading || isLoading) return;
+    setApiError('');
+    if (clearOauthError) clearOauthError();
+    setIsGoogleLoading(true);
+
+    try {
+      const res = await signInWithGoogle();
+      if (res && !res.success && res.error) {
+        setApiError(res.error);
+        setIsGoogleLoading(false);
+      }
+    } catch (err) {
+      setApiError(err.message || 'Unable to connect to Google.');
+      setIsGoogleLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
+    if (clearOauthError) clearOauthError();
     if (!validate()) return;
 
     setIsLoading(true);
@@ -49,6 +70,8 @@ export default function SignUp() {
     }
   };
 
+  const displayedError = apiError || oauthError;
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -62,7 +85,7 @@ export default function SignUp() {
         <h1 className="auth-title">Create an account</h1>
         <p className="auth-subtitle">Join the platform to access all domains</p>
 
-        {apiError && (
+        {displayedError && (
           <div
             style={{
               marginBottom: '16px',
@@ -72,12 +95,28 @@ export default function SignUp() {
               border: '1px solid #fecaca',
               color: '#dc2626',
               fontSize: '13px',
-              fontWeight: '500'
+              fontWeight: '500',
+              width: '100%',
+              boxSizing: 'border-box',
+              textAlign: 'center'
             }}
           >
-            {apiError}
+            {displayedError}
           </div>
         )}
+
+        {/* Continue with Google Action */}
+        <GoogleSignInButton
+          onClick={handleGoogleSignUp}
+          isLoading={isGoogleLoading}
+          disabled={isLoading}
+          text="Continue with Google"
+        />
+
+        {/* Visual Divider */}
+        <div className="auth-divider">
+          <span>or sign up with email</span>
+        </div>
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <AuthInput

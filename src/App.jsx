@@ -29,6 +29,8 @@ import UpdateStoryViewer from './pages/UpdateStoryViewer';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/ForgotPassword';
+import ProfileSetupWizard from './components/profile/ProfileSetupWizard';
+import { updateBasicProfile } from './lib/profileService';
 
 import { useConversations } from './messaging/hooks/useConversations';
 import { getOrCreateDirectConversation, markConversationAsRead } from './messaging/services/conversationService';
@@ -40,12 +42,13 @@ function isUuid(str) {
 }
 
 function MainAppContent() {
-  const { user, isAuthenticated, authRoute, loadingSession } = useAuth();
+  const { user, isAuthenticated, authRoute, loadingSession, logout, updateProfile: updateAuthProfile } = useAuth();
   const currentUserId = isAuthenticated ? user?.id : null;
   const { conversations: rawConversations, hasUnreadMessages } = useConversations(currentUserId);
   const conversations = rawConversations || [];
 
   const [activeTab, setActiveTab] = useState('home');
+  const [isOnboardingActive, setIsOnboardingActive] = useState(false);
   const [activeDomainId, setActiveDomainId] = useState('tech');
 
   // Domain sub-navigation state
@@ -172,6 +175,13 @@ function MainAppContent() {
     }
   }, []);
 
+  // Resume or start profile setup wizard for new users with incomplete setup
+  useEffect(() => {
+    if (isAuthenticated && user?.isNewUser && !user?.onboarding_completed) {
+      setIsOnboardingActive(true);
+    }
+  }, [isAuthenticated, user?.isNewUser, user?.onboarding_completed]);
+
   if (loadingSession) {
     return (
       <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: '500', fontSize: '14px' }}>
@@ -186,6 +196,40 @@ function MainAppContent() {
         {authRoute === 'signup' && <SignUp />}
         {authRoute === 'forgot-password' && <ForgotPassword />}
         {authRoute === 'login' && <Login />}
+      </div>
+    );
+  }
+
+  // Resume profile setup wizard for new users with incomplete setup
+  if (isOnboardingActive) {
+    return (
+      <div className="app-shell">
+        <Header
+          showSearchIcon={false}
+          onSearchClick={() => {}}
+          onNotificationClick={() => {}}
+          isNotificationActive={false}
+        />
+        <div className="app-body" style={{ justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}>
+          <div className="main-content" style={{ maxWidth: '720px', margin: '0 auto', width: '100%' }}>
+            <ProfileSetupWizard
+              profileUser={user}
+              initialStep={user?.firstIncompleteStep || 1}
+              onSave={async (updates) => {
+                await updateBasicProfile(user.id, updates);
+                if (updateAuthProfile) {
+                  updateAuthProfile({ ...updates, onboarding_completed: true, isNewUser: false });
+                }
+                setIsOnboardingActive(false);
+                setActiveTab('home');
+              }}
+              onCancel={() => {
+                setIsOnboardingActive(false);
+                setActiveTab('home');
+              }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
@@ -532,6 +576,7 @@ function MainAppContent() {
               onSelectAchievements={handleOpenAchievements}
               onSelectSavedPosts={handleOpenSavedPosts}
               onSelectProfileDetails={() => handleOpenProfileDetails(null, 'menu')}
+              onLogout={logout}
             />
           );
         }

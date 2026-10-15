@@ -9,7 +9,7 @@ export default function Header({
   onNotificationClick,
   isNotificationActive = false
 }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const currentUserId = user?.id;
   const { unreadCount } = useNotifications(currentUserId);
 
@@ -23,6 +23,10 @@ export default function Header({
     .join('')
     .substring(0, 2)
     .toUpperCase();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <header className="app-header">
@@ -66,6 +70,21 @@ export default function Header({
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           <NotificationBadge unreadCount={unreadCount} />
+        </button>
+
+        {/* Top-Right Log Out Icon */}
+        <button
+          className="header-icon-btn header-logout-btn"
+          aria-label="Log Out"
+          title="Log Out"
+          id="header-logout-btn"
+          onClick={handleLogout}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
         </button>
       </div>
     </header>
