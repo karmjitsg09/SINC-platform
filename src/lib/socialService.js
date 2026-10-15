@@ -371,8 +371,13 @@ export const respondToFollowRequest = async (requestId, currentUserId, targetUse
         .from('follow_requests')
         .update({ status: newStatus, updated_at: new Date().toISOString() });
 
-      if (requestId && !requestId.startsWith('fr-')) {
-        query = query.eq('id', requestId).eq('following_user_id', currentUserId);
+      let cleanReqId = requestId;
+      if (cleanReqId && typeof cleanReqId === 'string' && cleanReqId.startsWith('fr-notif-')) {
+        cleanReqId = cleanReqId.replace('fr-notif-', '');
+      }
+
+      if (cleanReqId && !cleanReqId.startsWith('fr-')) {
+        query = query.eq('id', cleanReqId).eq('following_user_id', currentUserId);
       } else {
         query = query.eq('follower_user_id', targetUserId).eq('following_user_id', currentUserId);
       }
@@ -391,6 +396,14 @@ export const respondToFollowRequest = async (requestId, currentUserId, targetUse
           .eq('recipient_id', currentUserId)
           .eq('actor_id', targetUserId)
           .eq('type', 'follow_request');
+
+        if (cleanReqId) {
+          await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('recipient_id', currentUserId)
+            .eq('entity_id', cleanReqId);
+        }
       } catch (err) {
         console.warn('[socialService] Error marking notification read:', err);
       }

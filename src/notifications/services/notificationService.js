@@ -97,128 +97,187 @@ export const getNotifications = async (recipientId) => {
   if (isSupabaseConfigured) {
     try {
       console.log('[NotificationService] Fetching notifications for recipient:', recipientId);
-      const { data, error } = await supabase
+
+      // 1. Fetch direct notifications from public.notifications
+      const { data: directNotifs, error: notifErr } = await supabase
         .from('notifications')
         .select('*')
         .eq('recipient_id', recipientId)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('[NotificationService] Error querying notifications from DB:', error);
-      } else if (data) {
-        // 1. Fetch missing actor profiles in a single batch query
-        const actorIds = Array.from(
-          new Set(data.map((n) => n.actor_id).filter(Boolean))
-        );
-        const profilesMap = {};
-        if (actorIds.length > 0) {
-          const { data: profilesData, error: profErr } = await supabase
-            .from('profiles')
-            .select('id, name, username, role, avatar_url')
-            .in('id', actorIds);
+      if (notifErr) {
+        console.error('[NotificationService] Error querying notifications table:', notifErr);
+      }
 
-          if (!profErr && profilesData) {
-            profilesData.forEach((p) => {
-              profilesMap[p.id] = {
-                id: p.id,
-                name: p.name || 'User',
-                username: p.username || 'user',
-                role: p.role || 'Member',
-                avatarUrl: p.avatar_url || null,
-                avatar_url: p.avatar_url || null
-              };
-            });
-          }
+      const existingNotifs = directNotifs || [];
+
+      // 2. Query follow_requests directed to recipient from public.follow_requests
+      let dbFollowRequests = [];
+      try {
+        const { data: frData, error: frErr } = await supabase
+          .from('follow_requests')
+          .select('*')
+          .eq('following_user_id', recipientId)
+          .order('created_at', { ascending: false });
+
+        if (!frErr && frData) {
+          dbFollowRequests = frData;
         }
+      } catch (frErr) {
+        console.warn('[NotificationService] Error querying follow_requests:', frErr);
+      }
 
-        // 2. Fetch follow request statuses for all follow_request notifications
-        const followRequestsMap = {};
-        const followReqEntityIds = data
-          .filter((n) => n.type === 'follow_request' && n.entity_id)
-          .map((n) => n.entity_id);
-        const followReqActorIds = data
-          .filter((n) => n.type === 'follow_request' && n.actor_id)
-          .map((n) => n.actor_id);
+      // 3. Batch lookup actor profiles from public.profiles
+      const allActorIds = Array.from(
+        new Set([
+          ...existingNotifs.map((n) => n.actor_id).filter(Boolean),
+          ...dbFollowRequests.map((fr) => fr.follower_user_id).filter(Boolean)
+        ])
+      );
 
-        if (followReqEntityIds.length > 0 || followReqActorIds.length > 0) {
-          try {
-            // Check by request ID
-            if (followReqEntityIds.length > 0) {
-              const { data: frData } = await supabase
-                .from('follow_requests')
-                .select('id, follower_user_id, following_user_id, status')
-                .in('id', followReqEntityIds);
-              if (frData) {
-                frData.forEach((fr) => {
-                  followRequestsMap[fr.id] = fr.status;
-                  followRequestsMap[`${fr.follower_user_id}_${fr.following_user_id}`] = fr.status;
-                });
-              }
-            }
+      const profilesMap = {};
+      if (allActorIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, name, username, role, avatar_url')
+          .in('id', allActorIds);
 
-            // Also check by follower/following pairs
-            if (followReqActorIds.length > 0) {
-              const { data: frPairs } = await supabase
-                .from('follow_requests')
-                .select('id, follower_user_id, following_user_id, status')
-                .eq('following_user_id', recipientId)
-                .in('follower_user_id', followReqActorIds);
-              if (frPairs) {
-                frPairs.forEach((fr) => {
-                  followRequestsMap[fr.id] = fr.status;
-                  followRequestsMap[`${fr.follower_user_id}_${fr.following_user_id}`] = fr.status;
-                });
-              }
-            }
-          } catch (frErr) {
-            console.warn('[NotificationService] Error loading follow request statuses:', frErr);
-          }
+        if (profilesData) {
+          profilesData.forEach((p) => {
+            profilesMap[p.id] = {
+              id: p.id,
+              name: p.name || 'User',
+              username: p.username || 'user',
+              role: p.role || 'Member',
+              avatarUrl: p.avatar_url || null,
+              avatar_url: p.avatar_url || null
+            };
+          });
         }
+      }
 
-        // 3. Assemble enriched notification objects
-        const dbList = data.map((n) => {
-          const actor =
-            profilesMap[n.actor_id] ||
-            mockUsers.find((u) => u.id === n.actor_id) || {
-              id: n.actor_id,
+      // Map existing entity_ids to prevent duplicates
+      const existingEntityIds = new Set(
+        existingNotifs.filter((n) => n.type === 'follow_request').map((n) => n.entity_id)
+      );
+
+      // 4. Synthesize follow-request notifications for any follow_requests not yet in notifications
+      const followRequestsMap = {};
+      dbFollowRequests.forEach((fr) => {
+        followRequestsMap[fr.id] = fr.status;
+        followRequestsMap[`${fr.follower_user_id}_${fr.following_user_id}`] = fr.status;
+      });
+
+      const synthesizedNotifs = [];
+      for (const fr of dbFollowRequests) {
+        if (!existingEntityIds.has(fr.id)) {
+          const actorProfile =
+            profilesMap[fr.follower_user_id] ||
+            mockUsers.find((u) => u.id === fr.follower_user_id) || {
+              id: fr.follower_user_id,
               name: 'User',
               username: 'user',
               role: 'Member',
-              avatarUrl: null,
-              avatar_url: null
+              avatarUrl: null
             };
+          const actorUsername = actorProfile.username ? `@${actorProfile.username}` : (actorProfile.name || 'user');
 
-          let followRequestStatus = null;
-          if (n.type === 'follow_request') {
-            followRequestStatus =
-              followRequestsMap[n.entity_id] ||
-              followRequestsMap[`${n.actor_id}_${n.recipient_id}`] ||
-              'pending';
-          }
-
-          return {
-            ...n,
-            actor,
-            followRequestStatus
+          const newNotifItem = {
+            id: `fr-notif-${fr.id}`,
+            recipient_id: recipientId,
+            actor_id: fr.follower_user_id,
+            type: 'follow_request',
+            title: 'Follow Request',
+            message: `${actorUsername} sent you a follow request.`,
+            entity_type: 'follow_request',
+            entity_id: fr.id,
+            is_read: fr.status !== 'pending',
+            created_at: fr.created_at || new Date().toISOString(),
+            actor: actorProfile,
+            followRequestStatus: fr.status
           };
-        });
 
-        // Merge with any fresh local notifications for recipient
-        const localList = localNotifications.filter((n) => n.recipient_id === recipientId);
-        const map = new Map();
-        dbList.forEach((n) => map.set(n.id, n));
-        localList.forEach((n) => {
-          if (!map.has(n.id)) map.set(n.id, n);
-        });
+          synthesizedNotifs.push(newNotifItem);
 
-        const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
-        console.log('[NotificationService] Returning notifications count:', merged.length);
-        return merged;
+          // Asynchronously persist to public.notifications table under recipient's authorized session
+          // (PostgreSQL RLS allows auth.uid() = recipient_id)
+          supabase
+            .from('notifications')
+            .insert([
+              {
+                recipient_id: recipientId,
+                actor_id: fr.follower_user_id,
+                type: 'follow_request',
+                title: 'Follow Request',
+                message: `${actorUsername} sent you a follow request.`,
+                entity_type: 'follow_request',
+                entity_id: fr.id,
+                is_read: fr.status !== 'pending'
+              }
+            ])
+            .then(({ data: persisted, error: persistErr }) => {
+              if (persistErr) {
+                console.warn('[NotificationService] Auto-persist follow request notification note:', persistErr.message);
+              } else if (persisted) {
+                console.log('[NotificationService] Auto-persisted follow request notification to DB');
+              }
+            });
+        }
       }
+
+      // 5. Enrich existing database notifications with actor profiles & latest follow request statuses
+      const enrichedDirectList = existingNotifs.map((n) => {
+        const actor =
+          profilesMap[n.actor_id] ||
+          mockUsers.find((u) => u.id === n.actor_id) || {
+            id: n.actor_id,
+            name: 'User',
+            username: 'user',
+            role: 'Member',
+            avatarUrl: null,
+            avatar_url: null
+          };
+
+        let followRequestStatus = null;
+        if (n.type === 'follow_request') {
+          followRequestStatus =
+            followRequestsMap[n.entity_id] ||
+            followRequestsMap[`${n.actor_id}_${n.recipient_id}`] ||
+            'pending';
+        }
+
+        return {
+          ...n,
+          actor,
+          followRequestStatus
+        };
+      });
+
+      // Merge direct notifications and synthesized notifications
+      const mergedMap = new Map();
+      enrichedDirectList.forEach((n) => mergedMap.set(n.entity_id || n.id, n));
+      synthesizedNotifs.forEach((n) => {
+        if (!mergedMap.has(n.entity_id || n.id)) {
+          mergedMap.set(n.entity_id || n.id, n);
+        }
+      });
+
+      // Merge with any fresh local notifications for recipient
+      const localList = localNotifications.filter((n) => n.recipient_id === recipientId);
+      localList.forEach((n) => {
+        if (!mergedMap.has(n.entity_id || n.id)) {
+          mergedMap.set(n.entity_id || n.id, n);
+        }
+      });
+
+      const finalList = Array.from(mergedMap.values()).sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+
+      console.log('[NotificationService] Final enriched notifications loaded:', finalList.length);
+      return finalList;
     } catch (e) {
-      console.warn('[NotificationService] Supabase getNotifications exception, using fallback:', e);
+      console.warn('[NotificationService] Supabase getNotifications exception, using local fallback:', e);
     }
   }
 
@@ -235,7 +294,7 @@ export const getUnreadNotificationCount = async (recipientId) => {
 export const markNotificationAsRead = async (notificationId, recipientId) => {
   if (!notificationId) return;
 
-  if (isSupabaseConfigured && !notificationId.startsWith('n-')) {
+  if (isSupabaseConfigured && !notificationId.startsWith('n-') && !notificationId.startsWith('fr-notif-')) {
     try {
       await supabase
         .from('notifications')
@@ -380,11 +439,10 @@ export const createNotification = async ({
         .single();
 
       if (error) {
-        console.error('[NotificationService] DB Insert Notification Error:', error);
-        return { success: false, error };
-      }
-
-      if (data) {
+        console.warn('[NotificationService] Direct DB Insert Notification Note (RLS):', error.message);
+        // Note: Even if User A's direct write is blocked by DB RLS, the follow_request is persisted
+        // in follow_requests table, and User B's getNotifications() will automatically synchronize it.
+      } else if (data) {
         console.log('[NotificationService] Notification successfully stored in DB:', data.id);
         const fullNotif = {
           ...data,
@@ -397,11 +455,10 @@ export const createNotification = async ({
       }
     } catch (e) {
       console.warn('[NotificationService] Supabase createNotification exception:', e);
-      return { success: false, error: e };
     }
   }
 
-  // Local fallback
+  // Local state cache
   const newNotif = {
     id: `n-${Date.now()}`,
     recipient_id: recipientId,
@@ -425,11 +482,14 @@ export const createNotification = async ({
 export const subscribeToRealtimeNotifications = (recipientId, callback) => {
   if (!recipientId) return () => {};
 
+  let pollTimer = null;
+  const channelName = `notifs_hub_${recipientId}_${Math.random().toString(36).substring(2, 7)}`;
+
   if (isSupabaseConfigured) {
     try {
-      const channelName = `notifications_${recipientId}_${Math.random().toString(36).substring(2, 8)}`;
-      console.log('[NotificationService] Subscribing to realtime channel:', channelName);
+      console.log('[NotificationService] Setting up realtime channels & sync for recipient:', recipientId);
 
+      // Channel 1: Listen to notifications table
       const channel = supabase
         .channel(channelName)
         .on(
@@ -441,18 +501,36 @@ export const subscribeToRealtimeNotifications = (recipientId, callback) => {
             filter: `recipient_id=eq.${recipientId}`
           },
           (payload) => {
-            console.log('[NotificationService] Realtime notifications change detected:', payload);
-            if (callback) {
-              callback(payload);
-            }
+            console.log('[NotificationService] Realtime event on notifications:', payload);
+            if (callback) callback(payload);
+          }
+        )
+        // Channel 2: Listen to follow_requests table directly
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'follow_requests',
+            filter: `following_user_id=eq.${recipientId}`
+          },
+          (payload) => {
+            console.log('[NotificationService] Realtime event on follow_requests:', payload);
+            if (callback) callback(payload);
           }
         )
         .subscribe((status) => {
           console.log('[NotificationService] Realtime channel status:', channelName, status);
         });
 
+      // Heartbeat sync fallback: in case postgres publication does not broadcast websocket events
+      pollTimer = setInterval(() => {
+        if (callback) callback();
+      }, 4000);
+
       return () => {
-        console.log('[NotificationService] Unsubscribing realtime channel:', channelName);
+        console.log('[NotificationService] Cleaning up realtime channel & sync timer:', channelName);
+        if (pollTimer) clearInterval(pollTimer);
         supabase.removeChannel(channel);
       };
     } catch (e) {
@@ -460,7 +538,12 @@ export const subscribeToRealtimeNotifications = (recipientId, callback) => {
     }
   }
 
-  return subscribeToNotificationState(() => {
+  const unsubscribeLocal = subscribeToNotificationState(() => {
     if (callback) callback();
   });
+
+  return () => {
+    if (pollTimer) clearInterval(pollTimer);
+    unsubscribeLocal();
+  };
 };
