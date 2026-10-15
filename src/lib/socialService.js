@@ -190,10 +190,15 @@ export const getFollowStatus = async (currentUserId, targetUserId) => {
         if (data.status === 'accepted') {
           return { status: 'accepted', request: data };
         }
-        if (data.follower_user_id === currentUserId) {
-          return { status: 'pending_sent', request: data };
-        } else {
-          return { status: 'pending_received', request: data };
+        if (data.status === 'pending') {
+          if (data.follower_user_id === currentUserId) {
+            return { status: 'pending_sent', request: data };
+          } else {
+            return { status: 'pending_received', request: data };
+          }
+        }
+        if (data.status === 'rejected') {
+          return { status: 'none', request: data };
         }
       }
     } catch (e) {
@@ -210,8 +215,11 @@ export const getFollowStatus = async (currentUserId, targetUserId) => {
 
   if (!req) return { status: 'none', request: null };
   if (req.status === 'accepted') return { status: 'accepted', request: req };
-  if (req.follower_user_id === currentUserId) return { status: 'pending_sent', request: req };
-  return { status: 'pending_received', request: req };
+  if (req.status === 'pending') {
+    if (req.follower_user_id === currentUserId) return { status: 'pending_sent', request: req };
+    return { status: 'pending_received', request: req };
+  }
+  return { status: 'none', request: req };
 };
 
 export const sendFollowRequest = async (currentUserId, targetUserId) => {
@@ -343,10 +351,19 @@ export const sendFollowRequest = async (currentUserId, targetUserId) => {
       follower_user_id: currentUserId,
       following_user_id: targetUserId,
       status: 'pending',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     localFollowRequests.push(existingReq);
     notifyListeners();
+  } else if (existingReq.status === 'rejected') {
+    existingReq.status = 'pending';
+    existingReq.updated_at = new Date().toISOString();
+    notifyListeners();
+  } else if (existingReq.status === 'pending') {
+    return { success: true, status: 'pending', request: existingReq };
+  } else if (existingReq.status === 'accepted') {
+    return { success: true, status: 'accepted', request: existingReq };
   }
 
   await createNotification({
@@ -386,6 +403,10 @@ export const respondToFollowRequest = async (requestId, currentUserId, targetUse
       if (error) {
         console.error('[socialService] Error responding to follow request:', error);
         return { success: false, error: error.message };
+      }
+      if (!updatedReq) {
+        console.warn('[socialService] No matching follow request found to update:', { requestId, currentUserId, targetUserId, newStatus });
+        return { success: false, error: 'Follow request not found or not authorized to update' };
       }
 
       // Mark the recipient's follow request notification as read

@@ -170,6 +170,7 @@ export const getNotifications = async (recipientId) => {
 
       const synthesizedNotifs = [];
       for (const fr of dbFollowRequests) {
+        if (fr.status === 'rejected') continue;
         if (!existingEntityIds.has(fr.id)) {
           const actorProfile =
             profilesMap[fr.follower_user_id] ||
@@ -254,11 +255,18 @@ export const getNotifications = async (recipientId) => {
       });
 
       // Merge direct notifications and synthesized notifications
+      // Preserve the newest notification for each entity_id (enrichedDirectList is already sorted created_at DESC)
       const mergedMap = new Map();
-      enrichedDirectList.forEach((n) => mergedMap.set(n.entity_id || n.id, n));
+      enrichedDirectList.forEach((n) => {
+        const key = n.entity_id || n.id;
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, n);
+        }
+      });
       synthesizedNotifs.forEach((n) => {
-        if (!mergedMap.has(n.entity_id || n.id)) {
-          mergedMap.set(n.entity_id || n.id, n);
+        const key = n.entity_id || n.id;
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, n);
         }
       });
 
@@ -399,7 +407,7 @@ export const createNotification = async ({
 
   if (isSupabaseConfigured) {
     try {
-      // Duplicate prevention check: do not insert duplicate notification for the same entity event
+      // Duplicate prevention check: only skip if an active unread notification already exists
       if (entityId) {
         const { data: existingNotif } = await supabase
           .from('notifications')
@@ -408,10 +416,11 @@ export const createNotification = async ({
           .eq('actor_id', actorId)
           .eq('type', type)
           .eq('entity_id', String(entityId))
+          .eq('is_read', false)
           .maybeSingle();
 
         if (existingNotif) {
-          console.log('[NotificationService] Notification already exists in DB:', existingNotif.id);
+          console.log('[NotificationService] Active unread notification already exists in DB:', existingNotif.id);
           const fullExisting = {
             ...existingNotif,
             actor,

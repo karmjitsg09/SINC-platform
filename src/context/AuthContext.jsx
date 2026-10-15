@@ -8,14 +8,33 @@ const AuthContext = createContext(null);
 const activeProfileFetchPromises = new Map();
 
 export function AuthProvider({ children }) {
+  const getInitialAuthRoute = () => {
+    const path = typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '';
+    if (path === '/signup') return 'signup';
+    if (path === '/forgot-password') return 'forgot-password';
+    return 'login';
+  };
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [authRoute, setAuthRoute] = useState('login'); // 'login' | 'signup' | 'forgot-password'
+  const [authRoute, setAuthRoute] = useState(getInitialAuthRoute); // 'login' | 'signup' | 'forgot-password'
   const [loadingSession, setLoadingSession] = useState(true);
   const [oauthError, setOauthError] = useState('');
 
   const currentUserRef = useRef(null);
   currentUserRef.current = user;
+
+  // Listen to popstate when unauthenticated to sync login / signup routes
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path === '/signup') setAuthRoute('signup');
+      else if (path === '/forgot-password') setAuthRoute('forgot-password');
+      else if (path === '/login') setAuthRoute('login');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Check URL parameters for OAuth errors on initial page load
   useEffect(() => {
@@ -534,10 +553,17 @@ export function AuthProvider({ children }) {
     setUser(null);
     setAuthRoute('login');
     setOauthError('');
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.history.pushState({ authRoute: 'login' }, '', '/login');
+    }
   };
 
   const navigateAuth = (route) => {
     setAuthRoute(route);
+    const targetPath = route === 'login' ? '/login' : route === 'signup' ? '/signup' : '/forgot-password';
+    if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
+      window.history.pushState({ authRoute: route }, '', targetPath);
+    }
   };
 
   const clearOauthError = () => {

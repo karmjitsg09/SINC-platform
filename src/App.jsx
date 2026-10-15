@@ -35,6 +35,7 @@ import { updateBasicProfile } from './lib/profileService';
 import { useConversations } from './messaging/hooks/useConversations';
 import { getOrCreateDirectConversation, markConversationAsRead } from './messaging/services/conversationService';
 import { domains, users, FEED_CATEGORIES } from './data/mockData';
+import { parseRoute, pushRoute, replaceRoute } from './lib/routeUtils';
 
 function isUuid(str) {
   if (typeof str !== 'string') return false;
@@ -47,28 +48,41 @@ function MainAppContent() {
   const { conversations: rawConversations, hasUnreadMessages } = useConversations(currentUserId);
   const conversations = rawConversations || [];
 
-  const [activeTab, setActiveTab] = useState('home');
+  // Parse initial route from address bar on page load or refresh
+  const initialRoute = React.useMemo(() => {
+    return parseRoute(
+      typeof window !== 'undefined' ? window.location.pathname : '/',
+      typeof window !== 'undefined' ? window.location.hash : '',
+      typeof window !== 'undefined' ? window.location.search : ''
+    );
+  }, []);
+
+  const [activeTab, setActiveTab] = useState(initialRoute.tab || 'home');
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
-  const [activeDomainId, setActiveDomainId] = useState('tech');
+  const [activeDomainId, setActiveDomainId] = useState(initialRoute.activeDomainId || 'tech');
 
   // Domain sub-navigation state
-  const [domainSubView, setDomainSubView] = useState('list'); // 'list' | 'domain' | 'chat'
-  const [selectedChannel, setSelectedChannel] = useState(null);
+  const [domainSubView, setDomainSubView] = useState(initialRoute.domainSubView || 'list'); // 'list' | 'domain' | 'chat'
+  const [selectedChannel, setSelectedChannel] = useState(
+    initialRoute.channelId ? { id: initialRoute.channelId, title: initialRoute.channelId } : null
+  );
 
   // Messages sub-navigation state
-  const [messagesSubView, setMessagesSubView] = useState('list'); // 'list' | 'detail'
-  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messagesSubView, setMessagesSubView] = useState(initialRoute.messagesSubView || 'list'); // 'list' | 'detail'
+  const [selectedConversation, setSelectedConversation] = useState(
+    initialRoute.conversationId ? { id: initialRoute.conversationId } : null
+  );
 
   // Profile sub-navigation state
-  const [selectedProfileUser, setSelectedProfileUser] = useState(null);
+  const [selectedProfileUser, setSelectedProfileUser] = useState(
+    initialRoute.targetUserId ? { id: initialRoute.targetUserId } : null
+  );
   const [profileOriginTab, setProfileOriginTab] = useState('search');
-  const [profileSubView, setProfileSubView] = useState('view'); // 'view' | 'create-post' | 'item-updates'
-  const [profileDetailsOrigin, setProfileDetailsOrigin] = useState('view'); // tracks where 'details' was opened from
-  const [activeUpdatesContext, setActiveUpdatesContext] = useState(null); // { itemType, itemId, item, previousSubView }
+  const [profileSubView, setProfileSubView] = useState(initialRoute.profileSubView || 'view');
+  const [profileDetailsOrigin, setProfileDetailsOrigin] = useState('view');
+  const [activeUpdatesContext, setActiveUpdatesContext] = useState(null);
 
-  // Home Feed category state — INDEPENDENT from domain state.
-  // Controls which category is shown in the Home feed rail.
-  // Never affects user domain memberships or DomainChat.
+  // Home Feed category state
   const [selectedFeedCategory, setSelectedFeedCategory] = useState('all');
   const [selectedUpdateCategory, setSelectedUpdateCategory] = useState('all');
   const [storyViewerGroup, setStoryViewerGroup] = useState(null);
@@ -77,7 +91,7 @@ function MainAppContent() {
   const [targetPostId, setTargetPostId] = useState(null);
 
   // Dedicated Post View navigation state
-  const [activePostId, setActivePostId] = useState(null);
+  const [activePostId, setActivePostId] = useState(initialRoute.activePostId || null);
   const [postViewReturnState, setPostViewReturnState] = useState(null);
 
   // Filter available domains based on authenticated user's selected domain memberships
@@ -99,6 +113,20 @@ function MainAppContent() {
 
   const activeDomain = userDomains.find((d) => d.id === activeDomainId) || userDomains[0] || domains[0];
 
+  // Resolve active conversation by merging with fetched list if available
+  const activeConversation = React.useMemo(() => {
+    if (!selectedConversation) return null;
+    const found = conversations.find((c) => c.id === selectedConversation.id);
+    return found ? { ...selectedConversation, ...found } : selectedConversation;
+  }, [conversations, selectedConversation]);
+
+  // Resolve active profile user by merging with mock data if available
+  const activeProfileUser = React.useMemo(() => {
+    if (!selectedProfileUser) return null;
+    const found = users.find((u) => u.id === selectedProfileUser.id);
+    return found ? { ...selectedProfileUser, ...found } : selectedProfileUser;
+  }, [selectedProfileUser]);
+
   const handleViewAllUpdates = (itemType, item) => {
     setActiveUpdatesContext({
       itemType,
@@ -107,13 +135,21 @@ function MainAppContent() {
       previousSubView: profileSubView
     });
     setProfileSubView('item-updates');
-    window.history.pushState({ type: 'profile-item-updates' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'item-updates' });
   };
 
-  // Browser history popstate handler
+  // Browser history popstate handler — synchronizes application state with browser back/forward buttons
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.hash.startsWith('#post-')) {
+      const parsed = parseRoute(window.location.pathname, window.location.hash, window.location.search);
+
+      if (parsed.tab === 'post-view' && parsed.activePostId) {
+        setActivePostId(parsed.activePostId);
+        setActiveTab('post-view');
+        return;
+      }
+
+      if (parsed.tab === 'home' && window.location.hash.startsWith('#post-')) {
         const hashId = window.location.hash.replace('#post-', '');
         if (isUuid(hashId)) {
           setActivePostId(hashId);
@@ -122,47 +158,38 @@ function MainAppContent() {
         }
       }
 
-      if (activeTab === 'post-view') {
-        if (postViewReturnState) {
-          const { activeTab: prevTab, messagesSubView: prevSubView, conversation, selectedConversation: prevConv, profileSubView: prevProfileSubView } = postViewReturnState;
-          const targetConv = conversation || prevConv;
+      setActiveTab(parsed.tab || 'home');
 
-          setActiveTab(prevTab || 'messages');
-          if (prevTab === 'messages') {
-            setMessagesSubView(prevSubView || 'detail');
-            if (targetConv) {
-              setSelectedConversation(targetConv);
-            }
-          } else if (prevTab === 'profile') {
-            setProfileSubView(prevProfileSubView || 'view');
-          }
-          setActivePostId(null);
-          setPostViewReturnState(null);
+      if (parsed.tab === 'messages') {
+        setMessagesSubView(parsed.messagesSubView || 'list');
+        if (parsed.conversationId) {
+          setSelectedConversation((prev) => (prev?.id === parsed.conversationId ? prev : { id: parsed.conversationId }));
         } else {
-          setActiveTab('messages');
-          setMessagesSubView('list');
-          setActivePostId(null);
+          setSelectedConversation(null);
         }
-      } else if (activeTab === 'update-story-viewer') {
-        setStoryViewerGroup(null);
-        setStoryViewerGroups([]);
-        setActiveTab('home');
-      } else if (activeTab === 'profile') {
-        if (profileSubView === 'item-updates') {
-          setProfileSubView(activeUpdatesContext?.previousSubView || 'menu');
-        } else if (profileSubView === 'details') {
-          setProfileSubView(profileDetailsOrigin || 'view');
-        } else if (['projects', 'experience', 'education', 'certifications', 'achievements', 'saved-posts'].includes(profileSubView)) {
-          setProfileSubView('menu');
-        } else if (profileSubView === 'menu') {
-          setProfileSubView('view');
+      } else if (parsed.tab === 'domains') {
+        setDomainSubView(parsed.domainSubView || 'list');
+        if (parsed.activeDomainId) {
+          setActiveDomainId(parsed.activeDomainId);
+        }
+        if (parsed.channelId) {
+          setSelectedChannel((prev) => (prev?.id === parsed.channelId ? prev : { id: parsed.channelId, title: parsed.channelId }));
+        } else {
+          setSelectedChannel(null);
+        }
+      } else if (parsed.tab === 'profile') {
+        setProfileSubView(parsed.profileSubView || 'view');
+        if (parsed.targetUserId) {
+          setSelectedProfileUser((prev) => (prev?.id === parsed.targetUserId ? prev : { id: parsed.targetUserId }));
+        } else {
+          setSelectedProfileUser(null);
         }
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [activeTab, postViewReturnState, profileSubView, activeUpdatesContext, profileDetailsOrigin]);
+  }, []);
 
   // Initial load check for direct #post-<uuid> links
   useEffect(() => {
@@ -174,6 +201,22 @@ function MainAppContent() {
       }
     }
   }, []);
+
+  // Sync auth routes when authentication state changes
+  useEffect(() => {
+    if (!loadingSession) {
+      const lower = window.location.pathname.toLowerCase();
+      if (isAuthenticated) {
+        if (lower === '/login' || lower === '/signup' || lower === '/forgot-password') {
+          replaceRoute({ tab: 'home' });
+        }
+      } else {
+        if (lower !== '/login' && lower !== '/signup' && lower !== '/forgot-password') {
+          window.history.replaceState({ authRoute: 'login' }, '', '/login');
+        }
+      }
+    }
+  }, [isAuthenticated, loadingSession]);
 
   // Resume or start profile setup wizard for new users with incomplete setup
   useEffect(() => {
@@ -222,10 +265,12 @@ function MainAppContent() {
                 }
                 setIsOnboardingActive(false);
                 setActiveTab('home');
+                pushRoute({ tab: 'home' });
               }}
               onCancel={() => {
                 setIsOnboardingActive(false);
                 setActiveTab('home');
+                pushRoute({ tab: 'home' });
               }}
             />
           </div>
@@ -238,6 +283,7 @@ function MainAppContent() {
     if (!postId) return;
     setTargetPostId(postId);
     setActiveTab('home');
+    pushRoute({ tab: 'home' });
   };
 
   const handleNavigateToPostView = (postId, returnContext = null) => {
@@ -252,16 +298,7 @@ function MainAppContent() {
     setActivePostId(postId);
     setActiveTab('post-view');
 
-    // Push state so browser Back button works naturally
-    window.history.pushState(
-      {
-        type: 'post-view',
-        postId,
-        returnContext: ctx
-      },
-      '',
-      '#post-' + postId
-    );
+    pushRoute({ tab: 'post-view', activePostId: postId });
   };
 
   const handleBackFromPostView = () => {
@@ -280,23 +317,25 @@ function MainAppContent() {
         setMessagesSubView(prevSubView || 'detail');
         if (targetConv) {
           setSelectedConversation(targetConv);
+          pushRoute({ tab: 'messages', messagesSubView: prevSubView || 'detail', conversationId: targetConv.id });
+        } else {
+          pushRoute({ tab: 'messages', messagesSubView: 'list' });
         }
       } else if (prevTab === 'profile') {
         setProfileSubView(prevProfileSubView || 'view');
+        pushRoute({ tab: 'profile', profileSubView: prevProfileSubView || 'view' });
+      } else if (prevTab === 'notifications') {
+        pushRoute({ tab: 'notifications' });
+      } else {
+        pushRoute({ tab: prevTab || 'home' });
       }
       setActivePostId(null);
       setPostViewReturnState(null);
-
-      if (window.location.hash.startsWith('#post-')) {
-        window.history.pushState(null, '', window.location.pathname);
-      }
     } else {
       setActiveTab('messages');
       setMessagesSubView('list');
       setActivePostId(null);
-      if (window.location.hash.startsWith('#post-')) {
-        window.history.pushState(null, '', window.location.pathname);
-      }
+      pushRoute({ tab: 'messages', messagesSubView: 'list' });
     }
   };
 
@@ -304,54 +343,55 @@ function MainAppContent() {
     if (targetUser) {
       setSelectedProfileUser(targetUser);
     }
-    // Track origin so Back button returns to the correct subview
     const detailsOrigin = origin || profileSubView || 'view';
     setProfileDetailsOrigin(detailsOrigin);
     setProfileSubView('details');
-    window.history.pushState({ type: 'profile-details', userId: targetUser?.id || currentUserId }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'details', targetUserId: targetUser?.id });
   };
 
   const handleOpenProfileMenu = () => {
     setProfileSubView('menu');
-    window.history.pushState({ type: 'profile-menu' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'menu' });
   };
 
   const handleOpenProjects = () => {
     setProfileSubView('projects');
-    window.history.pushState({ type: 'profile-projects' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'projects' });
   };
 
   const handleOpenExperience = () => {
     setProfileSubView('experience');
-    window.history.pushState({ type: 'profile-experience' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'experience' });
   };
 
   const handleOpenEducation = () => {
     setProfileSubView('education');
-    window.history.pushState({ type: 'profile-education' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'education' });
   };
 
   const handleOpenCertifications = () => {
     setProfileSubView('certifications');
-    window.history.pushState({ type: 'profile-certifications' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'certifications' });
   };
 
   const handleOpenAchievements = () => {
     setProfileSubView('achievements');
-    window.history.pushState({ type: 'profile-achievements' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'achievements' });
   };
 
   const handleOpenSavedPosts = () => {
     setProfileSubView('saved-posts');
-    window.history.pushState({ type: 'saved-posts' }, '');
+    pushRoute({ tab: 'profile', profileSubView: 'saved-posts' });
   };
 
   const handleBackFromSavedPosts = () => {
     setProfileSubView('menu');
+    pushRoute({ tab: 'profile', profileSubView: 'menu' });
   };
 
   const handleBackFromProfileMenu = () => {
     setProfileSubView('view');
+    pushRoute({ tab: 'profile', profileSubView: 'view', targetUserId: selectedProfileUser?.id });
   };
 
   const handleTabChange = (tabId) => {
@@ -362,17 +402,24 @@ function MainAppContent() {
     if (tabId !== 'post-view') {
       setActivePostId(null);
       setPostViewReturnState(null);
-      if (window.location.hash.startsWith('#post-')) {
-        window.history.pushState(null, '', window.location.pathname);
-      }
     }
     if (tabId === 'domains') {
       setDomainSubView('list');
+      pushRoute({ tab: 'domains', domainSubView: 'list' });
     } else if (tabId === 'messages') {
       setMessagesSubView('list');
+      setSelectedConversation(null);
+      pushRoute({ tab: 'messages', messagesSubView: 'list' });
     } else if (tabId === 'profile') {
       setSelectedProfileUser(null);
       setProfileSubView('view');
+      pushRoute({ tab: 'profile', profileSubView: 'view' });
+    } else if (tabId === 'notifications') {
+      pushRoute({ tab: 'notifications' });
+    } else if (tabId === 'search') {
+      pushRoute({ tab: 'search' });
+    } else {
+      pushRoute({ tab: 'home' });
     }
   };
 
@@ -380,17 +427,20 @@ function MainAppContent() {
     setActiveDomainId(domainId);
     if (activeTab === 'domains') {
       setDomainSubView('domain');
+      pushRoute({ tab: 'domains', domainSubView: 'domain', activeDomainId: domainId });
     }
   };
 
   const handleSelectDomainFromList = (domain) => {
     setActiveDomainId(domain.id);
     setDomainSubView('domain');
+    pushRoute({ tab: 'domains', domainSubView: 'domain', activeDomainId: domain.id });
   };
 
   const handleSelectChannel = (channel) => {
     setSelectedChannel(channel);
     setDomainSubView('chat');
+    pushRoute({ tab: 'domains', domainSubView: 'chat', activeDomainId, channelId: channel.id });
   };
 
   const handleSelectConversation = async (convOrUser) => {
@@ -398,31 +448,27 @@ function MainAppContent() {
       setSelectedConversation(null);
       setActiveTab('messages');
       setMessagesSubView('list');
+      pushRoute({ tab: 'messages', messagesSubView: 'list' });
       return;
     }
 
     if (isResolvingConversation) return;
-
-    console.log('[CHAT NAV DEBUG] clicked user:', convOrUser);
-    console.log('[CHAT NAV DEBUG] current user:', user?.id);
 
     if (convOrUser.id && isUuid(convOrUser.id)) {
       if (user?.id) markConversationAsRead(convOrUser.id, user.id);
       setSelectedConversation(convOrUser);
       setActiveTab('messages');
       setMessagesSubView('detail');
-      console.log('[CHAT NAV DEBUG] navigation target:', convOrUser.id);
+      pushRoute({ tab: 'messages', messagesSubView: 'detail', conversationId: convOrUser.id });
       return;
     }
 
     const targetUserId = convOrUser.otherUser?.id || convOrUser.targetUserId || convOrUser.id;
-    console.log('[CHAT NAV DEBUG] resolving target user id:', targetUserId);
 
     if (user?.id && targetUserId && isUuid(user.id) && isUuid(targetUserId)) {
       setIsResolvingConversation(true);
       try {
         const resolved = await getOrCreateDirectConversation(user.id, targetUserId, convOrUser.otherUser || convOrUser);
-        console.log('[CHAT NAV DEBUG] resolved conversation:', resolved);
         setIsResolvingConversation(false);
 
         if (resolved && resolved.id && !resolved.error) {
@@ -430,7 +476,7 @@ function MainAppContent() {
           setSelectedConversation(resolved);
           setActiveTab('messages');
           setMessagesSubView('detail');
-          console.log('[CHAT NAV DEBUG] navigation target:', resolved.id);
+          pushRoute({ tab: 'messages', messagesSubView: 'detail', conversationId: resolved.id });
           return;
         } else if (resolved?.error) {
           console.error('[CHAT NAV DEBUG] conversation error:', resolved.error);
@@ -450,6 +496,8 @@ function MainAppContent() {
     setSelectedProfileUser(user);
     setProfileOriginTab(origin || activeTab || 'search');
     setActiveTab('profile');
+    setProfileSubView('view');
+    pushRoute({ tab: 'profile', profileSubView: 'view', targetUserId: user?.id });
   };
 
   const handleOpenConversationFromProfile = async (conversation) => {
@@ -460,17 +508,32 @@ function MainAppContent() {
     setStoryViewerGroup(group);
     setStoryViewerGroups(groups);
     setActiveTab('update-story-viewer');
-    window.history.pushState({ type: 'update-story-viewer' }, '');
   };
 
   const handleCloseStoryViewer = () => {
-    if (window.history.state?.type === 'update-story-viewer') {
-      window.history.back();
-      return;
-    }
     setStoryViewerGroup(null);
     setStoryViewerGroups([]);
     setActiveTab('home');
+    pushRoute({ tab: 'home' });
+  };
+
+  const handleNotificationNavigate = (notif) => {
+    if (!notif) return;
+    if (notif.entity_type === 'user' || notif.type === 'follow_request' || notif.type === 'follow_accepted' || notif.type === 'view_profile') {
+      const targetUser = notif.actor || users.find((u) => u.id === notif.actor_id || u.id === notif.entity_id) || { id: notif.actor_id, name: 'User' };
+      setSelectedProfileUser(targetUser);
+      setActiveTab('profile');
+      setProfileSubView('view');
+      pushRoute({ tab: 'profile', profileSubView: 'view', targetUserId: targetUser.id });
+    } else if (notif.entity_type === 'conversation' || notif.type === 'message') {
+      const conv = { id: notif.entity_id, name: notif.actor?.name || 'User', otherUser: notif.actor };
+      setSelectedConversation(conv);
+      setActiveTab('messages');
+      setMessagesSubView('detail');
+      pushRoute({ tab: 'messages', messagesSubView: 'detail', conversationId: conv.id });
+    } else if (notif.entity_type === 'post') {
+      handleNavigateToPostView(notif.entity_id, { activeTab: 'notifications' });
+    }
   };
 
   const renderScreen = () => {
@@ -526,8 +589,12 @@ function MainAppContent() {
         if (messagesSubView === 'detail') {
           return (
             <MessageDetail
-              conversation={selectedConversation}
-              onBack={() => setMessagesSubView('list')}
+              conversation={activeConversation}
+              onBack={() => {
+                setMessagesSubView('list');
+                setSelectedConversation(null);
+                pushRoute({ tab: 'messages', messagesSubView: 'list' });
+              }}
               onNavigateToPostView={handleNavigateToPostView}
             />
           );
@@ -550,6 +617,7 @@ function MainAppContent() {
               setActiveDomainId(domain.id);
               setActiveTab('domains');
               setDomainSubView('domain');
+              pushRoute({ tab: 'domains', domainSubView: 'domain', activeDomainId: domain.id });
             }}
             onSelectProfile={handleSelectProfileFromSearch}
           />
@@ -559,8 +627,14 @@ function MainAppContent() {
         if (profileSubView === 'create-post') {
           return (
             <CreatePost
-              onBack={() => setProfileSubView('view')}
-              onPostCreated={() => setProfileSubView('view')}
+              onBack={() => {
+                setProfileSubView('view');
+                pushRoute({ tab: 'profile', profileSubView: 'view', targetUserId: selectedProfileUser?.id });
+              }}
+              onPostCreated={() => {
+                setProfileSubView('view');
+                pushRoute({ tab: 'profile', profileSubView: 'view', targetUserId: selectedProfileUser?.id });
+              }}
               initialDomain={selectedFeedCategory !== 'all' ? selectedFeedCategory : activeDomainId || 'tech'}
             />
           );
@@ -583,7 +657,10 @@ function MainAppContent() {
         if (profileSubView === 'projects') {
           return (
             <ProjectsPage
-              onBack={() => setProfileSubView('menu')}
+              onBack={() => {
+                setProfileSubView('menu');
+                pushRoute({ tab: 'profile', profileSubView: 'menu' });
+              }}
               onViewAllUpdates={handleViewAllUpdates}
             />
           );
@@ -591,7 +668,10 @@ function MainAppContent() {
         if (profileSubView === 'experience') {
           return (
             <ExperiencePage
-              onBack={() => setProfileSubView('menu')}
+              onBack={() => {
+                setProfileSubView('menu');
+                pushRoute({ tab: 'profile', profileSubView: 'menu' });
+              }}
               onViewAllUpdates={handleViewAllUpdates}
             />
           );
@@ -599,7 +679,10 @@ function MainAppContent() {
         if (profileSubView === 'education') {
           return (
             <EducationPage
-              onBack={() => setProfileSubView('menu')}
+              onBack={() => {
+                setProfileSubView('menu');
+                pushRoute({ tab: 'profile', profileSubView: 'menu' });
+              }}
               onViewAllUpdates={handleViewAllUpdates}
             />
           );
@@ -607,7 +690,10 @@ function MainAppContent() {
         if (profileSubView === 'certifications') {
           return (
             <CertificationsPage
-              onBack={() => setProfileSubView('menu')}
+              onBack={() => {
+                setProfileSubView('menu');
+                pushRoute({ tab: 'profile', profileSubView: 'menu' });
+              }}
               onViewAllUpdates={handleViewAllUpdates}
             />
           );
@@ -615,7 +701,10 @@ function MainAppContent() {
         if (profileSubView === 'achievements') {
           return (
             <AchievementsPage
-              onBack={() => setProfileSubView('menu')}
+              onBack={() => {
+                setProfileSubView('menu');
+                pushRoute({ tab: 'profile', profileSubView: 'menu' });
+              }}
               onViewAllUpdates={handleViewAllUpdates}
             />
           );
@@ -626,7 +715,11 @@ function MainAppContent() {
               itemType={activeUpdatesContext.itemType}
               itemId={activeUpdatesContext.itemId}
               item={activeUpdatesContext.item}
-              onBack={() => setProfileSubView(activeUpdatesContext.previousSubView || 'menu')}
+              onBack={() => {
+                const prev = activeUpdatesContext?.previousSubView || 'menu';
+                setProfileSubView(prev);
+                pushRoute({ tab: 'profile', profileSubView: prev });
+              }}
               onNavigateToPostView={handleNavigateToPostView}
             />
           );
@@ -638,6 +731,7 @@ function MainAppContent() {
               onExplorePosts={() => {
                 setActiveTab('home');
                 setProfileSubView('view');
+                pushRoute({ tab: 'home' });
               }}
               onNavigateToPostView={handleNavigateToPostView}
               onNavigateToProfile={handleSelectProfileFromSearch}
@@ -647,8 +741,12 @@ function MainAppContent() {
         if (profileSubView === 'details') {
           return (
             <ProfileDetails
-              targetUser={selectedProfileUser || user}
-              onBack={() => setProfileSubView(profileDetailsOrigin || 'view')}
+              targetUser={activeProfileUser || user}
+              onBack={() => {
+                const prev = profileDetailsOrigin || 'view';
+                setProfileSubView(prev);
+                pushRoute({ tab: 'profile', profileSubView: prev, targetUserId: selectedProfileUser?.id });
+              }}
               onViewAllUpdates={handleViewAllUpdates}
               onOpenConversation={handleOpenConversationFromProfile}
               onNavigateToProfile={(u) => handleSelectProfileFromSearch(u, profileOriginTab || 'search')}
@@ -657,13 +755,17 @@ function MainAppContent() {
         }
         return (
           <Profile
-            targetUser={selectedProfileUser}
+            targetUser={activeProfileUser}
             onBack={() => {
               setSelectedProfileUser(null);
               setActiveTab(profileOriginTab || 'search');
+              pushRoute({ tab: profileOriginTab || 'search' });
             }}
             onOpenConversation={handleOpenConversationFromProfile}
-            onOpenCreatePost={() => setProfileSubView('create-post')}
+            onOpenCreatePost={() => {
+              setProfileSubView('create-post');
+              pushRoute({ tab: 'profile', profileSubView: 'create-post' });
+            }}
             onNavigateToProfile={(u) => handleSelectProfileFromSearch(u, profileOriginTab || 'search')}
             onOpenMenu={handleOpenProfileMenu}
             onOpenProfileDetails={handleOpenProfileDetails}
@@ -687,22 +789,6 @@ function MainAppContent() {
     }
   };
 
-  const handleNotificationNavigate = (notif) => {
-    if (!notif) return;
-    if (notif.entity_type === 'user' || notif.type === 'follow_request' || notif.type === 'follow_accepted' || notif.type === 'view_profile') {
-      const targetUser = notif.actor || users.find((u) => u.id === notif.actor_id || u.id === notif.entity_id) || { id: notif.actor_id, name: 'User' };
-      setSelectedProfileUser(targetUser);
-      setActiveTab('profile');
-    } else if (notif.entity_type === 'conversation' || notif.type === 'message') {
-      const conv = { id: notif.entity_id, name: notif.actor?.name || 'User', otherUser: notif.actor };
-      setSelectedConversation(conv);
-      setActiveTab('messages');
-      setMessagesSubView('detail');
-    } else if (notif.entity_type === 'post') {
-      handleNavigateToPostView(notif.entity_id, { activeTab: 'notifications' });
-    }
-  };
-
   return (
     <div className="app-shell">
       {/* Top Header Bar */}
@@ -717,22 +803,13 @@ function MainAppContent() {
       <div className="app-body">
         {activeTab !== 'search' && activeTab !== 'profile' && activeTab !== 'update-story-viewer' && (
           <DomainShortcutRail
-            // Context-aware rail mode:
-            // 'feed'   → Home screen: category filter only, never touches domain state
-            // 'domain' → All other screens: existing domain navigation behaviour
             railMode={activeTab === 'home' ? 'feed' : 'domain'}
-
-            // Feed mode props (Home only)
             feedCategories={FEED_CATEGORIES}
             selectedFeedCategory={selectedFeedCategory}
             onSelectFeedCategory={setSelectedFeedCategory}
-
-            // Domain mode props (Domains and other tabs)
             domains={userDomains}
             activeDomainId={activeDomainId}
             onSelectDomain={handleSelectDomainShortcut}
-
-            // Messages mode props (unchanged)
             isMessagesMode={activeTab === 'messages' || (activeTab === 'post-view' && postViewReturnState?.activeTab === 'messages')}
             conversations={conversations}
             selectedConversationId={selectedConversation?.id || postViewReturnState?.conversationId || postViewReturnState?.conversation?.id}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { getFollowStatus, sendFollowRequest, respondToFollowRequest } from '../lib/socialService';
+import { getFollowStatus, sendFollowRequest, respondToFollowRequest, subscribeToLocalState } from '../lib/socialService';
 import { createPost as createPostService, getPostsByAuthor, subscribeToPostState } from '../lib/postService';
 import { FEED_CATEGORIES } from '../data/mockData';
 import {
@@ -217,7 +217,45 @@ export default function Profile({
     }
 
     checkStatus();
-    return () => { isSubscribed = false; };
+
+    // 1. Subscribe to local state updates
+    const unsubLocal = subscribeToLocalState(() => {
+      if (isSubscribed) checkStatus();
+    });
+
+    // 2. Subscribe to Supabase Realtime changes for follow_requests
+    let channel = null;
+    if (isSupabaseConfigured) {
+      channel = supabase
+        .channel(`follow_status:${currentUser.id}_${activeUserId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'follow_requests'
+          },
+          (payload) => {
+            const row = payload.new || payload.old;
+            if (
+              row &&
+              ((row.follower_user_id === currentUser.id && row.following_user_id === activeUserId) ||
+               (row.follower_user_id === activeUserId && row.following_user_id === currentUser.id))
+            ) {
+              if (isSubscribed) checkStatus();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      isSubscribed = false;
+      unsubLocal();
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [isSelf, currentUser?.id, activeUserId]);
 
   // Follow Actions
