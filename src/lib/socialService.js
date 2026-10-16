@@ -410,17 +410,33 @@ export const respondToFollowRequest = async (requestId, currentUserId, targetUse
         cleanReqId = cleanReqId.replace('fr-notif-', '');
       }
 
+      let updatedReq = null;
       if (cleanReqId && !cleanReqId.startsWith('fr-')) {
-        query = query.eq('id', cleanReqId).eq('following_user_id', currentUserId);
-      } else {
-        query = query.eq('follower_user_id', targetUserId).eq('following_user_id', currentUserId);
+        const { data, error } = await supabase
+          .from('follow_requests')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', cleanReqId)
+          .eq('following_user_id', currentUserId)
+          .select()
+          .maybeSingle();
+        if (!error && data) {
+          updatedReq = data;
+        }
       }
 
-      const { data: updatedReq, error } = await query.select().maybeSingle();
-      if (error) {
-        console.error('[socialService] Error responding to follow request:', error);
-        return { success: false, error: error.message };
+      if (!updatedReq && targetUserId) {
+        const { data, error } = await supabase
+          .from('follow_requests')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('follower_user_id', targetUserId)
+          .eq('following_user_id', currentUserId)
+          .select()
+          .maybeSingle();
+        if (!error && data) {
+          updatedReq = data;
+        }
       }
+
       if (!updatedReq) {
         console.warn('[socialService] No matching follow request found to update:', { requestId, currentUserId, targetUserId, newStatus });
         return { success: false, error: 'Follow request not found or not authorized to update' };

@@ -3,13 +3,10 @@
 -- Adds columns to profiles and creates user_domains membership table
 -- ============================================================
 
--- 1. ADD NEW COLUMNS TO PROFILES TABLE
+-- 1. ADD NEW PUBLIC COLUMNS TO PROFILES TABLE
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS first_name TEXT,
   ADD COLUMN IF NOT EXISTS last_name TEXT,
-  ADD COLUMN IF NOT EXISTS date_of_birth DATE,
-  ADD COLUMN IF NOT EXISTS gender TEXT,
-  ADD COLUMN IF NOT EXISTS gender_custom TEXT,
   ADD COLUMN IF NOT EXISTS languages TEXT[] DEFAULT '{}',
   ADD COLUMN IF NOT EXISTS profession_type TEXT,
   ADD COLUMN IF NOT EXISTS profession_details JSONB DEFAULT '{}'::jsonb,
@@ -25,11 +22,31 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS other_links JSONB DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS preferred_work_location TEXT[] DEFAULT '{}',
   ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb,
-  ADD COLUMN IF NOT EXISTS privacy_settings JSONB DEFAULT '{"dob_visibility":"followers","gender_visibility":"only_me","location_visibility":"followers","profile_visibility":"everyone"}'::jsonb,
   ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS professional_photo_url TEXT,
   ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS profile_setup_completed_steps INTEGER[] DEFAULT '{}';
+
+-- 1B. ADD SENSITIVE PRIVATE COLUMNS TO USER_PRIVATE_DETAILS (OWNER-ONLY RLS)
+CREATE TABLE IF NOT EXISTS public.user_private_details (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  date_of_birth DATE,
+  gender TEXT,
+  gender_custom TEXT,
+  location_address TEXT,
+  location_landmark TEXT,
+  location_pincode TEXT,
+  location_latitude DOUBLE PRECISION,
+  location_longitude DOUBLE PRECISION,
+  privacy_settings JSONB DEFAULT '{"dob_visibility":"followers","gender_visibility":"only_me","location_visibility":"followers","profile_visibility":"everyone"}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.user_private_details ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can only view their own private details" ON public.user_private_details;
+CREATE POLICY "Users can only view their own private details"
+  ON public.user_private_details FOR SELECT
+  USING (auth.uid() = user_id);
 
 -- 2. CREATE USER_DOMAINS MEMBERSHIP TABLE
 CREATE TABLE IF NOT EXISTS public.user_domains (

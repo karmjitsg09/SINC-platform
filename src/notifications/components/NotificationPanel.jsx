@@ -34,12 +34,12 @@ export default function NotificationPanel({ isOpen, onClose, onNavigateEntity, c
         position: 'absolute',
         top: '48px',
         right: '12px',
-        width: '320px',
-        maxHeight: '440px',
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-        border: '1px solid var(--border-app, #e2e8f0)',
+        width: '340px',
+        maxHeight: '460px',
+        backgroundColor: 'var(--bg-card, #ffffff)',
+        borderRadius: '16px',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+        border: '1px solid var(--border-color, #e2e8f0)',
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
@@ -50,14 +50,14 @@ export default function NotificationPanel({ isOpen, onClose, onNavigateEntity, c
       <div
         style={{
           padding: '12px 16px',
-          borderBottom: '1.5px solid var(--border-app, #e2e8f0)',
+          borderBottom: '1px solid var(--border-subtle, #e2e8f0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: '#ffffff'
+          backgroundColor: 'var(--bg-card, #ffffff)'
         }}
       >
-        <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-main, #0f172a)' }}>
+        <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary, #0f172a)' }}>
           Notifications
         </span>
         <button
@@ -112,8 +112,8 @@ export default function NotificationPanel({ isOpen, onClose, onNavigateEntity, c
         <div
           style={{
             padding: '10px 16px',
-            borderTop: '1px solid var(--border-app, #e2e8f0)',
-            backgroundColor: '#f8fafc',
+            borderTop: '1px solid var(--border-subtle, #e2e8f0)',
+            backgroundColor: 'var(--bg-surface-secondary, #f8fafc)',
             textAlign: 'center'
           }}
         >
@@ -123,7 +123,7 @@ export default function NotificationPanel({ isOpen, onClose, onNavigateEntity, c
             style={{
               background: 'none',
               border: 'none',
-              color: '#2563eb',
+              color: 'var(--color-primary-blue, #2563eb)',
               fontSize: '12px',
               fontWeight: '600',
               cursor: 'pointer'

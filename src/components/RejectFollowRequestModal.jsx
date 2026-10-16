@@ -75,12 +75,12 @@ export default function RejectFollowRequestModal({
     >
       <div
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card, #ffffff)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '460px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #e2e8f0',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+          border: '1px solid var(--border-color, #e2e8f0)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -91,7 +91,7 @@ export default function RejectFollowRequestModal({
         <div
           style={{
             padding: '18px 22px',
-            borderBottom: '1px solid #f1f5f9',
+            borderBottom: '1px solid var(--border-subtle, #f1f5f9)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
@@ -102,7 +102,7 @@ export default function RejectFollowRequestModal({
               margin: 0,
               fontSize: '17px',
               fontWeight: '700',
-              color: '#0f172a'
+              color: 'var(--text-primary, #0f172a)'
             }}
           >
             {showBlockConfirm ? 'Confirm Block User' : 'Reject Follow Request?'}
@@ -115,7 +115,7 @@ export default function RejectFollowRequestModal({
               background: 'none',
               border: 'none',
               fontSize: '18px',
-              color: '#94a3b8',
+              color: 'var(--text-muted, #94a3b8)',
               cursor: actionLoading || loading ? 'not-allowed' : 'pointer',
               padding: '4px 8px',
               borderRadius: '6px',
@@ -204,9 +204,9 @@ export default function RejectFollowRequestModal({
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px',
-                  backgroundColor: '#f8fafc',
+                  backgroundColor: 'var(--bg-surface-secondary, #f8fafc)',
                   borderRadius: '12px',
-                  border: '1px solid #e2e8f0'
+                  border: '1px solid var(--border-color, #e2e8f0)'
                 }}
               >
                 <div
@@ -214,7 +214,7 @@ export default function RejectFollowRequestModal({
                     width: '42px',
                     height: '42px',
                     borderRadius: '50%',
-                    backgroundColor: '#2563eb',
+                    backgroundColor: 'var(--color-primary-blue, #2563eb)',
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -232,12 +232,12 @@ export default function RejectFollowRequestModal({
                   )}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: '700', fontSize: '14.5px', color: '#0f172a' }}>{displayName}</div>
-                  <div style={{ fontSize: '13px', color: '#64748b' }}>{username}</div>
+                  <div style={{ fontWeight: '700', fontSize: '14.5px', color: 'var(--text-primary, #0f172a)' }}>{displayName}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748b)' }}>{username}</div>
                 </div>
               </div>
 
-              <p style={{ margin: 0, fontSize: '13.5px', color: '#475569', lineHeight: '1.5' }}>
+              <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-secondary, #475569)', lineHeight: '1.5' }}>
                 Choose whether you want to reject this request only or also block this user.
               </p>
 
@@ -248,18 +248,18 @@ export default function RejectFollowRequestModal({
                   style={{
                     padding: '14px 16px',
                     borderRadius: '12px',
-                    border: '1.5px solid #e2e8f0',
-                    backgroundColor: '#ffffff',
+                    border: '1.5px solid var(--border-color, #e2e8f0)',
+                    backgroundColor: 'var(--bg-card, #ffffff)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px'
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                    <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary, #1e293b)' }}>
                       Reject Request Only
                     </div>
-                    <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
                       Decline this follow request. {username} can request to follow you again later.
                     </div>
                   </div>
@@ -272,16 +272,14 @@ export default function RejectFollowRequestModal({
                       alignSelf: 'flex-start',
                       padding: '8px 16px',
                       borderRadius: '8px',
-                      backgroundColor: '#f1f5f9',
-                      color: '#334155',
-                      border: '1px solid #cbd5e1',
+                      backgroundColor: 'var(--bg-surface-secondary, #f1f5f9)',
+                      color: 'var(--text-primary, #334155)',
+                      border: '1px solid var(--border-color, #cbd5e1)',
                       fontWeight: '600',
                       fontSize: '13px',
                       cursor: actionLoading || loading ? 'not-allowed' : 'pointer',
                       transition: 'all 0.15s ease'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e2e8f0')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
                   >
                     {actionLoading ? 'Rejecting...' : 'Reject Request'}
                   </button>

@@ -75,6 +75,45 @@ ALTER TABLE public.conversation_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 -- PROFILES POLICIES
+-- NOTE ON PUBLIC READ EXPOSURE (INTENTIONAL DESIGN CHOICE):
+-- The "Allow public read access to profiles" policy below is an intentional design choice for the
+-- SINC developer platform. It allows unauthenticated visitors to discover creators, view user
+-- profile pages, browse community member skills, and search users by handle/name without requiring
+-- login. Crucially, sensitive authentication credentials (email, phone, hashed passwords) are isolated
+-- in Supabase's auth.users schema and are never stored in public.profiles.
+--
+-- SECURITY AUDIT FINDING (SENSITIVE COLUMNS REQUIRING RESTRICTION):
+-- Later schema additions (e.g. in onboarding and location schemas) added columns to public.profiles:
+--   - date_of_birth (DOB / age PII)
+--   - gender, gender_custom (demographic privacy)
+--   - location_address, location_landmark, location_pincode, location_latitude, location_longitude (precise residence/office address & coordinates)
+--   - privacy_settings (internal configuration object)
+-- Because PostgreSQL row-level security (RLS) filters entire rows rather than individual columns,
+-- USING (true) allows any anonymous caller to query these sensitive columns if selected.
+--
+-- RECOMMENDED TIGHTENED ARCHITECTURE / SELECT POLICY:
+-- Recommended remediation:
+--   1. Restrict public.profiles SELECT policy to public profiles or isolate private fields:
+--      CREATE POLICY "Allow selective public read access to profiles"
+--        ON public.profiles FOR SELECT
+--        USING (
+--          auth.uid() = id
+--          OR (privacy_settings->>'profile_visibility' IS NULL OR privacy_settings->>'profile_visibility' != 'private')
+--        );
+--   2. Move date_of_birth, gender, precise location, and privacy_settings into a private table:
+--      CREATE TABLE public.user_private_details (
+--        user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+--        date_of_birth DATE,
+--        gender TEXT,
+--        location_address TEXT,
+--        location_latitude DOUBLE PRECISION,
+--        location_longitude DOUBLE PRECISION,
+--        privacy_settings JSONB
+--      );
+--      ALTER TABLE public.user_private_details ENABLE ROW LEVEL SECURITY;
+--      CREATE POLICY "Users can only read their own private details"
+--        ON public.user_private_details FOR SELECT
+--        USING (auth.uid() = user_id);
 CREATE POLICY "Allow public read access to profiles"
   ON public.profiles FOR SELECT
   USING (true);
