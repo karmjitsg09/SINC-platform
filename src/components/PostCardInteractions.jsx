@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Heart, MessageSquare, Share2, Bookmark, Send } from 'lucide-react';
 import {
   getPostInteractionSummary,
   likePost,
@@ -198,19 +199,20 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
   };
 
   return (
-    <div style={{ marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+    <div className="post-interactions-container" style={{ marginTop: '14px', borderTop: '1px solid var(--border-subtle, #263750)', paddingTop: '10px' }}>
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div
           style={{
             fontSize: '12px',
-            color: '#15803d',
-            backgroundColor: '#dcfce7',
+            color: 'var(--success, #10b981)',
+            backgroundColor: 'var(--success-surface, rgba(16, 185, 129, 0.15))',
             padding: '6px 12px',
             borderRadius: '8px',
             marginBottom: '8px',
             textAlign: 'center',
-            fontWeight: '600'
+            fontWeight: '600',
+            border: '1px solid var(--success, #10b981)'
           }}
         >
           {toastMessage}
@@ -225,8 +227,10 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
             display: 'flex',
             alignItems: 'center',
             borderRadius: '16px',
-            backgroundColor: isLiked ? '#fef2f2' : 'transparent',
-            padding: '2px 6px'
+            backgroundColor: isLiked ? 'rgba(239, 68, 68, 0.12)' : 'transparent',
+            padding: '2px 8px',
+            border: isLiked ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
+            transition: 'all 0.15s ease'
           }}
         >
           <button
@@ -240,12 +244,12 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              padding: '4px 4px',
-              fontSize: '15px',
+              padding: '4px',
+              color: isLiked ? '#ef4444' : 'var(--text-secondary, #a7b5ca)',
               transition: 'transform 0.15s ease'
             }}
           >
-            <span>{isLiked ? '❤️' : '🤍'}</span>
+            <Heart size={16} fill={isLiked ? '#ef4444' : 'none'} color={isLiked ? '#ef4444' : 'currentColor'} />
           </button>
 
           <button
@@ -258,10 +262,9 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
               border: 'none',
               cursor: likeCount > 0 ? 'pointer' : 'default',
               padding: '4px 6px',
-              color: isLiked ? '#ef4444' : 'var(--text-main, #1e3860)',
+              color: isLiked ? '#ef4444' : 'var(--text-primary, #f3f6fc)',
               fontWeight: isLiked ? '700' : '600',
-              fontSize: '13px',
-              textDecoration: likeCount > 0 ? 'none' : 'none'
+              fontSize: '13px'
             }}
           >
             <span>{likeCount}</span>
@@ -279,15 +282,16 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 10px',
+            padding: '6px 12px',
             borderRadius: '16px',
-            color: 'var(--text-main, #1e3860)',
+            color: showComments ? 'var(--bright-blue, #438eff)' : 'var(--text-secondary, #a7b5ca)',
+            backgroundColor: showComments ? 'var(--blue-surface, #142b4d)' : 'transparent',
             fontWeight: '600',
             fontSize: '13px',
             transition: 'all 0.15s ease'
           }}
         >
-          <span style={{ fontSize: '15px' }}>💬</span>
+          <MessageSquare size={16} />
           <span>{commentCount}</span>
         </button>
 
@@ -302,15 +306,15 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 10px',
+            padding: '6px 12px',
             borderRadius: '16px',
-            color: 'var(--text-main, #1e3860)',
+            color: 'var(--text-secondary, #a7b5ca)',
             fontWeight: '600',
             fontSize: '13px',
             transition: 'all 0.15s ease'
           }}
         >
-          <span style={{ fontSize: '15px' }}>↗️</span>
+          <Share2 size={16} />
           <span>{shareCount > 0 ? shareCount : 'Share'}</span>
         </button>
 
@@ -320,44 +324,43 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
           onClick={handleSave}
           disabled={isSaving}
           style={{
-            background: 'none',
-            border: 'none',
+            background: isSaved ? 'var(--blue-surface, #142b4d)' : 'none',
+            border: isSaved ? '1px solid rgba(40, 120, 255, 0.3)' : '1px solid transparent',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 10px',
+            padding: '6px 12px',
             borderRadius: '16px',
-            color: isSaved ? '#2563eb' : 'var(--text-main, #1e3860)',
+            color: isSaved ? 'var(--bright-blue, #438eff)' : 'var(--text-secondary, #a7b5ca)',
             fontWeight: isSaved ? '700' : '600',
             fontSize: '13px',
-            transition: 'all 0.15s ease',
-            backgroundColor: isSaved ? '#eff6ff' : 'transparent'
+            transition: 'all 0.15s ease'
           }}
         >
-          <span style={{ fontSize: '15px' }}>{isSaved ? '🔖' : '📑'}</span>
+          <Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />
           <span>{isSaved ? 'Saved' : 'Save'}</span>
         </button>
       </div>
 
       {/* Expandable Comments Drawer */}
       {showComments && (
-        <div style={{ marginTop: '12px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '700', color: 'var(--text-main, #1e3860)' }}>
+        <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-subtle, #263750)', paddingTop: '12px' }}>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '700', color: 'var(--text-primary, #f3f6fc)' }}>
             Comments ({commentCount})
           </h4>
 
           {/* Comments List */}
           {loadingComments ? (
-            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted, #7e8ea7)', textAlign: 'center', padding: '10px 0' }}>
               Loading comments...
             </div>
           ) : comments.length === 0 ? (
-            <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', marginBottom: '10px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted, #7e8ea7)', fontStyle: 'italic', marginBottom: '10px' }}>
               No comments yet. Be the first to comment!
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '240px', overflowY: 'auto' }}>
               {comments.map((c) => {
                 const isAuthor = currentUser?.id === c.user_id;
                 const initials = (c.profile?.name || 'User')
@@ -369,8 +372,19 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
                   .toUpperCase();
 
                 return (
-                  <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '6px 10px', background: '#f8fafc', borderRadius: '10px' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#bcd5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '10px', color: '#1e3860', overflow: 'hidden', flexShrink: 0 }}>
+                  <div
+                    key={c.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      padding: '8px 12px',
+                      background: 'var(--bg-surface, #0d1624)',
+                      border: '1px solid var(--border-subtle, #1c2b40)',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--blue-surface, #142b4d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '11px', color: 'var(--bright-blue, #438eff)', overflow: 'hidden', flexShrink: 0 }}>
                       {c.profile?.avatar_url ? (
                         <img src={c.profile.avatar_url} alt={c.profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
@@ -379,14 +393,14 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e3860' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary, #f3f6fc)' }}>
                           {c.profile?.name}
                         </span>
-                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted, #7e8ea7)' }}>
                           {formatTimeAgo(c.created_at)}
                         </span>
                       </div>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#334155', lineHeight: '1.4' }}>
+                      <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: 'var(--text-secondary, #a7b5ca)', lineHeight: '1.4' }}>
                         {c.content}
                       </p>
                     </div>
@@ -396,7 +410,7 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
                         type="button"
                         onClick={() => handleDeleteComment(c.id)}
                         title="Delete comment"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '11px', padding: '2px 4px' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '12px', padding: '2px 4px' }}
                       >
                         ✕
                       </button>
@@ -417,21 +431,22 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
               disabled={isSubmittingComment}
               style={{
                 flex: 1,
-                padding: '8px 12px',
+                padding: '8px 14px',
                 borderRadius: '16px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-color, #263750)',
                 fontSize: '12px',
                 outline: 'none',
-                backgroundColor: '#ffffff'
+                backgroundColor: 'var(--bg-input, #101c2d)',
+                color: 'var(--text-primary, #f3f6fc)'
               }}
             />
             <button
               type="submit"
               disabled={!commentText.trim() || isSubmittingComment}
               style={{
-                padding: '8px 14px',
+                padding: '8px 16px',
                 borderRadius: '16px',
-                backgroundColor: commentText.trim() ? '#2563eb' : '#94a3b8',
+                backgroundColor: commentText.trim() ? 'var(--primary-blue, #2878ff)' : 'var(--border-color, #263750)',
                 color: '#ffffff',
                 border: 'none',
                 fontWeight: '600',

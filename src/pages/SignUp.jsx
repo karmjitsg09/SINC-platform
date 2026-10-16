@@ -4,6 +4,7 @@ import AuthInput from '../components/AuthInput';
 import PasswordInput from '../components/PasswordInput';
 import AuthButton from '../components/AuthButton';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import { validatePassword, PASSWORD_POLICY_HINT } from '../lib/passwordPolicy';
 
 export default function SignUp() {
   const { signup, signInWithGoogle, oauthError, clearOauthError, navigateAuth } = useAuth();
@@ -24,10 +25,9 @@ export default function SignUp() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -155,6 +155,11 @@ export default function SignUp() {
             }}
             error={errors.password}
           />
+          {!errors.password && (
+            <p style={{ fontSize: '11.5px', color: 'var(--text-muted, #7E8EA7)', margin: '-10px 0 14px 2px', lineHeight: 1.4 }}>
+              {PASSWORD_POLICY_HINT}
+            </p>
+          )}
 
           <AuthButton type="submit" isLoading={isLoading}>
             Create Account

@@ -16,6 +16,7 @@ export default function GoogleSignInButton({
       type="button"
       id="google-signin-btn"
       className="auth-google-btn"
+      style={{ color: '#1f2937', backgroundColor: '#ffffff' }}
       onClick={onClick}
       disabled={disabled || isLoading}
       aria-label={text}
@@ -35,7 +36,7 @@ export default function GoogleSignInButton({
           >
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
-          <span>Connecting to Google...</span>
+          <span style={{ color: '#4b5563' }}>Connecting to Google...</span>
         </span>
       ) : (
         <>
@@ -65,7 +66,7 @@ export default function GoogleSignInButton({
               fill="#EA4335"
             />
           </svg>
-          <span className="auth-google-text">{text}</span>
+          <span className="auth-google-text" style={{ color: '#1f2937' }}>{text}</span>
         </>
       )}
     </button>

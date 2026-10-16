@@ -510,6 +510,23 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
+  const updatePassword = async (newPassword) => {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+        if (error) {
+          return { success: false, error: error.message };
+        }
+        return { success: true, data };
+      } catch (e) {
+        return { success: false, error: e.message || 'Unable to update password' };
+      }
+    }
+    return { success: true };
+  };
+
   const updateProfile = async (updatedFields) => {
     if (user?.id && isSupabaseConfigured && !user.id.startsWith('u-') && user.id !== 'u1') {
       try {
@@ -583,6 +600,7 @@ export function AuthProvider({ children }) {
         login,
         signup,
         forgotPassword,
+        updatePassword,
         updateProfile,
         logout,
         navigateAuth

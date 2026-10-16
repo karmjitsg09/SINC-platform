@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
+import TopHeader from './components/TopHeader';
+import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
 
@@ -10,6 +12,8 @@ import Domain from './pages/Domain';
 import DomainChat from './pages/DomainChat';
 import MessagesList from './pages/MessagesList';
 import MessageDetail from './pages/MessageDetail';
+import MessagesPage from './pages/MessagesPage';
+import Settings from './pages/Settings';
 import PostView from './pages/PostView';
 import Search from './pages/Search';
 import Profile from './pages/Profile';
@@ -33,6 +37,8 @@ import ProfileSetupWizard from './components/profile/ProfileSetupWizard';
 import { updateBasicProfile } from './lib/profileService';
 
 import { useConversations } from './messaging/hooks/useConversations';
+import { useNotifications } from './notifications/hooks/useNotifications';
+import { checkIsDomainMember } from './lib/domainUtils';
 import { getOrCreateDirectConversation, markConversationAsRead } from './messaging/services/conversationService';
 import { domains, users, FEED_CATEGORIES } from './data/mockData';
 import { parseRoute, pushRoute, replaceRoute } from './lib/routeUtils';
@@ -45,7 +51,8 @@ function isUuid(str) {
 function MainAppContent() {
   const { user, isAuthenticated, authRoute, loadingSession, logout, updateProfile: updateAuthProfile } = useAuth();
   const currentUserId = isAuthenticated ? user?.id : null;
-  const { conversations: rawConversations, hasUnreadMessages } = useConversations(currentUserId);
+  const { conversations: rawConversations, hasUnreadMessages, unreadTotal: unreadMessagesCount } = useConversations(currentUserId);
+  const { unreadCount: unreadNotificationsCount } = useNotifications(currentUserId);
   const conversations = rawConversations || [];
 
   // Parse initial route from address bar on page load or refresh
@@ -94,6 +101,65 @@ function MainAppContent() {
   const [activePostId, setActivePostId] = useState(initialRoute.activePostId || null);
   const [postViewReturnState, setPostViewReturnState] = useState(null);
 
+  // Independent Navigation Visibility Preferences
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sinc_left_sidebar_open');
+      return stored !== null ? stored !== 'false' : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  const [showVerticalRail, setShowVerticalRail] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sinc_show_vertical_rail');
+      return stored !== null ? stored !== 'false' : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  const [showBottomNav, setShowBottomNav] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sinc_show_bottom_nav');
+      return stored !== null ? stored !== 'false' : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    const handleNavPrefsSync = () => {
+      try {
+        const storedBottom = localStorage.getItem('sinc_show_bottom_nav');
+        if (storedBottom !== null) setShowBottomNav(storedBottom !== 'false');
+        const storedRail = localStorage.getItem('sinc_show_vertical_rail');
+        if (storedRail !== null) setShowVerticalRail(storedRail !== 'false');
+        const storedSidebar = localStorage.getItem('sinc_left_sidebar_open');
+        if (storedSidebar !== null) setIsLeftSidebarOpen(storedSidebar !== 'false');
+      } catch (e) {}
+    };
+
+    window.addEventListener('sinc_nav_preferences_changed', handleNavPrefsSync);
+    window.addEventListener('storage', handleNavPrefsSync);
+    return () => {
+      window.removeEventListener('sinc_nav_preferences_changed', handleNavPrefsSync);
+      window.removeEventListener('storage', handleNavPrefsSync);
+    };
+  }, []);
+
+  const handleToggleLeftSidebar = () => {
+    setIsLeftSidebarOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sinc_left_sidebar_open', String(next));
+        window.dispatchEvent(new Event('sinc_nav_preferences_changed'));
+      } catch (e) {}
+      return next;
+    });
+  };
+
   // Filter available domains based on authenticated user's selected domain memberships
   const userDomains = React.useMemo(() => {
     let domainIds = user?.domains;
@@ -105,7 +171,7 @@ function MainAppContent() {
     }
 
     if (Array.isArray(domainIds) && domainIds.length > 0) {
-      const filtered = domains.filter((d) => domainIds.includes(d.id));
+      const filtered = domains.filter((d) => checkIsDomainMember(domainIds, d.id, d.name));
       if (filtered.length > 0) return filtered;
     }
     return domains.slice(0, 5);
@@ -268,6 +334,9 @@ function MainAppContent() {
                 pushRoute({ tab: 'home' });
               }}
               onCancel={() => {
+                if (updateAuthProfile) {
+                  updateAuthProfile({ isNewUser: false, onboarding_completed: true });
+                }
                 setIsOnboardingActive(false);
                 setActiveTab('home');
                 pushRoute({ tab: 'home' });
@@ -418,6 +487,14 @@ function MainAppContent() {
       pushRoute({ tab: 'notifications' });
     } else if (tabId === 'search') {
       pushRoute({ tab: 'search' });
+    } else if (tabId === 'settings') {
+      pushRoute({ tab: 'settings' });
+    } else if (tabId === 'saved') {
+      setProfileSubView('saved-posts');
+      pushRoute({ tab: 'saved' });
+    } else if (tabId === 'create-post') {
+      setProfileSubView('create-post');
+      pushRoute({ tab: 'profile', profileSubView: 'create-post' });
     } else {
       pushRoute({ tab: 'home' });
     }
@@ -586,20 +663,13 @@ function MainAppContent() {
         );
 
       case 'messages':
-        if (messagesSubView === 'detail') {
-          return (
-            <MessageDetail
-              conversation={activeConversation}
-              onBack={() => {
-                setMessagesSubView('list');
-                setSelectedConversation(null);
-                pushRoute({ tab: 'messages', messagesSubView: 'list' });
-              }}
-              onNavigateToPostView={handleNavigateToPostView}
-            />
-          );
-        }
-        return <MessagesList onSelectConversation={handleSelectConversation} />;
+        return (
+          <MessagesPage
+            initialConversationId={selectedConversation?.id}
+            onNavigateToProfile={handleSelectProfileFromSearch}
+            onNavigateToPost={handleNavigateToPostView}
+          />
+        );
 
       case 'post-view':
         return (
@@ -779,6 +849,75 @@ function MainAppContent() {
           />
         );
 
+      case 'settings':
+        return (
+          <Settings
+            currentUser={user}
+            currentProfile={user}
+            onOpenEditProfile={() => {
+              setActiveTab('profile');
+              setProfileSubView('view');
+              pushRoute({ tab: 'profile', profileSubView: 'view' });
+            }}
+            onNavigateTab={handleTabChange}
+            showBottomNav={showBottomNav}
+            onToggleBottomNav={() => {
+              setShowBottomNav((prev) => {
+                const next = !prev;
+                try {
+                  localStorage.setItem('sinc_show_bottom_nav', String(next));
+                  window.dispatchEvent(new Event('sinc_nav_preferences_changed'));
+                } catch (e) {}
+                return next;
+              });
+            }}
+            showVerticalRail={showVerticalRail}
+            onToggleVerticalRail={() => {
+              setShowVerticalRail((prev) => {
+                const next = !prev;
+                try {
+                  localStorage.setItem('sinc_show_vertical_rail', String(next));
+                  window.dispatchEvent(new Event('sinc_nav_preferences_changed'));
+                } catch (e) {}
+                return next;
+              });
+            }}
+            isLeftSidebarOpen={isLeftSidebarOpen}
+            onToggleLeftSidebar={handleToggleLeftSidebar}
+          />
+        );
+
+      case 'saved':
+        return (
+          <SavedPosts
+            onBack={() => {
+              setActiveTab('home');
+              pushRoute({ tab: 'home' });
+            }}
+            onExplorePosts={() => {
+              setActiveTab('home');
+              pushRoute({ tab: 'home' });
+            }}
+            onNavigateToPostView={handleNavigateToPostView}
+            onNavigateToProfile={handleSelectProfileFromSearch}
+          />
+        );
+
+      case 'create-post':
+        return (
+          <CreatePost
+            onBack={() => {
+              setActiveTab('home');
+              pushRoute({ tab: 'home' });
+            }}
+            onPostCreated={() => {
+              setActiveTab('home');
+              pushRoute({ tab: 'home' });
+            }}
+            initialDomain={selectedFeedCategory !== 'all' ? selectedFeedCategory : activeDomainId || 'tech'}
+          />
+        );
+
       default:
         return (
           <Feed
@@ -790,41 +929,97 @@ function MainAppContent() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="sinc-app-shell">
       {/* Top Header Bar */}
-      <Header
-        showSearchIcon={activeTab !== 'home'}
-        onSearchClick={() => handleTabChange('search')}
-        onNotificationClick={() => handleTabChange('notifications')}
-        isNotificationActive={activeTab === 'notifications'}
+      <TopHeader
+        activeTab={activeTab}
+        onSelectTab={handleTabChange}
+        currentUser={user}
+        currentProfile={user}
+        unreadNotificationsCount={unreadNotificationsCount}
+        unreadMessagesCount={unreadMessagesCount}
+        onSearchSubmit={(query) => {
+          setActiveTab('search');
+          pushRoute({ tab: 'search' });
+        }}
+        onOpenCreatePost={() => {
+          setActiveTab('create-post');
+          pushRoute({ tab: 'create-post' });
+        }}
+        onToggleSidebar={handleToggleLeftSidebar}
+        isSidebarOpen={isLeftSidebarOpen}
+        onLogout={logout}
       />
 
-      {/* Main Body with Reusable Domain Action Rail + Page View */}
-      <div className="app-body">
-        {activeTab !== 'search' && activeTab !== 'profile' && activeTab !== 'update-story-viewer' && (
-          <DomainShortcutRail
-            railMode={activeTab === 'home' ? 'feed' : 'domain'}
-            feedCategories={FEED_CATEGORIES}
-            selectedFeedCategory={selectedFeedCategory}
-            onSelectFeedCategory={setSelectedFeedCategory}
-            domains={userDomains}
-            activeDomainId={activeDomainId}
-            onSelectDomain={handleSelectDomainShortcut}
-            isMessagesMode={activeTab === 'messages' || (activeTab === 'post-view' && postViewReturnState?.activeTab === 'messages')}
-            conversations={conversations}
-            selectedConversationId={selectedConversation?.id || postViewReturnState?.conversationId || postViewReturnState?.conversation?.id}
-            onSelectChatMember={handleSelectChatMember}
+      {/* Main Persistent Layout: Full Left Menu + Floating Vertical Rail + Viewport + Floating Bottom Nav */}
+      <div className="sinc-app-body-container">
+        {/* 1. Full Left Menu with Visible Labels */}
+        {isLeftSidebarOpen && (
+          <SidebarNavigation
+            activeTab={activeTab}
+            onSelectTab={handleTabChange}
+            unreadNotificationsCount={unreadNotificationsCount}
+            unreadMessagesCount={unreadMessagesCount}
+            currentUser={user}
+            currentProfile={user}
+            onOpenCreatePost={() => {
+              setActiveTab('create-post');
+              pushRoute({ tab: 'create-post' });
+            }}
+            onCloseMobile={() => setIsLeftSidebarOpen(false)}
+            onToggleSidebar={handleToggleLeftSidebar}
+            isMobileOpen={isLeftSidebarOpen}
           />
         )}
-        {renderScreen()}
-      </div>
 
-      {/* Bottom Floating Navigation Bar */}
-      <BottomNav
-        activeTab={activeTab === 'post-view' ? (postViewReturnState?.activeTab || 'messages') : (activeTab === 'update-story-viewer' ? 'home' : activeTab)}
-        onSelectTab={handleTabChange}
-        hasUnreadMessages={hasUnreadMessages}
-      />
+        {/* 2. Floating Vertical Icon Sidebar */}
+        {showVerticalRail && (
+          <DomainShortcutRail
+            activeTab={activeTab}
+            onSelectTab={handleTabChange}
+            selectedFeedCategory={selectedFeedCategory}
+            onSelectFeedCategory={setSelectedFeedCategory}
+            activeDomainId={activeDomainId}
+            onSelectDomain={handleSelectDomainShortcut}
+            feedCategories={FEED_CATEGORIES}
+            domains={userDomains}
+          />
+        )}
+
+        {/* 3. Main Content Viewport */}
+        <main className="sinc-main-viewport" id="sinc-main-content">
+          <div
+            className="sinc-viewport-scroll-area"
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              paddingBottom: showBottomNav ? '78px' : '20px'
+            }}
+          >
+            {renderScreen()}
+          </div>
+
+          {/* 4. Floating Horizontal Bottom Navigation Bar */}
+          {showBottomNav && (
+            <BottomNav
+              activeTab={
+                activeTab === 'post-view'
+                  ? postViewReturnState?.activeTab || 'messages'
+                  : activeTab === 'update-story-viewer'
+                  ? 'home'
+                  : activeTab
+              }
+              onSelectTab={handleTabChange}
+              hasUnreadMessages={hasUnreadMessages}
+              unreadMessagesCount={unreadMessagesCount}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 }

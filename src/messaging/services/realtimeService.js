@@ -229,8 +229,9 @@ export const subscribeToAllNewMessages = (currentUserId, onNewMessage) => {
 
   if (isSupabaseConfigured && typeof currentUserId === 'string' && !currentUserId.startsWith('u')) {
     try {
+      const channelName = `all_msgs_${currentUserId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
       const channel = supabase
-        .channel(`all_messages:${currentUserId}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {

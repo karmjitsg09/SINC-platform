@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getFollowStatus, sendFollowRequest, respondToFollowRequest, subscribeToLocalState } from '../lib/socialService';
+import { rejectAndBlockUser, unblockUser, subscribeToBlockState } from '../lib/blockService';
+import RejectFollowRequestModal from '../components/RejectFollowRequestModal';
 import { createPost as createPostService, getPostsByAuthor, subscribeToPostState } from '../lib/postService';
 import { FEED_CATEGORIES } from '../data/mockData';
 import {
@@ -21,6 +23,16 @@ import PostInsightsModal from '../components/PostInsightsModal';
 import PostMedia from '../components/PostMedia';
 import ProfileItemPostEmbed from '../components/profile/ProfileItemPostEmbed';
 import { parseProfileItemRef } from '../lib/profileItemPostService';
+import { getUserProjects } from '../lib/projectService';
+import { getExperiencesByUserId } from '../lib/experienceService';
+import { getEducationByUserId } from '../lib/educationService';
+import ProfileProjects from '../components/profile/ProfileProjects';
+import ProfileExperience from '../components/profile/ProfileExperience';
+import ProfileEducation from '../components/profile/ProfileEducation';
+import ProfileAbout from '../components/profile/ProfileAbout';
+import ProfileSkills from '../components/profile/ProfileSkills';
+import ProfileDomains from '../components/profile/ProfileDomains';
+import { Lock, FileText, FolderGit2, Briefcase, GraduationCap, Info, Plus } from 'lucide-react';
 
 function formatTimeAgo(isoString) {
   if (!isoString) return 'Just now';
@@ -59,6 +71,7 @@ export default function Profile({
   // Follow status state (for other user's profile)
   const [followInfo, setFollowInfo] = useState({ status: 'none', request: null });
   const [loadingAction, setLoadingAction] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   // User posts state
   const [userPosts, setUserPosts] = useState([]);
@@ -72,6 +85,35 @@ export default function Profile({
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
 
+  // Tab navigation state
+  const [activeProfileTab, setActiveProfileTab] = useState('posts'); // 'posts' | 'projects' | 'experience' | 'education' | 'about'
+  const [projectsList, setProjectsList] = useState([]);
+  const [experienceList, setExperienceList] = useState([]);
+  const [educationList, setEducationList] = useState([]);
+  const [loadingSectionTab, setLoadingSectionTab] = useState(false);
+
+  // Tab data loader
+  useEffect(() => {
+    if (!activeUserId) return;
+    let isMounted = true;
+    async function loadTabData() {
+      if (activeProfileTab === 'projects' && projectsList.length === 0) {
+        setLoadingSectionTab(true);
+        const data = await getUserProjects(activeUserId);
+        if (isMounted) { setProjectsList(data || []); setLoadingSectionTab(false); }
+      } else if (activeProfileTab === 'experience' && experienceList.length === 0) {
+        setLoadingSectionTab(true);
+        const data = await getExperiencesByUserId(activeUserId);
+        if (isMounted) { setExperienceList(data || []); setLoadingSectionTab(false); }
+      } else if (activeProfileTab === 'education' && educationList.length === 0) {
+        setLoadingSectionTab(true);
+        const data = await getEducationByUserId(activeUserId);
+        if (isMounted) { setEducationList(data || []); setLoadingSectionTab(false); }
+      }
+    }
+    loadTabData();
+    return () => { isMounted = false; };
+  }, [activeProfileTab, activeUserId]);
 
   // Create post modal state (internal fallback)
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
@@ -223,7 +265,12 @@ export default function Profile({
       if (isSubscribed) checkStatus();
     });
 
-    // 2. Subscribe to Supabase Realtime changes for follow_requests
+    // 2. Subscribe to block state updates
+    const unsubBlock = subscribeToBlockState(() => {
+      if (isSubscribed) checkStatus();
+    });
+
+    // 3. Subscribe to Supabase Realtime changes for follow_requests
     let channel = null;
     if (isSupabaseConfigured) {
       channel = supabase
@@ -252,6 +299,7 @@ export default function Profile({
     return () => {
       isSubscribed = false;
       unsubLocal();
+      unsubBlock();
       if (channel) {
         supabase.removeChannel(channel);
       }
@@ -301,7 +349,12 @@ export default function Profile({
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = () => {
+    if (!currentUser?.id || !activeUserId || loadingAction) return;
+    setShowRejectModal(true);
+  };
+
+  const handleRejectOnly = async () => {
     if (!currentUser?.id || !activeUserId || loadingAction) return;
     setLoadingAction(true);
     try {
@@ -314,6 +367,41 @@ export default function Profile({
       }
     } catch (err) {
       console.error('[Profile] Reject exception:', err);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleRejectAndBlock = async () => {
+    if (!currentUser?.id || !activeUserId || loadingAction) return;
+    setLoadingAction(true);
+    try {
+      const res = await rejectAndBlockUser(activeUserId, followInfo.request?.id, currentUser.id);
+      if (res && res.success) {
+        setFollowInfo({ status: 'blocked_by_me', isBlocked: true, blockedByMe: true, request: null });
+      } else {
+        console.error('[Profile] Reject & block failed:', res?.error);
+        alert(res?.error || 'Failed to block user.');
+      }
+    } catch (err) {
+      console.error('[Profile] Reject and block exception:', err);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (!currentUser?.id || !activeUserId || loadingAction) return;
+    setLoadingAction(true);
+    try {
+      const res = await unblockUser(currentUser.id, activeUserId);
+      if (res && res.success) {
+        setFollowInfo({ status: 'none', request: null });
+      } else {
+        alert(res?.error || 'Failed to unblock user.');
+      }
+    } catch (err) {
+      console.error('[Profile] Unblock exception:', err);
     } finally {
       setLoadingAction(false);
     }
@@ -514,6 +602,7 @@ export default function Profile({
           onFollow={handleFollow}
           onAccept={handleAccept}
           onReject={handleReject}
+          onUnblock={handleUnblock}
           onStartChat={handleStartChat}
           onOpenEdit={() => setIsWizardOpen(true)}
           onOpenCreatePost={() => onOpenCreatePost ? onOpenCreatePost() : setShowCreatePostModal(true)}
@@ -537,71 +626,36 @@ export default function Profile({
 
         {/* 2. PROFILE COMPLETION INDICATOR (OWNER-ONLY) */}
         {isSelf && profileCompletion.percentage < 100 && (
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: '18px 20px',
-              border: '1.5px solid var(--border-app, #b5d2fd)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>📊</span>
-                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#1e3860' }}>
-                  Profile Completion
-                </h3>
+          <div className="profile-completion-card">
+            <div className="profile-completion-header">
+              <div className="completion-title-wrap">
+                <span className="completion-icon">📊</span>
+                <h3 className="completion-title">Profile Completion</h3>
               </div>
-              <span style={{ fontSize: '14px', fontWeight: '800', color: '#2563eb' }}>
-                {profileCompletion.percentage}%
-              </span>
+              <span className="completion-percentage">{profileCompletion.percentage}%</span>
             </div>
 
             {/* Progress Bar */}
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '6px', overflow: 'hidden' }}>
+            <div className="completion-progress-track">
               <div
-                style={{
-                  width: `${profileCompletion.percentage}%`,
-                  height: '100%',
-                  backgroundColor: '#2563eb',
-                  borderRadius: '6px',
-                  transition: 'width 0.4s ease'
-                }}
+                className="completion-progress-fill"
+                style={{ width: `${profileCompletion.percentage}%` }}
               />
             </div>
 
             {/* Incomplete Sections Warnings & Quick Action Buttons */}
             {profileCompletion.incompleteSections.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
-                  Incomplete sections:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div className="completion-incomplete-wrap">
+                <span className="completion-subtext">Incomplete sections:</span>
+                <div className="incomplete-sections-list">
                   {profileCompletion.incompleteSections.map((sec) => (
                     <button
                       key={sec.id}
                       type="button"
                       onClick={() => handleOpenWizardAtStep(sec.step)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: '#fffbeb',
-                        border: '1px solid #fde68a',
-                        color: '#92400e',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
+                      className="incomplete-sec-pill"
                     >
-                      <span>⚠</span>
+                      <span className="sec-alert-icon">⚠</span>
                       <span>Complete {sec.name}</span>
                     </button>
                   ))}
@@ -611,163 +665,253 @@ export default function Profile({
           </div>
         )}
 
-        {/* 3. POSTS SECTION */}
-        <div
-          id="my-posts"
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1.5px solid var(--border-app, #b5d2fd)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
-            scrollMarginTop: '16px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: '13px',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                color: '#0369a1'
-              }}
-            >
-              {isSelf ? 'My Posts' : `Posts by ${profileData?.name || 'User'}`}
-            </h3>
-            {isSelf && (
-              <button
-                type="button"
-                onClick={() => onOpenCreatePost ? onOpenCreatePost() : setShowCreatePostModal(true)}
-                style={{
-                  fontSize: '12.5px',
-                  fontWeight: '700',
-                  color: '#2563eb',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer'
+        {/* 3. PROFILE TABS BAR */}
+        <div className="profile-tabs-header-bar" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeProfileTab === 'posts'}
+            className={`profile-tab-button ${activeProfileTab === 'posts' ? 'active' : ''}`}
+            onClick={() => setActiveProfileTab('posts')}
+          >
+            <FileText size={15} />
+            <span>Posts</span>
+            <span className="profile-tab-counter">{stats?.postsCount ?? 0}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeProfileTab === 'projects'}
+            className={`profile-tab-button ${activeProfileTab === 'projects' ? 'active' : ''}`}
+            onClick={() => setActiveProfileTab('projects')}
+          >
+            <FolderGit2 size={15} />
+            <span>Projects</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeProfileTab === 'experience'}
+            className={`profile-tab-button ${activeProfileTab === 'experience' ? 'active' : ''}`}
+            onClick={() => setActiveProfileTab('experience')}
+          >
+            <Briefcase size={15} />
+            <span>Experience</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeProfileTab === 'education'}
+            className={`profile-tab-button ${activeProfileTab === 'education' ? 'active' : ''}`}
+            onClick={() => setActiveProfileTab('education')}
+          >
+            <GraduationCap size={15} />
+            <span>Education</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeProfileTab === 'about'}
+            className={`profile-tab-button ${activeProfileTab === 'about' ? 'active' : ''}`}
+            onClick={() => setActiveProfileTab('about')}
+          >
+            <Info size={15} />
+            <span>About</span>
+          </button>
+        </div>
+
+        {/* 4. TAB CONTENTS WITH PRIVACY CHECK */}
+        {(() => {
+          const isPrivate = profileData?.is_private || profileData?.isPrivate;
+          const isAcceptedFollower = followInfo?.status === 'accepted';
+          const canViewRestricted = isSelf || !isPrivate || isAcceptedFollower;
+
+          if (!canViewRestricted) {
+            return (
+              <div className="profile-private-lock-card">
+                <div className="lock-icon-circle">
+                  <Lock size={30} className="text-blue" />
+                </div>
+                <h3>This Account is Private</h3>
+                <p>Follow @{username} to see their posts, projects, and professional background.</p>
+              </div>
+            );
+          }
+
+          // TAB 1: POSTS
+          if (activeProfileTab === 'posts') {
+            return (
+              <div id="my-posts" className="profile-section-card">
+                <div className="section-card-header">
+                  <h3>{isSelf ? 'My Posts' : `Posts by ${profileData?.name || 'User'}`}</h3>
+                  {isSelf && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCreatePost ? onOpenCreatePost() : setShowCreatePostModal(true)}
+                      className="section-add-btn"
+                    >
+                      + Add Post
+                    </button>
+                  )}
+                </div>
+
+                {loadingPosts ? (
+                  <div className="section-loading-text">Loading posts...</div>
+                ) : userPosts.length === 0 ? (
+                  <div className="section-empty-box">No posts created yet.</div>
+                ) : (
+                  <div className="profile-posts-list">
+                    {userPosts.map((post) => {
+                      const isOwner = currentUser?.id && (post.user_id === currentUser.id || post.author_id === currentUser.id);
+
+                      return (
+                        <div key={post.id} className="profile-post-item-card">
+                          <div className="profile-post-item-top">
+                            <span className="profile-post-domain-badge">
+                              {post.domain_id || post.domain || 'Tech'}
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {isOwner && (
+                                <button
+                                  type="button"
+                                  className="post-info-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setInsightsPost(post);
+                                  }}
+                                  title="Post Insights"
+                                  aria-label="Post Insights"
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                  </svg>
+                                </button>
+                              )}
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {formatTimeAgo(post.created_at)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {(() => {
+                            const { caption, itemRef } = parseProfileItemRef(post.content);
+                            return (
+                              <>
+                                {caption && (
+                                  <p className="profile-post-caption-text">{caption}</p>
+                                )}
+                                {itemRef && <ProfileItemPostEmbed itemRef={itemRef} />}
+                              </>
+                            );
+                          })()}
+
+                          {/* Post Media */}
+                          <PostMedia
+                            media={post.media}
+                            layout={post.layout}
+                            legacyImageUrl={post.mediaUrl || post.media_url || post.image_url}
+                            legacyVideoUrl={post.video_url}
+                            postType={post.post_type}
+                          />
+
+                          {/* Social Interactions */}
+                          <PostCardInteractions post={post} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // TAB 2: PROJECTS
+          if (activeProfileTab === 'projects') {
+            return (
+              <ProfileProjects
+                projects={projectsList}
+                isOwner={isSelf}
+                onOpenAddProject={() => {
+                  if (onOpenMenu) onOpenMenu();
                 }}
-              >
-                + Add Post
-              </button>
-            )}
-          </div>
+              />
+            );
+          }
 
-          {loadingPosts ? (
-            <div style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '24px 0' }}>
-              Loading posts...
-            </div>
-          ) : userPosts.length === 0 ? (
-            <div
-              style={{
-                fontSize: '13px',
-                color: '#64748b',
-                textAlign: 'center',
-                padding: '24px 12px',
-                background: '#f8fafc',
-                borderRadius: '12px',
-                border: '1px dashed #cbd5e1'
-              }}
-            >
-              No posts created yet.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {userPosts.map((post) => {
-                const isOwner = currentUser?.id && (post.user_id === currentUser.id || post.author_id === currentUser.id);
+          // TAB 3: EXPERIENCE
+          if (activeProfileTab === 'experience') {
+            return (
+              <ProfileExperience
+                experiences={experienceList}
+                isOwner={isSelf}
+                onOpenAddExperience={() => {
+                  if (onOpenMenu) onOpenMenu();
+                }}
+              />
+            );
+          }
 
-                return (
-                  <div
-                    key={post.id}
-                    style={{
-                      padding: '16px',
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '14px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          backgroundColor: '#e0f2fe',
-                          color: '#0369a1',
-                          padding: '2px 8px',
-                          borderRadius: '8px'
-                        }}
-                      >
-                        {post.domain_id || post.domain || 'Tech'}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {isOwner && (
-                          <button
-                            type="button"
-                            className="post-info-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setInsightsPost(post);
-                            }}
-                            title="Post Insights"
-                            aria-label="Post Insights"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '2px 4px',
-                              color: '#64748b',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: '50%'
-                            }}
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <line x1="12" y1="16" x2="12" y2="12"></line>
-                              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                            </svg>
-                          </button>
-                        )}
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          {formatTimeAgo(post.created_at)}
-                        </span>
+          // TAB 4: EDUCATION
+          if (activeProfileTab === 'education') {
+            return (
+              <ProfileEducation
+                educationList={educationList}
+                isOwner={isSelf}
+                onOpenAddEducation={() => {
+                  if (onOpenMenu) onOpenMenu();
+                }}
+              />
+            );
+          }
+
+          // TAB 5: ABOUT
+          if (activeProfileTab === 'about') {
+            return (
+              <div className="profile-section-card profile-about-card">
+                <div className="section-card-header">
+                  <h3>About & Domains</h3>
+                </div>
+
+                <div className="about-content-body">
+                  <div className="about-bio-section">
+                    <h4>Biography</h4>
+                    <p>{profileUser?.bio || 'No biography added yet.'}</p>
+                  </div>
+
+                  {Array.isArray(profileUser?.skills) && profileUser.skills.length > 0 && (
+                    <div className="about-skills-section">
+                      <h4>Skills & Tech Stack</h4>
+                      <div className="skills-chips-row">
+                        {profileUser.skills.map((skill, idx) => (
+                          <span key={idx} className="skill-chip">{skill}</span>
+                        ))}
                       </div>
                     </div>
+                  )}
 
-                    {(() => {
-                      const { caption, itemRef } = parseProfileItemRef(post.content);
-                      return (
-                        <>
-                          {caption && (
-                            <p style={{ fontSize: '13.5px', color: '#334155', lineHeight: '1.45', margin: '0 0 8px 0', whiteSpace: 'pre-line' }}>
-                              {caption}
-                            </p>
-                          )}
-                          {itemRef && <ProfileItemPostEmbed itemRef={itemRef} />}
-                        </>
-                      );
-                    })()}
+                  {Array.isArray(profileUser?.domains) && profileUser.domains.length > 0 && (
+                    <div className="about-domains-section">
+                      <h4>Active Domain Hubs</h4>
+                      <div className="domains-chips-row">
+                        {profileUser.domains.map((dom, idx) => (
+                          <span key={idx} className="domain-chip">#{dom}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
 
-                    {/* Post Media: Images, Videos, Carousel */}
-                    <PostMedia
-                      media={post.media}
-                      layout={post.layout}
-                      legacyImageUrl={post.mediaUrl || post.media_url || post.image_url}
-                      legacyVideoUrl={post.video_url}
-                      postType={post.post_type}
-                    />
-
-                    {/* Social Interactions Row */}
-                    <PostCardInteractions post={post} />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          return null;
+        })()}
       </div>
 
       {/* EDIT PROFILE MODAL (PHASE 1) */}
@@ -962,6 +1106,16 @@ export default function Profile({
           }}
         />
       )}
+
+      {/* REJECT & BLOCK CONFIRMATION MODAL */}
+      <RejectFollowRequestModal
+        isOpen={showRejectModal}
+        targetUser={profileData}
+        onClose={() => setShowRejectModal(false)}
+        onRejectOnly={handleRejectOnly}
+        onRejectAndBlock={handleRejectAndBlock}
+        loading={loadingAction}
+      />
     </div>
   );
 }

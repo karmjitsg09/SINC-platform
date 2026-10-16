@@ -28,6 +28,16 @@ export function parseRoute(
     return { tab: 'notifications', url: '/notifications', search: searchStr };
   }
 
+  // 2.1 Settings
+  if (lowerPath === '/settings' || lowerPath.startsWith('/settings/')) {
+    return { tab: 'settings', url: '/settings', search: searchStr };
+  }
+
+  // 2.2 Saved
+  if (lowerPath === '/saved' || lowerPath.startsWith('/saved/')) {
+    return { tab: 'saved', url: '/saved', search: searchStr };
+  }
+
   // 3. Search
   if (lowerPath === '/search' || lowerPath.startsWith('/search/')) {
     return { tab: 'search', url: '/search', search: searchStr };
@@ -143,6 +153,10 @@ export function getRouteUrl(state) {
     path = `/post/${state.activePostId}`;
   } else if (state.tab === 'notifications') {
     path = '/notifications';
+  } else if (state.tab === 'settings') {
+    path = '/settings';
+  } else if (state.tab === 'saved') {
+    path = '/saved';
   } else if (state.tab === 'search') {
     path = '/search';
   } else if (state.tab === 'messages') {

@@ -23,6 +23,3 @@ const supabaseUrl = isSupabaseConfigured ? rawUrl : 'https://placeholder.supabas
 const supabaseKey = isSupabaseConfigured ? rawKey : 'placeholder-publishable-key';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
-
-const secretKey = import.meta.env.VITE_SUPABASE_SECRET_KEY || import.meta.env.SUPABASE_SECRET_KEY;
-export const supabaseAdmin = (isSupabaseConfigured && secretKey) ? createClient(supabaseUrl, secretKey) : supabase;

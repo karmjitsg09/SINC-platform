@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { users as mockUsers } from '../data/mockData';
 import { createNotification } from '../notifications/services/notificationService';
+import { checkBlockStatus, isBlockedSync } from './blockService';
 
 // Dynamic database availability flag
 let dbTablesExist = false;
@@ -143,7 +144,7 @@ export const searchProfiles = async (query = '', currentUserId = '') => {
           privacy_settings: p.privacy_settings || {}
         }));
 
-        const otherMatches = dbProfiles.filter((u) => u.id !== currentUserId);
+        const otherMatches = dbProfiles.filter((u) => u.id !== currentUserId && !isBlockedSync(currentUserId, u.id));
         // If authenticated with a real Supabase user, return DB results without mock fallbacks
         if (currentUserId && !currentUserId.startsWith('u1') && !currentUserId.startsWith('u-')) {
           return otherMatches;
@@ -158,6 +159,7 @@ export const searchProfiles = async (query = '', currentUserId = '') => {
   // Fallback to mock users only if Supabase is unconfigured or in mock mode
   const filteredMock = mockUsers.filter((u) => {
     if (u.id === currentUserId) return false;
+    if (isBlockedSync(currentUserId, u.id)) return false;
     if (!qClean) return true;
     const matchName = u.name?.toLowerCase().includes(qClean);
     const matchUsername = u.username?.toLowerCase().includes(qClean);
@@ -176,6 +178,15 @@ export const searchProfiles = async (query = '', currentUserId = '') => {
 export const getFollowStatus = async (currentUserId, targetUserId) => {
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
     return { status: 'self', request: null };
+  }
+
+  // Check if a block exists between the two users
+  const blockInfo = await checkBlockStatus(currentUserId, targetUserId);
+  if (blockInfo.isBlocked) {
+    if (blockInfo.blockedByMe) {
+      return { status: 'blocked_by_me', isBlocked: true, blockedByMe: true, request: null };
+    }
+    return { status: 'none', isBlocked: true, blockedByTarget: true, request: null };
   }
 
   if (isSupabaseConfigured) {
@@ -225,6 +236,12 @@ export const getFollowStatus = async (currentUserId, targetUserId) => {
 export const sendFollowRequest = async (currentUserId, targetUserId) => {
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
     return { success: false, error: 'Cannot follow yourself or invalid user IDs' };
+  }
+
+  // Enforce blocking rules
+  const blockInfo = await checkBlockStatus(currentUserId, targetUserId);
+  if (blockInfo.isBlocked) {
+    return { success: false, error: 'You cannot follow this user.' };
   }
 
   console.log('[socialService] sendFollowRequest:', { currentUserId, targetUserId });

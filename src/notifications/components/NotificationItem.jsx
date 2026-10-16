@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { respondToFollowRequest } from '../../lib/socialService';
+import { rejectAndBlockUser } from '../../lib/blockService';
+import RejectFollowRequestModal from '../../components/RejectFollowRequestModal';
+import {
+  User,
+  UserPlus,
+  Check,
+  X,
+  MessageSquare,
+  Heart,
+  AtSign,
+  Bell
+} from 'lucide-react';
 
 export default function NotificationItem({ notification, onSelectNotification, currentUserId }) {
   const [requestState, setRequestState] = useState(notification.followRequestStatus || null); // null | 'accepted' | 'rejected' | 'pending'
   const [loading, setLoading] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   useEffect(() => {
     if (notification.followRequestStatus) {
@@ -23,28 +36,67 @@ export default function NotificationItem({ notification, onSelectNotification, c
 
   const isFollowRequest = notification.type === 'follow_request';
 
+  const handleViewProfile = (e) => {
+    e.stopPropagation();
+    if (onSelectNotification) {
+      onSelectNotification({ ...notification, type: 'view_profile' });
+    }
+  };
+
   const handleAccept = async (e) => {
     e.stopPropagation();
     if (loading || requestState === 'accepted') return;
     setLoading(true);
 
-    const res = await respondToFollowRequest(notification.entity_id || null, currentUserId, actor.id, 'accepted');
-    if (res && res.success) {
-      setRequestState('accepted');
+    try {
+      const requestId = notification.entity_id || notification.id || null;
+      const res = await respondToFollowRequest(requestId, currentUserId, actor.id, 'accepted');
+      if (res && res.success) {
+        setRequestState('accepted');
+      } else {
+        console.warn('[NotificationItem] Follow request accept returned:', res?.error);
+      }
+    } catch (err) {
+      console.error('[NotificationItem] Accept follow request failed:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleReject = async (e) => {
+  const handleOpenRejectModal = (e) => {
     e.stopPropagation();
     if (loading || requestState === 'rejected') return;
-    setLoading(true);
+    setShowRejectModal(true);
+  };
 
-    const res = await respondToFollowRequest(notification.entity_id || null, currentUserId, actor.id, 'rejected');
-    if (res && res.success) {
-      setRequestState('rejected');
+  const handleRejectOnly = async () => {
+    setLoading(true);
+    try {
+      const requestId = notification.entity_id || notification.id || null;
+      const res = await respondToFollowRequest(requestId, currentUserId, actor.id, 'rejected');
+      if (res && res.success) {
+        setRequestState('rejected');
+      }
+    } catch (err) {
+      console.error('[NotificationItem] Reject follow request failed:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleRejectAndBlock = async () => {
+    setLoading(true);
+    try {
+      const requestId = notification.entity_id || notification.id || null;
+      const res = await rejectAndBlockUser(actor.id, requestId, currentUserId);
+      if (res && res.success) {
+        setRequestState('rejected');
+      }
+    } catch (err) {
+      console.error('[NotificationItem] Reject and block user failed:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatTimeAgo = (isoString) => {
@@ -59,162 +111,137 @@ export default function NotificationItem({ notification, onSelectNotification, c
     return `${days}d`;
   };
 
+  const renderTypeIcon = () => {
+    switch (notification.type) {
+      case 'follow_request':
+      case 'follow_accepted':
+        return <UserPlus size={12} className="text-blue" />;
+      case 'post_like':
+        return <Heart size={12} className="text-red" fill="currentColor" />;
+      case 'post_comment':
+      case 'comment_reply':
+        return <MessageSquare size={12} className="text-blue" />;
+      case 'mention':
+        return <AtSign size={12} className="text-purple" />;
+      default:
+        return <Bell size={12} className="text-blue" />;
+    }
+  };
+
   return (
     <div
+      className={`notification-item-row ${!notification.is_read ? 'unread' : ''}`}
       onClick={() => onSelectNotification && onSelectNotification(notification)}
-      style={{
-        padding: '14px 16px',
-        borderRadius: '12px',
-        border: '1px solid var(--border-app, #e2e8f0)',
-        backgroundColor: notification.is_read ? 'var(--bg-card, #ffffff)' : 'rgba(239, 246, 255, 0.85)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        cursor: 'pointer',
-        position: 'relative',
-        transition: 'all 0.15s ease'
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelectNotification && onSelectNotification(notification);
+        }
       }}
+      aria-label={`Notification from ${actor.name || actor.username || 'User'}: ${notification.message}`}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-        {/* Avatar */}
-        <div
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: '700',
-            fontSize: '14px',
-            flexShrink: 0,
-            overflow: 'hidden',
-            border: '1.5px solid #bfdbfe'
-          }}
-        >
+      {/* 1. Left: Avatar Column */}
+      <div className="notif-avatar-col">
+        <div className="notif-avatar">
           {actorAvatar ? (
-            <img src={actorAvatar} alt={actor.name || actor.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={actorAvatar} alt={actor.name || actor.username} className="avatar-img" />
           ) : (
-            <span>{initials}</span>
+            <span className="avatar-initials">{initials}</span>
           )}
         </div>
-
-        {/* Notification Content */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main, #0f172a)' }}>
-                {actor.name || actor.username || 'User'}
-              </span>
-              {actor.username && (
-                <span style={{ fontSize: '12.5px', color: '#64748b', fontWeight: '500' }}>
-                  @{actor.username}
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {!notification.is_read && (
-                <span
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: '#2563eb',
-                    display: 'inline-block'
-                  }}
-                  title="Unread"
-                />
-              )}
-              <span style={{ fontSize: '12px', color: '#94a3b8', flexShrink: 0 }}>
-                {formatTimeAgo(notification.created_at)}
-              </span>
-            </div>
-          </div>
-
-          <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#334155', lineHeight: '1.45' }}>
-            {notification.message}
-          </p>
-        </div>
+        <span className={`notif-type-badge ${notification.type}`} title={notification.type}>
+          {renderTypeIcon()}
+        </span>
       </div>
 
-      {/* Follow Request Actions */}
+      {/* 2. Center: Metadata & Message Column */}
+      <div className="notif-center-col">
+        <div className="notif-header-line">
+          <div className="notif-actor-meta">
+            <span className="actor-name" title={actor.name || actor.username}>
+              {actor.name || actor.username || 'User'}
+            </span>
+            {actor.username && (
+              <span className="actor-handle">@{actor.username}</span>
+            )}
+          </div>
+
+          <div className="notif-timestamp-wrapper">
+            {!notification.is_read && <span className="notif-unread-dot" title="Unread" />}
+            <span className="notif-time-ago">{formatTimeAgo(notification.created_at)}</span>
+          </div>
+        </div>
+
+        <p className="notif-body-message">{notification.message}</p>
+      </div>
+
+      {/* 3. Right: Follow Request Action Buttons */}
       {isFollowRequest && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '56px', marginTop: '2px', flexWrap: 'wrap' }}>
+        <div className="notif-actions-col notif-action-row" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onSelectNotification) {
-                onSelectNotification({ ...notification, type: 'view_profile' });
-              }
-            }}
-            style={{
-              padding: '6px 14px',
-              fontSize: '12px',
-              fontWeight: '600',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
+            className="notif-action-btn notif-sub-btn notif-profile-btn"
+            onClick={handleViewProfile}
+            title="View Profile"
           >
-            View Profile
+            <User size={13} />
+            <span>View Profile</span>
           </button>
 
           {requestState === 'accepted' ? (
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              ✓ Follow request accepted
+            <span className="notif-status-badge accepted">
+              <Check size={13} strokeWidth={2.5} />
+              <span>Accepted</span>
             </span>
           ) : requestState === 'rejected' ? (
-            <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              ✕ Follow request declined
+            <span className="notif-status-badge rejected">
+              <X size={13} strokeWidth={2.5} />
+              <span>Declined</span>
             </span>
           ) : (
             <>
               <button
                 type="button"
+                className="notif-action-btn notif-sub-btn notif-accept-btn"
                 onClick={handleAccept}
                 disabled={loading}
-                style={{
-                  padding: '6px 16px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: '#2563eb',
-                  color: '#ffffff',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
-                }}
+                title="Accept follow request"
               >
-                {loading ? 'Processing...' : 'Accept'}
+                {loading ? (
+                  <span className="notif-btn-spinner" />
+                ) : (
+                  <Check size={13} strokeWidth={2.5} />
+                )}
+                <span>{loading ? 'Processing...' : 'Accept'}</span>
               </button>
+
               <button
                 type="button"
-                onClick={handleReject}
+                id="reject-notification-btn"
+                className="notif-action-btn notif-sub-btn notif-decline-btn"
+                onClick={handleOpenRejectModal}
                 disabled={loading}
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  borderRadius: '6px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc',
-                  color: '#475569',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
-                }}
+                title="Decline follow request"
               >
-                Reject
+                <X size={13} strokeWidth={2.5} />
+                <span>Decline</span>
               </button>
             </>
           )}
         </div>
       )}
+
+      {/* Reject & Block Confirmation Modal */}
+      <RejectFollowRequestModal
+        isOpen={showRejectModal}
+        targetUser={actor}
+        onClose={() => setShowRejectModal(false)}
+        onRejectOnly={handleRejectOnly}
+        onRejectAndBlock={handleRejectAndBlock}
+        loading={loading}
+      />
     </div>
   );
 }
-

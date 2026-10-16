@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { getCategoryMatchValues } from '../data/mockData';
 
 const listeners = new Set();
@@ -130,7 +130,7 @@ export const uploadPostMediaFile = async (file, userId, postId) => {
   const filePath = `posts/${userId}/${postId}/${uniqueId}.${ext}`;
 
   try {
-    const clientToUse = supabaseAdmin || supabase;
+    const clientToUse = supabase;
     const { data, error } = await clientToUse.storage
       .from('post-media')
       .upload(filePath, file, {
@@ -274,7 +274,7 @@ export const createPost = async ({
   let createdMediaRows = [];
   if (uploadedMedia.length > 0) {
     try {
-      const { data: pmData, error: pmErr } = await (supabaseAdmin || supabase)
+      const { data: pmData, error: pmErr } = await supabase
         .from('post_media')
         .insert(uploadedMedia)
         .select('*');
@@ -540,7 +540,7 @@ export const deletePost = async (postId, userId) => {
   // 3. Clean up uploaded storage files belonging strictly to this post
   try {
     const storageFolder = `posts/${postOwnerId}/${postId}`;
-    const clientToUse = supabaseAdmin || supabase;
+    const clientToUse = supabase;
     const { data: files } = await clientToUse.storage
       .from('post-media')
       .list(storageFolder);

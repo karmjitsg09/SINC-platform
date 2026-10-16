@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 const profileListeners = new Set();
 export const notifyProfileListeners = () => {
@@ -449,23 +449,25 @@ export const setUserDomainMemberships = async (userId, domainIds = []) => {
 
   if (isSupabaseConfigured) {
     try {
-      // 1. Delete existing memberships
-      await supabase.from('user_domains').delete().eq('user_id', userId);
-
-      // 2. Insert new memberships
-      if (uniqueDomainIds.length > 0) {
-        const rows = uniqueDomainIds.map((domain_id) => ({
-          user_id: userId,
-          domain_id: domain_id
-        }));
-        await supabase.from('user_domains').insert(rows);
-      }
-
-      // 3. Update profiles.domains array for fast lookups
+      // 1. Update profiles.domains array directly (authoritative source)
       await supabase
         .from('profiles')
         .update({ domains: uniqueDomainIds, updated_at: new Date().toISOString() })
         .eq('id', userId);
+
+      // 2. Safely sync to user_domains table if it exists
+      try {
+        await supabase.from('user_domains').delete().eq('user_id', userId);
+        if (uniqueDomainIds.length > 0) {
+          const rows = uniqueDomainIds.map((domain_id) => ({
+            user_id: userId,
+            domain_id: domain_id
+          }));
+          await supabase.from('user_domains').insert(rows);
+        }
+      } catch (tableErr) {
+        // user_domains table is optional
+      }
     } catch (err) {
       console.warn('[ProfileService] setUserDomainMemberships note:', err);
     }
@@ -787,7 +789,7 @@ export const uploadProfilePhoto = async (file, userId, photoType = 'avatar') => 
 
   if (isSupabaseConfigured) {
     const bucketsToTry = ['profile-photos', 'avatars', 'post-media'];
-    const clientToUse = supabaseAdmin || supabase;
+    const clientToUse = supabase;
 
     for (const bucket of bucketsToTry) {
       try {

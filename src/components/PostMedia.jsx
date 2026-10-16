@@ -121,7 +121,7 @@ export default function PostMedia({
   if (items.length === 1 && items[0].media_type === 'video') {
     const resolvedVideoUrl = resolveMediaUrl(items[0].media_url || items[0].url);
     return (
-      <div style={{ marginTop: '12px', borderRadius: '14px', overflow: 'hidden', border: '1px solid #cbd5e1', backgroundColor: '#000000' }}>
+      <div style={{ marginTop: '12px', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-color, #263750)', backgroundColor: '#000000' }}>
         <video
           src={resolvedVideoUrl}
           controls
@@ -151,8 +151,8 @@ export default function PostMedia({
           marginTop: '12px',
           borderRadius: '14px',
           overflow: 'hidden',
-          border: '1px solid #cbd5e1',
-          backgroundColor: '#f8fafc',
+          border: '1px solid var(--border-color, #263750)',
+          backgroundColor: 'var(--bg-elevated, #101c2d)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -245,8 +245,8 @@ export default function PostMedia({
           marginTop: '12px',
           borderRadius: '16px',
           overflow: 'hidden',
-          border: '1px solid #cbd5e1',
-          backgroundColor: '#0f172a',
+          border: '1px solid var(--border-color, #263750)',
+          backgroundColor: 'var(--bg-elevated, #0f172a)',
           position: 'relative',
           userSelect: 'none'
         }}
@@ -420,8 +420,8 @@ export default function PostMedia({
         marginTop: '12px',
         borderRadius: '16px',
         overflow: 'hidden',
-        border: '1px solid #cbd5e1',
-        backgroundColor: '#0f172a'
+        border: '1px solid var(--border-color, #263750)',
+        backgroundColor: 'var(--bg-elevated, #0f172a)'
       }}
     >
       {/* 2 IMAGES COLLAGE */}

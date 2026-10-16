@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { users as mockUsers } from '../../data/mockData';
 import { notifyMessagingStateChange, localConversations, localMessages, localConversationMembers } from './realtimeService';
+import { checkBlockStatus } from '../../lib/blockService';
 
 function isUuid(str) {
   if (typeof str !== 'string') return false;
@@ -187,6 +188,13 @@ export const getConversations = async (currentUserId) => {
 
 export const getOrCreateDirectConversation = async (currentUserId, targetUserId, targetUserObj = null) => {
   if (!currentUserId || !targetUserId) return null;
+
+  // Enforce blocking
+  const blockInfo = await checkBlockStatus(currentUserId, targetUserId);
+  if (blockInfo.isBlocked) {
+    console.warn('[conversationService] Blocked user messaging attempt prevented:', { currentUserId, targetUserId });
+    return { error: 'Cannot start conversation because this user is blocked.' };
+  }
 
   if (isSupabaseConfigured && isUuid(currentUserId) && isUuid(targetUserId)) {
     try {
