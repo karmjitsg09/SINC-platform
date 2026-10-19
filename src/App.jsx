@@ -96,6 +96,7 @@ function MainAppContent() {
   const [storyViewerGroups, setStoryViewerGroups] = useState([]);
   const [isResolvingConversation, setIsResolvingConversation] = useState(false);
   const [targetPostId, setTargetPostId] = useState(null);
+  const [createPostInitialMediaType, setCreatePostInitialMediaType] = useState('none');
 
   // Dedicated Post View navigation state
   const [activePostId, setActivePostId] = useState(initialRoute.activePostId || null);
@@ -619,12 +620,19 @@ function MainAppContent() {
         return (
           <Feed
             selectedFeedCategory={selectedFeedCategory}
+            onSelectFeedCategory={setSelectedFeedCategory}
             selectedUpdateCategory={selectedUpdateCategory}
             onSelectUpdateCategory={setSelectedUpdateCategory}
             onOpenStoryViewer={handleOpenStoryViewer}
             targetPostId={targetPostId}
             onClearTargetPostId={() => setTargetPostId(null)}
             onNavigateToProfile={handleSelectProfileFromSearch}
+            onOpenCreatePost={(initialType) => {
+              setCreatePostInitialMediaType(initialType || 'none');
+              setActiveTab('create-post');
+              pushRoute({ tab: 'create-post' });
+            }}
+            showComposer={false}
           />
         );
 
@@ -915,6 +923,7 @@ function MainAppContent() {
               pushRoute({ tab: 'home' });
             }}
             initialDomain={selectedFeedCategory !== 'all' ? selectedFeedCategory : activeDomainId || 'tech'}
+            initialMediaType={createPostInitialMediaType || 'none'}
           />
         );
 
@@ -922,7 +931,14 @@ function MainAppContent() {
         return (
           <Feed
             selectedFeedCategory={selectedFeedCategory}
+            onSelectFeedCategory={setSelectedFeedCategory}
             onNavigateToProfile={handleSelectProfileFromSearch}
+            onOpenCreatePost={(initialType) => {
+              setCreatePostInitialMediaType(initialType || 'none');
+              setActiveTab('create-post');
+              pushRoute({ tab: 'create-post' });
+            }}
+            showComposer={false}
           />
         );
     }

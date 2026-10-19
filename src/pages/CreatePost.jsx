@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createPost as createPostService } from '../lib/postService';
 import { FEED_CATEGORIES } from '../data/mockData';
@@ -6,7 +6,7 @@ import { FEED_CATEGORIES } from '../data/mockData';
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024;  // 20 MB
 
-export default function CreatePost({ onBack, onPostCreated, initialDomain = 'tech' }) {
+export default function CreatePost({ onBack, onPostCreated, initialDomain = 'tech', initialMediaType = 'none' }) {
   const { user } = useAuth();
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -16,7 +16,19 @@ export default function CreatePost({ onBack, onPostCreated, initialDomain = 'tec
   const [content, setContent] = useState('');
 
   // Media attachments state
-  const [mediaType, setMediaType] = useState('none'); // 'image' | 'video' | 'link' | 'code' | 'none'
+  const [mediaType, setMediaType] = useState(initialMediaType || 'none'); // 'image' | 'video' | 'link' | 'code' | 'none'
+
+  useEffect(() => {
+    if (initialMediaType === 'image') {
+      setMediaType('image');
+      setTimeout(() => fileInputRef.current?.click(), 100);
+    } else if (initialMediaType === 'video') {
+      setMediaType('video');
+      setTimeout(() => videoInputRef.current?.click(), 100);
+    } else if (initialMediaType === 'code') {
+      setMediaType('code');
+    }
+  }, [initialMediaType]);
   const [selectedImages, setSelectedImages] = useState([]); // Array of { id, file, previewUrl }
   const [layoutType, setLayoutType] = useState('collage'); // 'collage' | 'carousel'
   const [videoFile, setVideoFile] = useState(null);

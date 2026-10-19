@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { getProfileStats, calculateAge } from '../lib/profileService';
+import { getProfileStats, calculateAge, getUserPrivateDetails } from '../lib/profileService';
 import { getFollowStatus, sendFollowRequest, respondToFollowRequest } from '../lib/socialService';
 import { getUserProjects } from '../lib/projectService';
 import { getExperiencesByUserId } from '../lib/experienceService';
@@ -97,8 +97,16 @@ export default function ProfileDetails({
         if (rawLoc) savedLocationData = JSON.parse(rawLoc);
       } catch (e) {}
 
-      // 2. Fetch public.profiles
+      // 2. Fetch public.profiles & private details (owner-only)
       let baseProfile = targetUser || currentUser || {};
+      let privateDetails = null;
+      if (isSelf) {
+        try {
+          const privRes = await getUserPrivateDetails(activeUserId);
+          privateDetails = privRes?.data;
+        } catch (e) {}
+      }
+
       if (isSupabaseConfigured) {
         const { data: dbProfile, error: pErr } = await supabase
           .from('profiles')
@@ -118,28 +126,32 @@ export default function ProfileDetails({
             skills: dbProfile.skills || [],
             domains: dbProfile.domains || [],
             location: dbProfile.location || savedLocationData?.displayLocation || baseProfile?.location || '',
-            first_name: dbProfile.first_name || savedWizardMeta.first_name,
-            last_name: dbProfile.last_name || savedWizardMeta.last_name,
-            date_of_birth: dbProfile.date_of_birth || savedWizardMeta.date_of_birth,
-            gender: dbProfile.gender || savedWizardMeta.gender,
-            gender_custom: dbProfile.gender_custom || savedWizardMeta.gender_custom,
-            languages: dbProfile.languages || savedWizardMeta.languages || [],
-            profession_type: dbProfile.profession_type || savedWizardMeta.profession_type,
-            profession_details: dbProfile.profession_details || savedWizardMeta.profession_details || {},
-            skills_technical: dbProfile.skills_technical || savedWizardMeta.skills_technical || [],
-            skills_soft: dbProfile.skills_soft || savedWizardMeta.skills_soft || [],
-            skills_languages: dbProfile.skills_languages || savedWizardMeta.skills_languages || [],
-            skills_tools: dbProfile.skills_tools || savedWizardMeta.skills_tools || [],
-            skills_technologies: dbProfile.skills_technologies || savedWizardMeta.skills_technologies || [],
-            skills_expertise: dbProfile.skills_expertise || savedWizardMeta.skills_expertise || [],
-            portfolio_url: dbProfile.portfolio_url || savedWizardMeta.portfolio_url,
-            github_url: dbProfile.github_url || savedWizardMeta.github_url,
-            linkedin_url: dbProfile.linkedin_url || savedWizardMeta.linkedin_url,
-            other_links: dbProfile.other_links || savedWizardMeta.other_links || [],
-            privacy_settings: dbProfile.privacy_settings || savedWizardMeta.privacy_settings || {},
-            professional_photo_url: dbProfile.professional_photo_url || savedWizardMeta.professional_photo_url || null,
-            is_verified: Boolean(dbProfile.is_verified || baseProfile?.is_verified),
-            ...savedWizardMeta
+            first_name: dbProfile.first_name || (isSelf ? savedWizardMeta.first_name : ''),
+            last_name: dbProfile.last_name || (isSelf ? savedWizardMeta.last_name : ''),
+            date_of_birth: isSelf ? (privateDetails?.date_of_birth || savedWizardMeta.date_of_birth || null) : null,
+            gender: isSelf ? (privateDetails?.gender || savedWizardMeta.gender || null) : null,
+            gender_custom: isSelf ? (privateDetails?.gender_custom || savedWizardMeta.gender_custom || null) : null,
+            languages: dbProfile.languages || (isSelf ? savedWizardMeta.languages : []) || [],
+            profession_type: dbProfile.profession_type || (isSelf ? savedWizardMeta.profession_type : null),
+            profession_details: dbProfile.profession_details || (isSelf ? savedWizardMeta.profession_details : {}) || {},
+            skills_technical: dbProfile.skills_technical || (isSelf ? savedWizardMeta.skills_technical : []) || [],
+            skills_soft: dbProfile.skills_soft || (isSelf ? savedWizardMeta.skills_soft : []) || [],
+            skills_languages: dbProfile.skills_languages || (isSelf ? savedWizardMeta.skills_languages : []) || [],
+            skills_tools: dbProfile.skills_tools || (isSelf ? savedWizardMeta.skills_tools : []) || [],
+            skills_technologies: dbProfile.skills_technologies || (isSelf ? savedWizardMeta.skills_technologies : []) || [],
+            skills_expertise: dbProfile.skills_expertise || (isSelf ? savedWizardMeta.skills_expertise : []) || [],
+            portfolio_url: dbProfile.portfolio_url || (isSelf ? savedWizardMeta.portfolio_url : null),
+            github_url: dbProfile.github_url || (isSelf ? savedWizardMeta.github_url : null),
+            linkedin_url: dbProfile.linkedin_url || (isSelf ? savedWizardMeta.linkedin_url : null),
+            other_links: dbProfile.other_links || (isSelf ? savedWizardMeta.other_links : []) || [],
+            privacy_settings: isSelf ? (privateDetails?.privacy_settings || savedWizardMeta.privacy_settings || {}) : {},
+            professional_photo_url: dbProfile.professional_photo_url || (isSelf ? savedWizardMeta.professional_photo_url : null),
+            is_verified: Boolean(dbProfile.is_verified),
+            ...(isSelf ? (() => {
+              const meta = { ...savedWizardMeta };
+              delete meta.is_verified;
+              return meta;
+            })() : {})
           };
         }
       }

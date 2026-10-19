@@ -126,6 +126,37 @@ CREATE POLICY "Allow users to update their own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
+-- PROTECT PRIVILEGED VERIFICATION FIELD (is_verified)
+-- Ordinary authenticated users cannot modify their own or others' verification status.
+-- Only platform service_role or administrators can update is_verified.
+CREATE OR REPLACE FUNCTION public.protect_profile_verification_update()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_verified IS DISTINCT FROM OLD.is_verified THEN
+    IF auth.role() IS NULL OR auth.role() <> 'service_role' THEN
+      RAISE EXCEPTION 'Unauthorized: Users cannot modify verification status. Only service_role or administrators may update is_verified.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'is_verified'
+  ) THEN
+    DROP TRIGGER IF EXISTS trg_protect_profile_verification ON public.profiles;
+    CREATE TRIGGER trg_protect_profile_verification
+      BEFORE UPDATE ON public.profiles
+      FOR EACH ROW
+      EXECUTE FUNCTION public.protect_profile_verification_update();
+    
+    REVOKE UPDATE (is_verified) ON public.profiles FROM anon, authenticated;
+  END IF;
+END $$;
+
 -- FOLLOW REQUESTS POLICIES
 CREATE POLICY "Allow users to view follow requests involving them"
   ON public.follow_requests FOR SELECT

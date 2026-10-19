@@ -478,101 +478,292 @@ export const setUserDomainMemberships = async (userId, domainIds = []) => {
 };
 
 // ============================================================
-// 9. UPDATE PROFILE (WITH QUESTION-BASED ONBOARDING FIELDS)
+// 9. PRIVATE USER DETAILS (ISOLATED IN user_private_details WITH OWNER-ONLY RLS)
+// ============================================================
+
+export const getUserPrivateDetails = async (userId) => {
+  if (!userId) return { data: null, error: 'User ID required', serverLoaded: false };
+
+  const localCacheKey = `sync_profile_private_${userId}`;
+  let cached = null;
+  try {
+    const raw = localStorage.getItem(localCacheKey);
+    if (raw) cached = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!isSupabaseConfigured) {
+    return { data: cached, error: null, serverLoaded: false, isFallback: true };
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentAuthId = session?.user?.id;
+    // Client-side authorization guard: Only owner can query their own private details
+    if (!currentAuthId || currentAuthId !== userId) {
+      return { data: null, error: 'Unauthorized: Private details are only accessible to the account owner.', serverLoaded: false };
+    }
+
+    const { data, error } = await supabase
+      .from('user_private_details')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      // Graceful fallback if table is not yet created in remote database
+      if (
+        error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        error.message?.includes('relation') ||
+        error.message?.includes('does not exist')
+      ) {
+        return { data: cached, error: null, serverLoaded: false, isFallback: true, pendingMigration: true };
+      }
+      console.warn('[ProfileService] getUserPrivateDetails notice:', error.message);
+      return { data: cached, error: error.message, serverLoaded: false };
+    }
+
+    if (data) {
+      try {
+        localStorage.setItem(localCacheKey, JSON.stringify(data));
+      } catch (e) {}
+      return { data, error: null, serverLoaded: true };
+    }
+
+    return { data: cached, error: null, serverLoaded: true };
+  } catch (err) {
+    console.error('[ProfileService] getUserPrivateDetails exception:', err);
+    return { data: cached, error: err.message, serverLoaded: false };
+  }
+};
+
+export const upsertUserPrivateDetails = async (userId, privateData) => {
+  if (!userId) return { success: false, serverSaved: false, isLocalOnly: false, error: 'Missing user ID' };
+
+  const localCacheKey = `sync_profile_private_${userId}`;
+  try {
+    const existing = JSON.parse(localStorage.getItem(localCacheKey) || '{}');
+    const merged = { ...existing, ...privateData };
+    localStorage.setItem(localCacheKey, JSON.stringify(merged));
+  } catch (e) {}
+
+  if (!isSupabaseConfigured) {
+    return { success: true, serverSaved: false, isLocalOnly: true, data: privateData };
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentAuthId = session?.user?.id;
+    if (!currentAuthId || currentAuthId !== userId) {
+      return { success: false, serverSaved: false, isLocalOnly: false, error: 'Unauthorized: You can only update your own private details.' };
+    }
+
+    const payload = {
+      user_id: userId,
+      updated_at: new Date().toISOString()
+    };
+
+    if (privateData.date_of_birth !== undefined) payload.date_of_birth = privateData.date_of_birth || null;
+    if (privateData.gender !== undefined) payload.gender = privateData.gender || null;
+    if (privateData.gender_custom !== undefined) payload.gender_custom = privateData.gender_custom || null;
+    if (privateData.location_address !== undefined) payload.location_address = privateData.location_address || null;
+    if (privateData.location_area !== undefined) payload.location_area = privateData.location_area || null;
+    if (privateData.location_landmark !== undefined) payload.location_landmark = privateData.location_landmark || null;
+    if (privateData.location_pincode !== undefined) payload.location_pincode = privateData.location_pincode || null;
+    if (privateData.location_latitude !== undefined) payload.location_latitude = privateData.location_latitude ?? null;
+    if (privateData.location_longitude !== undefined) payload.location_longitude = privateData.location_longitude ?? null;
+    if (privateData.privacy_settings !== undefined) payload.privacy_settings = privateData.privacy_settings;
+
+    let { data, error } = await supabase
+      .from('user_private_details')
+      .upsert(payload, { onConflict: 'user_id' })
+      .select()
+      .maybeSingle();
+
+    if (
+      error &&
+      (error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        error.message?.includes('relation') ||
+        error.message?.includes('does not exist'))
+    ) {
+      console.warn('[ProfileService] user_private_details table does not exist in DB yet. Saved to local cache.');
+      return {
+        success: true,
+        serverSaved: false,
+        isLocalOnly: true,
+        pendingMigration: true,
+        warning: 'The remote user_private_details table is not yet migrated. Data is saved locally on this device only.',
+        data: payload
+      };
+    }
+
+    if (error && (error.code === '42703' || error.message?.includes('column'))) {
+      const match = error.message.match(/'([^']+)' column/i) || error.message.match(/column "?([^"\s]+)"?/i);
+      if (match && match[1] && payload[match[1]] !== undefined) {
+        delete payload[match[1]];
+        const retry = await supabase
+          .from('user_private_details')
+          .upsert(payload, { onConflict: 'user_id' })
+          .select()
+          .maybeSingle();
+        data = retry.data;
+        error = retry.error;
+      }
+    }
+
+    if (error && (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission denied'))) {
+      console.error('[ProfileService] Permission denied saving private details:', error);
+      return {
+        success: false,
+        serverSaved: false,
+        isLocalOnly: false,
+        error: 'Database permission denied (Row-Level Security check failed).',
+        data: payload
+      };
+    }
+
+    if (error) {
+      console.error('[ProfileService] upsertUserPrivateDetails DB error:', error);
+      return {
+        success: false,
+        serverSaved: false,
+        isLocalOnly: false,
+        error: error.message || 'Failed to save private details to server.',
+        data: payload
+      };
+    }
+
+    return { success: true, serverSaved: true, isLocalOnly: false, data: data || payload };
+  } catch (err) {
+    console.error('[ProfileService] upsertUserPrivateDetails exception:', err);
+    return {
+      success: false,
+      serverSaved: false,
+      isLocalOnly: false,
+      error: err.message || 'Network error while saving private details.',
+      data: privateData
+    };
+  }
+};
+
+// ============================================================
+// 10. UPDATE PUBLIC PROFILE (DOES NOT STORE PRIVATE PII IN PROFILES)
 // ============================================================
 export const updateBasicProfile = async (userId, profileData) => {
   if (!userId) return null;
 
+  // Protect privileged verification status from client update payloads
+  const sanitizedProfileData = { ...profileData };
+  delete sanitizedProfileData.is_verified;
+
   // Persist structured wizard cache locally
   try {
-    localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(profileData));
+    localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(sanitizedProfileData));
   } catch (e) {}
 
   // Persist location cache locally
-  if (profileData.locationData || profileData.location) {
+  if (sanitizedProfileData.locationData || sanitizedProfileData.location) {
     try {
-      const locPayload = profileData.locationData || {
-        displayLocation: profileData.location,
-        placeName: profileData.location_place_name,
-        address: profileData.location_address,
-        area: profileData.location_area,
-        landmark: profileData.location_landmark,
-        city: profileData.location_city,
-        state: profileData.location_state,
-        country: profileData.location_country,
-        pincode: profileData.location_pincode,
-        latitude: profileData.location_latitude,
-        longitude: profileData.location_longitude
+      const locPayload = sanitizedProfileData.locationData || {
+        displayLocation: sanitizedProfileData.location,
+        placeName: sanitizedProfileData.location_place_name,
+        address: sanitizedProfileData.location_address,
+        area: sanitizedProfileData.location_area,
+        landmark: sanitizedProfileData.location_landmark,
+        city: sanitizedProfileData.location_city,
+        state: sanitizedProfileData.location_state,
+        country: sanitizedProfileData.location_country,
+        pincode: sanitizedProfileData.location_pincode,
+        latitude: sanitizedProfileData.location_latitude,
+        longitude: sanitizedProfileData.location_longitude
       };
       localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));
     } catch (e) {}
   }
 
   // Update domain memberships if provided
-  if (profileData.domains && Array.isArray(profileData.domains)) {
-    await setUserDomainMemberships(userId, profileData.domains);
+  if (sanitizedProfileData.domains && Array.isArray(sanitizedProfileData.domains)) {
+    await setUserDomainMemberships(userId, sanitizedProfileData.domains);
   }
 
+  // 1. If any sensitive private fields exist, persist them strictly into user_private_details
+  const privateFieldNames = [
+    'date_of_birth',
+    'gender',
+    'gender_custom',
+    'location_address',
+    'location_area',
+    'location_landmark',
+    'location_pincode',
+    'location_latitude',
+    'location_longitude',
+    'privacy_settings'
+  ];
+  const hasPrivateFields = privateFieldNames.some((key) => sanitizedProfileData[key] !== undefined);
+
+  let privResult = null;
+  if (hasPrivateFields) {
+    privResult = await upsertUserPrivateDetails(userId, sanitizedProfileData);
+    if (!privResult.success && !privResult.pendingMigration) {
+      console.error('[ProfileService] Failed to save private details:', privResult.error);
+      throw new Error(`Failed to save private details: ${privResult.error}`);
+    }
+  }
+
+  // 2. Only public fields are sent to public.profiles
   if (isSupabaseConfigured) {
     try {
       const baseUpdates = {};
-      if (profileData.name !== undefined) baseUpdates.name = profileData.name;
-      if (profileData.username !== undefined) baseUpdates.username = profileData.username;
-      if (profileData.role !== undefined) baseUpdates.role = profileData.role;
-      if (profileData.bio !== undefined) baseUpdates.bio = profileData.bio;
-      if (profileData.avatarUrl !== undefined) baseUpdates.avatar_url = profileData.avatarUrl;
-      if (profileData.avatar_url !== undefined) baseUpdates.avatar_url = profileData.avatar_url;
-      if (profileData.skills !== undefined) baseUpdates.skills = profileData.skills;
-      if (profileData.domains !== undefined) baseUpdates.domains = profileData.domains;
+      if (sanitizedProfileData.name !== undefined) baseUpdates.name = sanitizedProfileData.name;
+      if (sanitizedProfileData.username !== undefined) baseUpdates.username = sanitizedProfileData.username;
+      if (sanitizedProfileData.role !== undefined) baseUpdates.role = sanitizedProfileData.role;
+      if (sanitizedProfileData.bio !== undefined) baseUpdates.bio = sanitizedProfileData.bio;
+      if (sanitizedProfileData.avatarUrl !== undefined) baseUpdates.avatar_url = sanitizedProfileData.avatarUrl;
+      if (sanitizedProfileData.avatar_url !== undefined) baseUpdates.avatar_url = sanitizedProfileData.avatar_url;
+      if (sanitizedProfileData.skills !== undefined) baseUpdates.skills = sanitizedProfileData.skills;
+      if (sanitizedProfileData.domains !== undefined) baseUpdates.domains = sanitizedProfileData.domains;
       baseUpdates.updated_at = new Date().toISOString();
 
-      const fullUpdates = { ...baseUpdates };
-      // Location fields
-      if (profileData.location !== undefined) fullUpdates.location = profileData.location;
-      if (profileData.location_place_name !== undefined) fullUpdates.location_place_name = profileData.location_place_name;
-      if (profileData.location_address !== undefined) fullUpdates.location_address = profileData.location_address;
-      if (profileData.location_area !== undefined) fullUpdates.location_area = profileData.location_area;
-      if (profileData.location_landmark !== undefined) fullUpdates.location_landmark = profileData.location_landmark;
-      if (profileData.location_city !== undefined) fullUpdates.location_city = profileData.location_city;
-      if (profileData.location_state !== undefined) fullUpdates.location_state = profileData.location_state;
-      if (profileData.location_country !== undefined) fullUpdates.location_country = profileData.location_country;
-      if (profileData.location_pincode !== undefined) fullUpdates.location_pincode = profileData.location_pincode;
-      if (profileData.location_latitude !== undefined) fullUpdates.location_latitude = profileData.location_latitude;
-      if (profileData.location_longitude !== undefined) fullUpdates.location_longitude = profileData.location_longitude;
+      const publicUpdates = { ...baseUpdates };
+      // Broad discovery location fields (safe for public)
+      if (sanitizedProfileData.location !== undefined) publicUpdates.location = sanitizedProfileData.location;
+      if (sanitizedProfileData.location_place_name !== undefined) publicUpdates.location_place_name = sanitizedProfileData.location_place_name;
+      if (sanitizedProfileData.location_city !== undefined) publicUpdates.location_city = sanitizedProfileData.location_city;
+      if (sanitizedProfileData.location_state !== undefined) publicUpdates.location_state = sanitizedProfileData.location_state;
+      if (sanitizedProfileData.location_country !== undefined) publicUpdates.location_country = sanitizedProfileData.location_country;
 
-      // Onboarding fields
-      if (profileData.first_name !== undefined) fullUpdates.first_name = profileData.first_name;
-      if (profileData.last_name !== undefined) fullUpdates.last_name = profileData.last_name;
-      if (profileData.date_of_birth !== undefined) fullUpdates.date_of_birth = profileData.date_of_birth;
-      if (profileData.gender !== undefined) fullUpdates.gender = profileData.gender;
-      if (profileData.gender_custom !== undefined) fullUpdates.gender_custom = profileData.gender_custom;
-      if (profileData.languages !== undefined) fullUpdates.languages = profileData.languages;
-      if (profileData.profession_type !== undefined) fullUpdates.profession_type = profileData.profession_type;
-      if (profileData.profession_details !== undefined) fullUpdates.profession_details = profileData.profession_details;
-      if (profileData.skills_technical !== undefined) fullUpdates.skills_technical = profileData.skills_technical;
-      if (profileData.skills_soft !== undefined) fullUpdates.skills_soft = profileData.skills_soft;
-      if (profileData.skills_languages !== undefined) fullUpdates.skills_languages = profileData.skills_languages;
-      if (profileData.skills_tools !== undefined) fullUpdates.skills_tools = profileData.skills_tools;
-      if (profileData.skills_technologies !== undefined) fullUpdates.skills_technologies = profileData.skills_technologies;
-      if (profileData.skills_expertise !== undefined) fullUpdates.skills_expertise = profileData.skills_expertise;
-      if (profileData.portfolio_url !== undefined) fullUpdates.portfolio_url = profileData.portfolio_url;
-      if (profileData.github_url !== undefined) fullUpdates.github_url = profileData.github_url;
-      if (profileData.linkedin_url !== undefined) fullUpdates.linkedin_url = profileData.linkedin_url;
-      if (profileData.other_links !== undefined) fullUpdates.other_links = profileData.other_links;
-      if (profileData.preferred_work_location !== undefined) fullUpdates.preferred_work_location = profileData.preferred_work_location;
-      if (profileData.preferences !== undefined) fullUpdates.preferences = profileData.preferences;
-      if (profileData.privacy_settings !== undefined) fullUpdates.privacy_settings = profileData.privacy_settings;
-      if (profileData.onboarding_completed !== undefined) fullUpdates.onboarding_completed = profileData.onboarding_completed;
-      if (profileData.professional_photo_url !== undefined) fullUpdates.professional_photo_url = profileData.professional_photo_url;
+      // Onboarding public fields
+      if (sanitizedProfileData.first_name !== undefined) publicUpdates.first_name = sanitizedProfileData.first_name;
+      if (sanitizedProfileData.last_name !== undefined) publicUpdates.last_name = sanitizedProfileData.last_name;
+      if (sanitizedProfileData.languages !== undefined) publicUpdates.languages = sanitizedProfileData.languages;
+      if (sanitizedProfileData.profession_type !== undefined) publicUpdates.profession_type = sanitizedProfileData.profession_type;
+      if (sanitizedProfileData.profession_details !== undefined) publicUpdates.profession_details = sanitizedProfileData.profession_details;
+      if (sanitizedProfileData.skills_technical !== undefined) publicUpdates.skills_technical = sanitizedProfileData.skills_technical;
+      if (sanitizedProfileData.skills_soft !== undefined) publicUpdates.skills_soft = sanitizedProfileData.skills_soft;
+      if (sanitizedProfileData.skills_languages !== undefined) publicUpdates.skills_languages = sanitizedProfileData.skills_languages;
+      if (sanitizedProfileData.skills_tools !== undefined) publicUpdates.skills_tools = sanitizedProfileData.skills_tools;
+      if (sanitizedProfileData.skills_technologies !== undefined) publicUpdates.skills_technologies = sanitizedProfileData.skills_technologies;
+      if (sanitizedProfileData.skills_expertise !== undefined) publicUpdates.skills_expertise = sanitizedProfileData.skills_expertise;
+      if (sanitizedProfileData.portfolio_url !== undefined) publicUpdates.portfolio_url = sanitizedProfileData.portfolio_url;
+      if (sanitizedProfileData.github_url !== undefined) publicUpdates.github_url = sanitizedProfileData.github_url;
+      if (sanitizedProfileData.linkedin_url !== undefined) publicUpdates.linkedin_url = sanitizedProfileData.linkedin_url;
+      if (sanitizedProfileData.other_links !== undefined) publicUpdates.other_links = sanitizedProfileData.other_links;
+      if (sanitizedProfileData.preferred_work_location !== undefined) publicUpdates.preferred_work_location = sanitizedProfileData.preferred_work_location;
+      if (sanitizedProfileData.preferences !== undefined) publicUpdates.preferences = sanitizedProfileData.preferences;
+      if (sanitizedProfileData.onboarding_completed !== undefined) publicUpdates.onboarding_completed = sanitizedProfileData.onboarding_completed;
+      if (sanitizedProfileData.professional_photo_url !== undefined) publicUpdates.professional_photo_url = sanitizedProfileData.professional_photo_url;
+
+      // Note: is_verified is strictly excluded from publicUpdates and baseUpdates
 
       let { data, error } = await supabase
         .from('profiles')
-        .update(fullUpdates)
+        .update(publicUpdates)
         .eq('id', userId)
         .select()
         .single();
 
-      // If missing column error occurs before migration is run, fallback to base updates
+      // If missing column error occurs before onboarding migration is run, fallback to base updates
       if (
         error &&
         (error.code === '42703' ||
@@ -593,75 +784,123 @@ export const updateBasicProfile = async (userId, profileData) => {
 
       if (!error && data) {
         notifyProfileListeners();
-        return data;
+        return {
+          ...data,
+          _serverSaved: true,
+          _isLocalOnly: false,
+          _privPendingMigration: Boolean(privResult?.pendingMigration)
+        };
+      }
+
+      if (error) {
+        console.error('[ProfileService] updateBasicProfile DB error:', error);
+        throw new Error(error.message || 'Failed to update profile');
       }
     } catch (err) {
-      console.error('[ProfileService] updateBasicProfile error:', err);
+      console.error('[ProfileService] updateBasicProfile exception:', err);
+      throw err;
     }
   }
 
   notifyProfileListeners();
-  return profileData;
+  return {
+    ...sanitizedProfileData,
+    _serverSaved: false,
+    _isLocalOnly: true
+  };
 };
 
 // ============================================================
-// 10. SAVE INDIVIDUAL WIZARD STEP
+// 11. SAVE INDIVIDUAL WIZARD STEP
 // ============================================================
 export const saveStepProfile = async (userId, stepNumber, stepData) => {
-  if (!userId || !stepData) return { success: false, error: 'Missing user ID or data' };
+  if (!userId || !stepData) return { success: false, serverSaved: false, isLocalOnly: false, error: 'Missing user ID or data' };
+
+  // Strip privileged fields from client update
+  const sanitizedStepData = { ...stepData };
+  delete sanitizedStepData.is_verified;
 
   // Cache to localStorage
   try {
     const existing = JSON.parse(localStorage.getItem(`sync_profile_wizard_${userId}`) || '{}');
-    const merged = { ...existing, ...stepData };
+    const merged = { ...existing, ...sanitizedStepData };
     localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(merged));
   } catch (e) {}
 
   // Handle domain memberships separately (Step 8)
-  if (stepData.domains && Array.isArray(stepData.domains)) {
-    await setUserDomainMemberships(userId, stepData.domains);
+  if (sanitizedStepData.domains && Array.isArray(sanitizedStepData.domains)) {
+    await setUserDomainMemberships(userId, sanitizedStepData.domains);
   }
 
   // Handle location cache (Step 2)
-  if (stepData.locationData || stepData.location) {
+  if (sanitizedStepData.locationData || sanitizedStepData.location) {
     try {
-      const locPayload = stepData.locationData || {
-        displayLocation: stepData.location,
-        placeName: stepData.location_place_name,
-        address: stepData.location_address,
-        area: stepData.location_area,
-        landmark: stepData.location_landmark,
-        city: stepData.location_city,
-        state: stepData.location_state,
-        country: stepData.location_country,
-        pincode: stepData.location_pincode,
-        latitude: stepData.location_latitude,
-        longitude: stepData.location_longitude
+      const locPayload = sanitizedStepData.locationData || {
+        displayLocation: sanitizedStepData.location,
+        placeName: sanitizedStepData.location_place_name,
+        address: sanitizedStepData.location_address,
+        area: sanitizedStepData.location_area,
+        landmark: sanitizedStepData.location_landmark,
+        city: sanitizedStepData.location_city,
+        state: sanitizedStepData.location_state,
+        country: sanitizedStepData.location_country,
+        pincode: sanitizedStepData.location_pincode,
+        latitude: sanitizedStepData.location_latitude,
+        longitude: sanitizedStepData.location_longitude
       };
       localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));
     } catch (e) {}
   }
 
+  // Check and isolate private fields
+  const privateFieldNames = [
+    'date_of_birth',
+    'gender',
+    'gender_custom',
+    'location_address',
+    'location_area',
+    'location_landmark',
+    'location_pincode',
+    'location_latitude',
+    'location_longitude',
+    'privacy_settings'
+  ];
+  const hasPrivateFields = privateFieldNames.some((key) => sanitizedStepData[key] !== undefined);
+
+  let privRes = null;
+  if (hasPrivateFields) {
+    privRes = await upsertUserPrivateDetails(userId, sanitizedStepData);
+    if (!privRes.success && !privRes.pendingMigration) {
+      return {
+        success: false,
+        serverSaved: false,
+        isLocalOnly: false,
+        error: `Failed to save private details: ${privRes.error}`
+      };
+    }
+  }
+
   if (!isSupabaseConfigured) {
     notifyProfileListeners();
-    return { success: true, data: stepData };
+    return {
+      success: true,
+      serverSaved: false,
+      isLocalOnly: true,
+      data: sanitizedStepData
+    };
   }
 
   try {
-    // Build the update object from ONLY the fields in stepData
-    const updates = {};
-    const fieldMap = {
+    // Build update object for public.profiles containing ONLY permitted non-sensitive columns
+    const publicUpdates = {};
+    const publicFieldMap = {
       first_name: 'first_name', last_name: 'last_name', name: 'name',
       username: 'username', role: 'role', bio: 'bio',
       avatar_url: 'avatar_url', avatarUrl: 'avatar_url',
-      date_of_birth: 'date_of_birth', gender: 'gender', gender_custom: 'gender_custom',
       languages: 'languages', professional_photo_url: 'professional_photo_url',
       location: 'location', location_place_name: 'location_place_name',
-      location_address: 'location_address', location_area: 'location_area',
-      location_landmark: 'location_landmark', location_city: 'location_city',
-      location_state: 'location_state', location_country: 'location_country',
-      location_pincode: 'location_pincode', location_latitude: 'location_latitude',
-      location_longitude: 'location_longitude',
+      location_city: 'location_city', location_state: 'location_state',
+      location_country: 'location_country',
       profession_type: 'profession_type', profession_details: 'profession_details',
       skills: 'skills', skills_technical: 'skills_technical', skills_soft: 'skills_soft',
       skills_languages: 'skills_languages', skills_tools: 'skills_tools',
@@ -669,36 +908,35 @@ export const saveStepProfile = async (userId, stepNumber, stepData) => {
       portfolio_url: 'portfolio_url', github_url: 'github_url',
       linkedin_url: 'linkedin_url', other_links: 'other_links',
       preferred_work_location: 'preferred_work_location', preferences: 'preferences',
-      privacy_settings: 'privacy_settings', domains: 'domains',
-      onboarding_completed: 'onboarding_completed'
+      domains: 'domains', onboarding_completed: 'onboarding_completed'
     };
 
-    for (const [srcKey, dbKey] of Object.entries(fieldMap)) {
-      if (stepData[srcKey] !== undefined) {
-        updates[dbKey] = stepData[srcKey];
+    for (const [srcKey, dbKey] of Object.entries(publicFieldMap)) {
+      if (sanitizedStepData[srcKey] !== undefined) {
+        publicUpdates[dbKey] = sanitizedStepData[srcKey];
       }
     }
 
-    updates.updated_at = new Date().toISOString();
+    publicUpdates.updated_at = new Date().toISOString();
 
     // Fetch current completed steps safely
     let existingSteps = [];
     try {
       const { data: currentProfile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('profile_setup_completed_steps')
         .eq('id', userId)
         .single();
       existingSteps = currentProfile?.profile_setup_completed_steps || [];
     } catch (e) {}
 
     const newSteps = Array.from(new Set([...existingSteps, stepNumber])).sort((a, b) => a - b);
-    updates.profile_setup_completed_steps = newSteps;
+    publicUpdates.profile_setup_completed_steps = newSteps;
 
     // Execute update with progressive omission of unmigrated schema columns
     let { data, error } = await supabase
       .from('profiles')
-      .update(updates)
+      .update(publicUpdates)
       .eq('id', userId)
       .select()
       .single();
@@ -717,28 +955,33 @@ export const saveStepProfile = async (userId, stepNumber, stepData) => {
         error.message.match(/'([^']+)' column/i) ||
         error.message.match(/column "?([^"\s]+)"?/i);
 
-      if (match && match[1] && updates[match[1]] !== undefined) {
-        console.warn(`[ProfileService] Omitting missing column '${match[1]}' from Supabase update.`);
-        delete updates[match[1]];
+      if (match && match[1] && publicUpdates[match[1]] !== undefined) {
+        delete publicUpdates[match[1]];
       } else {
         // Fallback: keep only existing base columns
         const baseAllowed = ['name', 'username', 'role', 'bio', 'avatar_url', 'skills', 'domains', 'updated_at'];
-        for (const k of Object.keys(updates)) {
+        for (const k of Object.keys(publicUpdates)) {
           if (!baseAllowed.includes(k)) {
-            delete updates[k];
+            delete publicUpdates[k];
           }
         }
       }
 
-      if (Object.keys(updates).length === 0) {
-        // All fields were new schema columns; successfully cached in localStorage
+      if (Object.keys(publicUpdates).length === 0) {
         notifyProfileListeners();
-        return { success: true, data: stepData };
+        return {
+          success: true,
+          serverSaved: false,
+          isLocalOnly: true,
+          pendingMigration: true,
+          warning: 'Remote database schema is missing required columns. Data has been saved locally on this device.',
+          data: sanitizedStepData
+        };
       }
 
       const retryRes = await supabase
         .from('profiles')
-        .update(updates)
+        .update(publicUpdates)
         .eq('id', userId)
         .select()
         .single();
@@ -746,17 +989,40 @@ export const saveStepProfile = async (userId, stepNumber, stepData) => {
       error = retryRes.error;
     }
 
-    if (error && Object.keys(updates).length > 0) {
-      console.warn('[ProfileService] Supabase update warning, falling back to local cache:', error.message);
+    if (error) {
+      console.error('[ProfileService] saveStepProfile DB error:', error);
+      let errorMsg = error.message || 'Failed to save step to server database.';
+      if (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission denied')) {
+        errorMsg = 'Permission denied by database (Row-Level Security check failed).';
+      }
+      return {
+        success: false,
+        serverSaved: false,
+        isLocalOnly: true,
+        error: errorMsg,
+        data: sanitizedStepData
+      };
     }
 
     notifyProfileListeners();
-    return { success: true, data: data || stepData };
+    const isPrivatePending = Boolean(privRes?.pendingMigration);
+    return {
+      success: true,
+      serverSaved: true,
+      isLocalOnly: false,
+      pendingMigration: isPrivatePending,
+      warning: isPrivatePending ? 'Profile saved to server, but private details table migration is pending.' : null,
+      data: data || sanitizedStepData
+    };
   } catch (err) {
     console.error('[ProfileService] saveStepProfile exception:', err);
-    // Even if remote DB throws network exception, local cache is saved
-    notifyProfileListeners();
-    return { success: true, data: stepData };
+    return {
+      success: false,
+      serverSaved: false,
+      isLocalOnly: true,
+      error: err.message || 'An unexpected error occurred while saving profile step.',
+      data: sanitizedStepData
+    };
   }
 };
 

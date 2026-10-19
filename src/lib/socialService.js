@@ -117,7 +117,7 @@ export const searchProfiles = async (query = '', currentUserId = '') => {
 
   if (isSupabaseConfigured) {
     try {
-      let req = supabase.from('profiles').select('*');
+      let req = supabase.from('profiles').select('id, name, username, role, bio, avatar_url, skills, domains, is_verified, location');
       if (qClean) {
         req = req.or(`name.ilike.%${qClean}%,username.ilike.%${qClean}%,role.ilike.%${qClean}%`);
       }
@@ -140,8 +140,8 @@ export const searchProfiles = async (query = '', currentUserId = '') => {
           avatar_url: p.avatar_url || null,
           skills: p.skills || [],
           domains: p.domains || [],
-          is_verified: Boolean(p.is_verified),
-          privacy_settings: p.privacy_settings || {}
+          location: p.location || '',
+          is_verified: Boolean(p.is_verified)
         }));
 
         const otherMatches = dbProfiles.filter((u) => u.id !== currentUserId && !isBlockedSync(currentUserId, u.id));

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getFollowStatus, sendFollowRequest, respondToFollowRequest, subscribeToLocalState } from '../lib/socialService';
@@ -9,7 +9,8 @@ import { FEED_CATEGORIES } from '../data/mockData';
 import {
   getProfileStats,
   updateBasicProfile,
-  subscribeToProfileState
+  subscribeToProfileState,
+  getUserPrivateDetails
 } from '../lib/profileService';
 import { getOrCreateDirectConversation } from '../messaging/services/conversationService';
 
@@ -114,13 +115,28 @@ export default function Profile({
     loadTabData();
     return () => { isMounted = false; };
   }, [activeProfileTab, activeUserId]);
-
   // Create post modal state (internal fallback)
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [postDomain, setPostDomain] = useState('tech');
   const [isPublishingPost, setIsPublishingPost] = useState(false);
+
+  // Ref and wheel forwarding for pinned profile header & scrollable lower body
+  const scrollBodyRef = useRef(null);
+  const handleHeaderWheel = useCallback((e) => {
+    if (scrollBodyRef.current) {
+      scrollBodyRef.current.scrollTop += e.deltaY;
+    }
+  }, []);
+
+  useEffect(() => {
+    // Reset viewport scroll position when profile mounts so header stays aligned at top
+    const viewport = document.querySelector('.sinc-viewport-scroll-area');
+    if (viewport && viewport.scrollTop > 0) {
+      viewport.scrollTop = 0;
+    }
+  }, []);
 
   // 1. Fetch Profile, Stats and Projects from Database
   const fetchProfileDetails = useCallback(async (isMountedRef) => {
@@ -146,8 +162,16 @@ export default function Profile({
         if (rawLoc) savedLocationData = JSON.parse(rawLoc);
       } catch (e) {}
 
-      // Fetch base profile from public.profiles
+      // Fetch base profile from public.profiles & private details (owner-only)
       let userObj = isSelf ? currentUser : targetUser;
+      let privateDetails = null;
+      if (isSelf) {
+        try {
+          const privRes = await getUserPrivateDetails(activeUserId);
+          privateDetails = privRes?.data;
+        } catch (e) {}
+      }
+
       if (isSupabaseConfigured) {
         const { data: dbProfile, error: pErr } = await supabase
           .from('profiles')
@@ -169,17 +193,21 @@ export default function Profile({
             domains: dbProfile.domains || [],
             location: dbProfile.location || savedLocationData?.displayLocation || userObj?.location || '',
             location_place_name: dbProfile.location_place_name || savedLocationData?.placeName || '',
-            location_address: dbProfile.location_address || savedLocationData?.address || '',
-            location_area: dbProfile.location_area || savedLocationData?.area || '',
-            location_landmark: dbProfile.location_landmark || savedLocationData?.landmark || '',
             location_city: dbProfile.location_city || savedLocationData?.city || '',
             location_state: dbProfile.location_state || savedLocationData?.state || '',
             location_country: dbProfile.location_country || savedLocationData?.country || 'India',
-            location_pincode: dbProfile.location_pincode || savedLocationData?.pincode || '',
-            location_latitude: dbProfile.location_latitude ?? savedLocationData?.latitude ?? null,
-            location_longitude: dbProfile.location_longitude ?? savedLocationData?.longitude ?? null,
+            location_address: isSelf ? (privateDetails?.location_address || savedLocationData?.address || '') : '',
+            location_area: isSelf ? (privateDetails?.location_area || savedLocationData?.area || '') : '',
+            location_landmark: isSelf ? (privateDetails?.location_landmark || savedLocationData?.landmark || '') : '',
+            location_pincode: isSelf ? (privateDetails?.location_pincode || savedLocationData?.pincode || '') : '',
+            location_latitude: isSelf ? (privateDetails?.location_latitude ?? savedLocationData?.latitude ?? null) : null,
+            location_longitude: isSelf ? (privateDetails?.location_longitude ?? savedLocationData?.longitude ?? null) : null,
+            date_of_birth: isSelf ? (privateDetails?.date_of_birth || savedWizardMeta.date_of_birth || null) : null,
+            gender: isSelf ? (privateDetails?.gender || savedWizardMeta.gender || null) : null,
+            gender_custom: isSelf ? (privateDetails?.gender_custom || savedWizardMeta.gender_custom || null) : null,
+            privacy_settings: isSelf ? (privateDetails?.privacy_settings || savedWizardMeta.privacy_settings || {}) : {},
             locationData: savedLocationData,
-            ...savedWizardMeta
+            ...(isSelf ? savedWizardMeta : {})
           };
         }
       } else {
@@ -578,10 +606,11 @@ export default function Profile({
   // Multi-step Profile Setup / Edit Wizard (Image flow)
   if (isWizardOpen && isSelf) {
     return (
-      <div className="main-content">
-        <div className="content-card" style={{ padding: '8px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+      <div className="main-content profile-wizard-page">
+        <div className="content-card profile-wizard-card">
           <ProfileSetupWizard
             profileUser={profileData}
+            initialStep={wizardInitialStep}
             onSave={handleSaveProfile}
             onCancel={() => setIsWizardOpen(false)}
           />
@@ -591,41 +620,52 @@ export default function Profile({
   }
 
   return (
-    <div className="main-content">
-      <div className="content-card profile-content-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* 1. PROFILE HEADER & STATS */}
-        <ProfileHeader
-          profileUser={profileData}
-          isSelf={isSelf}
-          followInfo={followInfo}
-          loadingAction={loadingAction}
-          onFollow={handleFollow}
-          onAccept={handleAccept}
-          onReject={handleReject}
-          onUnblock={handleUnblock}
-          onStartChat={handleStartChat}
-          onOpenEdit={() => setIsWizardOpen(true)}
-          onOpenCreatePost={() => onOpenCreatePost ? onOpenCreatePost() : setShowCreatePostModal(true)}
-          onOpenMenu={onOpenMenu}
-          onBack={onBack}
-          stats={stats}
-          onOpenFollowers={() => setShowFollowersModal(true)}
-          onOpenFollowing={() => setShowFollowingModal(true)}
-          onScrollToPosts={() => {
-            const el = document.getElementById('my-posts');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }}
-          onOpenProfileDetails={() => {
-            if (onOpenProfileDetails) {
-              onOpenProfileDetails(profileData || targetUser || currentUser);
-            }
-          }}
-        />
+    <div className="main-content profile-page-content">
+      <div className="content-card profile-content-card">
+        {/* 1. PINNED PROFILE HEADER */}
+        <div
+          className="profile-pinned-header-container"
+          onWheel={handleHeaderWheel}
+        >
+          <ProfileHeader
+            profileUser={profileData}
+            isSelf={isSelf}
+            followInfo={followInfo}
+            loadingAction={loadingAction}
+            onFollow={handleFollow}
+            onAccept={handleAccept}
+            onReject={handleReject}
+            onUnblock={handleUnblock}
+            onStartChat={handleStartChat}
+            onOpenEdit={() => setIsWizardOpen(true)}
+            onOpenCreatePost={() => onOpenCreatePost ? onOpenCreatePost() : setShowCreatePostModal(true)}
+            onOpenMenu={onOpenMenu}
+            onBack={onBack}
+            stats={stats}
+            onOpenFollowers={() => setShowFollowersModal(true)}
+            onOpenFollowing={() => setShowFollowingModal(true)}
+            onScrollToPosts={() => {
+              const el = document.querySelector('.profile-tabs-header-bar') || document.getElementById('my-posts');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+            onOpenProfileDetails={() => {
+              if (onOpenProfileDetails) {
+                onOpenProfileDetails(profileData || targetUser || currentUser);
+              }
+            }}
+          />
+        </div>
 
-        {/* 2. PROFILE COMPLETION INDICATOR (OWNER-ONLY) */}
-        {isSelf && profileCompletion.percentage < 100 && (
+        {/* 2. SCROLLABLE LOWER PROFILE BODY */}
+        <div
+          className="profile-scrollable-body"
+          id="profile-scrollable-body"
+          ref={scrollBodyRef}
+        >
+          {/* PROFILE COMPLETION INDICATOR (OWNER-ONLY) */}
+          {isSelf && profileCompletion.percentage < 100 && (
           <div className="profile-completion-card">
             <div className="profile-completion-header">
               <div className="completion-title-wrap">
@@ -912,6 +952,7 @@ export default function Profile({
 
           return null;
         })()}
+        </div>
       </div>
 
       {/* EDIT PROFILE MODAL (PHASE 1) */}

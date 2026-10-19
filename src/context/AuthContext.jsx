@@ -125,6 +125,17 @@ export function AuthProvider({ children }) {
           .eq('id', authUser.id)
           .maybeSingle();
 
+        // Also fetch owner private details from user_private_details
+        let privateDetails = null;
+        try {
+          const { data: privData } = await supabase
+            .from('user_private_details')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+          if (privData) privateDetails = privData;
+        } catch (e) {}
+
         if (!selectError && dbProfile) {
           // EXISTING USER:
           // Strictly preserve existing user-edited data; never overwrite profile data
@@ -148,6 +159,15 @@ export function AuthProvider({ children }) {
             first_name: dbProfile.first_name || '',
             last_name: dbProfile.last_name || '',
             location: dbProfile.location || '',
+            privacy_settings: privateDetails?.privacy_settings || dbProfile.privacy_settings || { profile_visibility: 'everyone', dob_visibility: 'followers', location_visibility: 'followers', gender_visibility: 'only_me' },
+            date_of_birth: privateDetails?.date_of_birth || dbProfile.date_of_birth || null,
+            gender: privateDetails?.gender || dbProfile.gender || null,
+            gender_custom: privateDetails?.gender_custom || dbProfile.gender_custom || null,
+            location_address: privateDetails?.location_address || dbProfile.location_address || '',
+            location_landmark: privateDetails?.location_landmark || dbProfile.location_landmark || '',
+            location_pincode: privateDetails?.location_pincode || dbProfile.location_pincode || '',
+            location_latitude: privateDetails?.location_latitude ?? dbProfile.location_latitude ?? null,
+            location_longitude: privateDetails?.location_longitude ?? dbProfile.location_longitude ?? null,
             isNewUser: false
           };
 
@@ -528,22 +548,49 @@ export function AuthProvider({ children }) {
   };
 
   const updateProfile = async (updatedFields) => {
+    // Prevent client-controlled modification of privileged verification field
+    const sanitized = { ...updatedFields };
+    delete sanitized.is_verified;
+
     if (user?.id && isSupabaseConfigured && !user.id.startsWith('u-') && user.id !== 'u1') {
       try {
         const dbUpdates = {};
-        if (updatedFields.name) dbUpdates.name = updatedFields.name;
-        if (updatedFields.role) dbUpdates.role = updatedFields.role;
-        if (updatedFields.avatarUrl) dbUpdates.avatar_url = updatedFields.avatarUrl;
-        if (updatedFields.avatar_url) dbUpdates.avatar_url = updatedFields.avatar_url;
-        if (updatedFields.bio) dbUpdates.bio = updatedFields.bio;
-        if (updatedFields.skills) dbUpdates.skills = updatedFields.skills;
-        if (updatedFields.domains) dbUpdates.domains = updatedFields.domains;
-        if (updatedFields.onboarding_completed !== undefined) {
-          dbUpdates.onboarding_completed = updatedFields.onboarding_completed;
+        if (sanitized.name) dbUpdates.name = sanitized.name;
+        if (sanitized.role) dbUpdates.role = sanitized.role;
+        if (sanitized.avatarUrl) dbUpdates.avatar_url = sanitized.avatarUrl;
+        if (sanitized.avatar_url) dbUpdates.avatar_url = sanitized.avatar_url;
+        if (sanitized.bio) dbUpdates.bio = sanitized.bio;
+        if (sanitized.skills) dbUpdates.skills = sanitized.skills;
+        if (sanitized.domains) dbUpdates.domains = sanitized.domains;
+        if (sanitized.onboarding_completed !== undefined) {
+          dbUpdates.onboarding_completed = sanitized.onboarding_completed;
         }
 
         if (Object.keys(dbUpdates).length > 0) {
           await supabase.from('profiles').update(dbUpdates).eq('id', user.id);
+        }
+
+        // Isolate sensitive private updates to user_private_details
+        const privUpdates = {};
+        if (sanitized.privacy_settings !== undefined) privUpdates.privacy_settings = sanitized.privacy_settings;
+        if (sanitized.date_of_birth !== undefined) privUpdates.date_of_birth = sanitized.date_of_birth;
+        if (sanitized.gender !== undefined) privUpdates.gender = sanitized.gender;
+        if (sanitized.gender_custom !== undefined) privUpdates.gender_custom = sanitized.gender_custom;
+        if (sanitized.location_address !== undefined) privUpdates.location_address = sanitized.location_address;
+        if (sanitized.location_area !== undefined) privUpdates.location_area = sanitized.location_area;
+        if (sanitized.location_landmark !== undefined) privUpdates.location_landmark = sanitized.location_landmark;
+        if (sanitized.location_pincode !== undefined) privUpdates.location_pincode = sanitized.location_pincode;
+        if (sanitized.location_latitude !== undefined) privUpdates.location_latitude = sanitized.location_latitude;
+        if (sanitized.location_longitude !== undefined) privUpdates.location_longitude = sanitized.location_longitude;
+
+        if (Object.keys(privUpdates).length > 0) {
+          try {
+            await supabase
+              .from('user_private_details')
+              .upsert({ user_id: user.id, ...privUpdates, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+          } catch (pe) {
+            console.warn('Update user_private_details error:', pe);
+          }
         }
       } catch (e) {
         console.warn('Update profile error in Supabase:', e);
@@ -552,9 +599,9 @@ export function AuthProvider({ children }) {
 
     setUser((prev) => ({
       ...prev,
-      ...updatedFields,
+      ...sanitized,
       // If user finished onboarding, clear isNewUser flag
-      isNewUser: updatedFields.onboarding_completed ? false : prev?.isNewUser
+      isNewUser: sanitized.onboarding_completed ? false : prev?.isNewUser
     }));
   };
 

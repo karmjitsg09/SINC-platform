@@ -40,7 +40,7 @@ DROP POLICY IF EXISTS "update_views_select_own_policy" ON public.update_views;
 DROP POLICY IF EXISTS "update_views_insert_own_policy" ON public.update_views;
 
 CREATE POLICY "updates_select_active_policy" ON public.updates
-  FOR SELECT USING (expires_at > NOW());
+  FOR SELECT USING (expires_at > NOW() AND (auth.uid() = user_id OR public.can_view_user_content(user_id)));
 
 CREATE POLICY "updates_insert_own_policy" ON public.updates
   FOR INSERT WITH CHECK (auth.uid() = user_id);

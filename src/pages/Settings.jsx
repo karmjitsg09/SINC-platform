@@ -21,7 +21,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { updateBasicProfile } from '../lib/profileService';
+import { getUserPrivateDetails, upsertUserPrivateDetails } from '../lib/profileService';
 import { getBlockedUserList, unblockUser } from '../lib/blockService';
 
 export default function Settings({
@@ -52,6 +52,30 @@ export default function Settings({
   const [blockedList, setBlockedList] = useState([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [unblockingId, setUnblockingId] = useState(null);
+
+  // Load privacy settings from user_private_details
+  useEffect(() => {
+    let isMounted = true;
+    async function loadPrivateSettings() {
+      if (!currentUser?.id) return;
+      try {
+        const { data } = await getUserPrivateDetails(currentUser.id);
+        if (data?.privacy_settings && isMounted) {
+          setPrivacySettings({
+            profile_visibility: data.privacy_settings.profile_visibility || 'everyone',
+            dob_visibility: data.privacy_settings.dob_visibility || 'followers',
+            location_visibility: data.privacy_settings.location_visibility || 'followers'
+          });
+        }
+      } catch (e) {
+        console.warn('[Settings] Error loading private settings:', e);
+      }
+    }
+    loadPrivateSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
 
   // Sync privacy settings when profile updates
   useEffect(() => {
@@ -109,13 +133,23 @@ export default function Settings({
     setSavingPrivacy(true);
     setPrivacySavedMsg(false);
     try {
-      await updateBasicProfile(currentUser.id, {
+      const res = await upsertUserPrivateDetails(currentUser.id, {
         privacy_settings: nextSettings
       });
-      setPrivacySavedMsg(true);
-      setTimeout(() => setPrivacySavedMsg(false), 3000);
+      if (res.success) {
+        if (res.serverSaved !== false && !res.pendingMigration) {
+          setPrivacySavedMsg('Saved to server!');
+        } else {
+          setPrivacySavedMsg('Saved locally (server migration pending)');
+        }
+        setTimeout(() => setPrivacySavedMsg(false), 3500);
+      } else {
+        console.error('[Settings] Failed to save privacy settings:', res.error);
+        alert(res.error || 'Failed to save privacy settings');
+      }
     } catch (e) {
       console.error('[Settings] handleSavePrivacy error:', e);
+      alert('Error saving privacy settings');
     } finally {
       setSavingPrivacy(false);
     }
@@ -564,9 +598,16 @@ export default function Settings({
                   </p>
                 </div>
                 {privacySavedMsg && (
-                  <div className="saved-indicator">
+                  <div
+                    className="saved-indicator"
+                    style={
+                      typeof privacySavedMsg === 'string' && privacySavedMsg.includes('locally')
+                        ? { backgroundColor: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }
+                        : {}
+                    }
+                  >
                     <CheckCircle2 size={16} />
-                    <span>Saved!</span>
+                    <span>{typeof privacySavedMsg === 'string' ? privacySavedMsg : 'Saved!'}</span>
                   </div>
                 )}
               </div>

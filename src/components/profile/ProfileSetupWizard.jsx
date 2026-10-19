@@ -200,6 +200,13 @@ export default function ProfileSetupWizard({
   const [isStepSaving, setIsStepSaving] = useState(false);
   const [savingAction, setSavingAction] = useState(null); // 'save' | 'continue' | null
   const [saveSuccessMessage, setSaveSuccessMessage] = useState(null);
+  const stepBodyRef = useRef(null);
+
+  useEffect(() => {
+    if (stepBodyRef.current) {
+      stepBodyRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
 
   // ----------------------------------------------------
   // STEP 1: BASIC INFORMATION
@@ -690,17 +697,21 @@ export default function ProfileSetupWizard({
       const res = await saveStepProfile(profileUser?.id, currentStep, stepData);
       if (res.success) {
         setCompletedSteps((prev) => Array.from(new Set([...prev, currentStep])));
-        setSaveSuccessMessage('✓ Saved successfully');
-        setTimeout(() => setSaveSuccessMessage(null), 3000);
+        if (res.serverSaved) {
+          setSaveSuccessMessage('✓ Saved to server');
+        } else {
+          setSaveSuccessMessage('⚠️ Saved locally (server migration pending)');
+        }
+        setTimeout(() => setSaveSuccessMessage(null), 4000);
 
         if (andContinue) {
           if (currentStep < 9) {
             setCurrentStep((prev) => Math.min(9, prev + 1));
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            stepBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }
       } else {
-        setErrors((prev) => ({ ...prev, stepSave: res.error || 'Failed to save step' }));
+        setErrors((prev) => ({ ...prev, stepSave: res.error || 'Failed to save step to server' }));
       }
     } catch (err) {
       setErrors((prev) => ({ ...prev, stepSave: err.message || 'Error saving step.' }));
@@ -714,8 +725,7 @@ export default function ProfileSetupWizard({
     if (validateStep(currentStep)) {
       setErrors({});
       setCurrentStep((prev) => Math.min(9, prev + 1));
-      // Scroll to top of card
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      stepBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -725,7 +735,7 @@ export default function ProfileSetupWizard({
       onCancel?.();
     } else {
       setCurrentStep((prev) => Math.max(1, prev - 1));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      stepBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -733,7 +743,7 @@ export default function ProfileSetupWizard({
   const handleEditSection = (targetStep) => {
     setErrors({});
     setCurrentStep(targetStep);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    stepBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ----------------------------------------------------
@@ -909,17 +919,21 @@ export default function ProfileSetupWizard({
 
   // Helper styles
   const cardStyle = {
-    maxWidth: '680px',
+    maxWidth: '720px',
+    width: '100%',
+    height: '100%',
+    maxHeight: '100%',
+    minHeight: 0,
     margin: '0 auto',
     backgroundColor: '#ffffff',
     borderRadius: '20px',
-    padding: '32px 24px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+    padding: '24px 24px 20px',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
     border: '1.5px solid var(--border-app, #b5d2fd)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    overflow: 'hidden'
   };
 
   const questionHeadingStyle = {
@@ -965,10 +979,32 @@ export default function ProfileSetupWizard({
   };
 
   return (
-    <div style={{ width: '100%', padding: '16px 8px', boxSizing: 'border-box' }}>
-      <div style={cardStyle}>
+    <div
+      className="profile-setup-wizard-container"
+      style={{
+        width: '100%',
+        height: '100%',
+        maxHeight: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }}
+    >
+      <div className="profile-setup-wizard-card" style={cardStyle}>
         {/* PROGRESS HEADER */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div
+          className="wizard-progress-header"
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            paddingBottom: '16px',
+            borderBottom: '1.5px solid #e2e8f0'
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: '800', color: '#2563eb', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
               STEP {currentStep} OF 9
@@ -998,7 +1034,7 @@ export default function ProfileSetupWizard({
                     if (isCompleted || s <= currentStep || currentStep === 9) {
                       setErrors({});
                       setCurrentStep(s);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      stepBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                   }}
                   title={`Step ${s}: ${isCompleted ? 'Saved ✓' : isCurrent ? 'Current' : 'Not saved'}`}
@@ -1024,13 +1060,43 @@ export default function ProfileSetupWizard({
               </strong>
             </span>
             {saveSuccessMessage && (
-              <span style={{ color: '#16a34a', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span
+                style={{
+                  color: saveSuccessMessage.includes('⚠️') ? '#b45309' : '#16a34a',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
                 {saveSuccessMessage}
               </span>
             )}
           </div>
         </div>
 
+        {/* ============================================================ */}
+        {/* SCROLLABLE STEP FORM BODY                                    */}
+        {/* ============================================================ */}
+        <div
+          ref={stepBodyRef}
+          className="wizard-step-body"
+          tabIndex={0}
+          role="region"
+          aria-label={`Profile setup step ${currentStep} of 9`}
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            paddingRight: '8px',
+            paddingTop: '16px',
+            paddingBottom: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}
+        >
         {/* ============================================================ */}
         {/* STEP 1: BASIC INFORMATION                                    */}
         {/* ============================================================ */}
@@ -2775,17 +2841,21 @@ export default function ProfileSetupWizard({
           </div>
         )}
 
+        </div>
+
         {/* ============================================================ */}
         {/* ACTION BUTTONS (BACK, SAVE, SAVE & CONTINUE, COMPLETE)        */}
         {/* ============================================================ */}
         <div
+          className="wizard-action-footer"
           style={{
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             borderTop: '1.5px solid #e2e8f0',
-            paddingTop: '20px',
-            marginTop: '8px',
+            paddingTop: '16px',
+            marginTop: 'auto',
             gap: '12px',
             flexWrap: 'wrap'
           }}
@@ -2815,11 +2885,11 @@ export default function ProfileSetupWizard({
                   style={{
                     fontSize: '13px',
                     fontWeight: '700',
-                    color: '#16a34a',
-                    backgroundColor: '#dcfce7',
+                    color: saveSuccessMessage.includes('⚠️') ? '#b45309' : '#16a34a',
+                    backgroundColor: saveSuccessMessage.includes('⚠️') ? '#fef3c7' : '#dcfce7',
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #bbf7d0',
+                    border: `1px solid ${saveSuccessMessage.includes('⚠️') ? '#fde68a' : '#bbf7d0'}`,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
@@ -2832,6 +2902,28 @@ export default function ProfileSetupWizard({
                 <span style={{ fontSize: '12.5px', fontWeight: '600', color: '#dc2626' }}>
                   {errors.stepSave}
                 </span>
+              )}
+
+              {/* Skip button for optional steps */}
+              {currentStep > 1 && currentStep < 9 && (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isStepSaving || isSaving}
+                  style={{
+                    padding: '11px 18px',
+                    borderRadius: '12px',
+                    backgroundColor: '#f8fafc',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#64748b',
+                    fontWeight: '700',
+                    fontSize: '14px',
+                    cursor: (isStepSaving || isSaving) ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Skip →
+                </button>
               )}
 
               {/* Independent Save Button (saves current step, stays on current step) */}

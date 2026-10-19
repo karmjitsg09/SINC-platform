@@ -10,10 +10,8 @@ import { parseProfileItemRef } from '../lib/profileItemPostService';
 import UpdatesStories from '../components/UpdatesStories';
 import TrendingTopicsWidget from '../components/TrendingTopicsWidget';
 import WhoToFollowWidget from '../components/WhoToFollowWidget';
+import QuickPostComposer from '../components/QuickPostComposer';
 import {
-  Image,
-  Video,
-  Code,
   Link as LinkIcon,
   BarChart2,
   Share2,
@@ -52,7 +50,8 @@ export default function Feed({
   targetPostId = null,
   onClearTargetPostId,
   onNavigateToProfile,
-  onOpenCreatePost
+  onOpenCreatePost,
+  showComposer = false
 }) {
   const { user: currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -65,9 +64,16 @@ export default function Feed({
   const postRefs = useRef({});
   const categoryScrollRef = useRef(null);
 
-  const categoryLabel = getCategoryLabel(selectedFeedCategory);
+  const [internalCategory, setInternalCategory] = useState(selectedFeedCategory);
 
-  // Load posts whenever selected feed category changes
+  useEffect(() => {
+    setInternalCategory(selectedFeedCategory);
+  }, [selectedFeedCategory]);
+
+  const activeCategory = onSelectFeedCategory ? selectedFeedCategory : internalCategory;
+  const categoryLabel = getCategoryLabel(activeCategory);
+
+  // Load posts whenever active feed category changes
   useEffect(() => {
     let isMounted = true;
 
@@ -75,7 +81,7 @@ export default function Feed({
       setLoading(true);
       setPostNotFound(false);
 
-      const list = await getPostsByDomain(selectedFeedCategory);
+      const list = await getPostsByDomain(activeCategory);
 
       if (!isMounted) return;
 
@@ -108,14 +114,14 @@ export default function Feed({
     const unsub = subscribeToPosts(
       (newPost) => {
         if (!isMounted) return;
-        const isAll = !selectedFeedCategory || selectedFeedCategory === 'all';
-        const matchValues = getCategoryMatchValues(selectedFeedCategory);
+        const isAll = !activeCategory || activeCategory === 'all';
+        const matchValues = getCategoryMatchValues(activeCategory);
         const matchesCategory =
           isAll ||
           (newPost.domain &&
             (matchValues.length > 0
               ? matchValues.includes(newPost.domain.toLowerCase())
-              : newPost.domain.toLowerCase() === selectedFeedCategory.toLowerCase()));
+              : newPost.domain.toLowerCase() === activeCategory.toLowerCase()));
 
         if (matchesCategory) {
           setPosts((prev) => {
@@ -135,7 +141,7 @@ export default function Feed({
       isMounted = false;
       unsub();
     };
-  }, [selectedFeedCategory, targetPostId]);
+  }, [activeCategory, targetPostId]);
 
   // Scroll to targeted post
   useEffect(() => {
@@ -173,6 +179,7 @@ export default function Feed({
     if (onSelectFeedCategory) {
       onSelectFeedCategory(catId);
     }
+    setInternalCategory(catId);
   };
 
   const currentUserInitials = (currentUser?.name || 'User')
@@ -198,7 +205,7 @@ export default function Feed({
         <section className="feed-category-bar-wrapper" aria-label="Category Filters">
           <div className="feed-category-bar" ref={categoryScrollRef}>
             {FEED_CATEGORIES.map((cat) => {
-              const isSelected = selectedFeedCategory === cat.id;
+              const isSelected = activeCategory === cat.id;
               return (
                 <button
                   key={cat.id}
@@ -214,67 +221,14 @@ export default function Feed({
           </div>
         </section>
 
-        {/* 3. Quick Post Creation Prompt Box */}
-        <section className="quick-create-card">
-          <div className="quick-create-row">
-            <div className="quick-user-avatar">
-              {currentUser?.avatarUrl ? (
-                <img src={currentUser.avatarUrl} alt={currentUser.name} className="avatar-img" />
-              ) : (
-                <span className="avatar-initials">{currentUserInitials}</span>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="quick-create-input-btn"
-              onClick={onOpenCreatePost}
-              aria-label="Create a new post"
-            >
-              <span>Share thoughts, tech updates, or project milestones...</span>
-            </button>
-          </div>
-
-          <div className="quick-create-actions-row">
-            <button
-              type="button"
-              className="quick-action-pill"
-              onClick={onOpenCreatePost}
-              title="Add Image Attachment"
-            >
-              <Image size={15} className="quick-icon text-blue" />
-              <span>Photo</span>
-            </button>
-
-            <button
-              type="button"
-              className="quick-action-pill"
-              onClick={onOpenCreatePost}
-              title="Add Video Attachment"
-            >
-              <Video size={15} className="quick-icon text-purple" />
-              <span>Video</span>
-            </button>
-
-            <button
-              type="button"
-              className="quick-action-pill"
-              onClick={onOpenCreatePost}
-              title="Share Code Snippet"
-            >
-              <Code size={15} className="quick-icon text-cyan" />
-              <span>Code</span>
-            </button>
-
-            <button
-              type="button"
-              className="quick-publish-btn"
-              onClick={onOpenCreatePost}
-            >
-              <span>Post</span>
-            </button>
-          </div>
-        </section>
+        {/* 3. Quick Post Creation Prompt Box (Conditionally rendered when showComposer is true) */}
+        {showComposer && (
+          <QuickPostComposer
+            currentUser={currentUser}
+            currentUserInitials={currentUserInitials}
+            onOpenCreatePost={onOpenCreatePost}
+          />
+        )}
 
         {/* 4. Post Not Found Notice */}
         {postNotFound && (
@@ -302,18 +256,26 @@ export default function Feed({
               <div className="skeleton-card" />
             </div>
           ) : posts.length === 0 ? (
-            <div className="feed-empty-state-card">
-              <div className="empty-state-icon-wrapper">
-                <Sparkles size={28} className="text-blue" />
+            <div className="feed-empty-state-card" role="region" aria-label="No posts found">
+              <div className="empty-state-icon-wrapper" aria-hidden="true">
+                <Sparkles size={32} className="empty-state-icon" />
               </div>
-              <h3>No posts in {categoryLabel} yet</h3>
-              <p>Be the first to share an update, start a discussion, or publish a project in this community.</p>
+              <h3 className="empty-state-title">
+                {activeCategory === 'all'
+                  ? 'No posts in the network yet'
+                  : `No posts in ${categoryLabel} yet`}
+              </h3>
+              <p className="empty-state-description">
+                Be the first to share an update, start a discussion, or publish a project in this community.
+              </p>
               <button
                 type="button"
                 className="empty-create-post-btn"
-                onClick={onOpenCreatePost}
+                onClick={() => onOpenCreatePost?.('none')}
+                aria-label="Create the first post"
               >
-                + Create the First Post
+                <span className="btn-plus-icon">+</span>
+                <span>Create the First Post</span>
               </button>
             </div>
           ) : (
