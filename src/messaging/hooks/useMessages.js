@@ -26,6 +26,19 @@ export function useMessages(conversationId, currentUserId) {
 
     load();
 
+    const pollInterval = setInterval(async () => {
+      if (!isMounted || !conversationId || !currentUserId) return;
+      const latest = await getMessages(conversationId, currentUserId);
+      if (isMounted && latest) {
+        setMessages((prev) => {
+          if (latest.length !== prev.length || (latest.length > 0 && latest[latest.length - 1]?.id !== prev[prev.length - 1]?.id)) {
+            return latest;
+          }
+          return prev;
+        });
+      }
+    }, 2500);
+
     const unsubMessages = subscribeToRealtimeMessages(conversationId, currentUserId, (newMsg) => {
       if (!isMounted) return;
       setMessages((prev) => {
@@ -46,6 +59,7 @@ export function useMessages(conversationId, currentUserId) {
 
     return () => {
       isMounted = false;
+      clearInterval(pollInterval);
       unsubMessages();
       unsubTyping();
     };

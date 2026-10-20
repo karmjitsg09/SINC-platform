@@ -532,7 +532,17 @@ function MainAppContent() {
 
     if (isResolvingConversation) return;
 
-    if (convOrUser.id && isUuid(convOrUser.id)) {
+    // Distinguish whether convOrUser is an existing conversation or a pure user profile
+    const isConv =
+      Boolean(convOrUser.otherUser) ||
+      Boolean(convOrUser.targetUserId) ||
+      Boolean(convOrUser.conversation_id) ||
+      convOrUser.type === 'direct' ||
+      convOrUser.type === 'group' ||
+      convOrUser.lastMessage !== undefined ||
+      convOrUser.isConversation === true;
+
+    if (isConv && convOrUser.id && isUuid(convOrUser.id)) {
       if (user?.id) markConversationAsRead(convOrUser.id, user.id);
       setSelectedConversation(convOrUser);
       setActiveTab('messages');
@@ -673,6 +683,13 @@ function MainAppContent() {
       case 'messages':
         return (
           <MessagesPage
+            selectedConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
+            onBackToList={() => {
+              setSelectedConversation(null);
+              setMessagesSubView('list');
+              pushRoute({ tab: 'messages', messagesSubView: 'list' });
+            }}
             initialConversationId={selectedConversation?.id}
             onNavigateToProfile={handleSelectProfileFromSearch}
             onNavigateToPost={handleNavigateToPostView}

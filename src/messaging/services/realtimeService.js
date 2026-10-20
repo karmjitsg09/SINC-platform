@@ -180,8 +180,9 @@ export const subscribeToRealtimeMessages = (conversationId, currentUserId, onNew
 
   if (isSupabaseConfigured && conversationId && !conversationId.startsWith('c-')) {
     try {
+      const channelName = `chat_${conversationId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
       const channel = supabase
-        .channel(`chat:${conversationId}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {
@@ -191,6 +192,7 @@ export const subscribeToRealtimeMessages = (conversationId, currentUserId, onNew
             filter: `conversation_id=eq.${conversationId}`
           },
           (payload) => {
+            console.log('[REALTIME CHAT EVENT RECEIVED]:', payload.new);
             if (payload.new && callback) {
               callback({
                 id: payload.new.id,
@@ -204,7 +206,9 @@ export const subscribeToRealtimeMessages = (conversationId, currentUserId, onNew
             }
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          console.log('[REALTIME CHAT SUBSCRIPTION STATUS]:', channelName, status, err || '');
+        });
 
       return () => {
         supabase.removeChannel(channel);

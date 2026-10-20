@@ -98,7 +98,9 @@ export default function MessagesPage({
   selectedConversation,
   onSelectConversation,
   onNavigateToPostView,
-  onBackToList
+  onBackToList,
+  initialConversationId,
+  onNavigateToProfile
 }) {
   const { user } = useAuth();
   const currentUserId = user?.id;
@@ -108,7 +110,20 @@ export default function MessagesPage({
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef(null);
 
-  const conversationId = selectedConversation?.id;
+  const conversationId = selectedConversation?.id || initialConversationId;
+
+  // Resolve active conversation details from loaded conversations or selectedConversation
+  const matchedConv = conversations.find((c) => c.id === conversationId);
+  const activeConversation = (selectedConversation?.otherUser || selectedConversation?.name)
+    ? selectedConversation
+    : (matchedConv || selectedConversation);
+
+  // Sync full details to parent if selectedConversation only had an ID (e.g. from reload or route param)
+  useEffect(() => {
+    if (conversationId && matchedConv && !selectedConversation?.otherUser && onSelectConversation) {
+      onSelectConversation(matchedConv);
+    }
+  }, [conversationId, matchedConv, selectedConversation, onSelectConversation]);
 
   // Mark active conversation read
   useEffect(() => {
@@ -124,10 +139,10 @@ export default function MessagesPage({
   );
 
   // Participant info
-  const targetUser = selectedConversation?.otherUser || {};
-  const targetUserId = targetUser.id || selectedConversation?.targetUserId;
-  const targetName = selectedConversation?.name || targetUser.name || 'User';
-  const targetAvatar = selectedConversation?.avatarUrl || targetUser.avatar_url || targetUser.avatarUrl;
+  const targetUser = activeConversation?.otherUser || {};
+  const targetUserId = targetUser.id || activeConversation?.targetUserId;
+  const targetName = activeConversation?.name || targetUser.name || 'User';
+  const targetAvatar = activeConversation?.avatarUrl || targetUser.avatar_url || targetUser.avatarUrl;
   const targetInitials = getInitials(targetName);
 
   const presence = usePresence(targetUserId, currentUserId);

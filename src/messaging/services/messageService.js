@@ -104,6 +104,8 @@ export const sendMessage = async (conversationId, senderId, text, messageType = 
           // Ignore conversation timestamp update warning
         }
 
+        notifyMessagingStateChange();
+
         return {
           id: data.id,
           conversation_id: data.conversation_id,
