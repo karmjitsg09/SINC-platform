@@ -1,19 +1,15 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../notifications/hooks/useNotifications';
-import NotificationBadge from '../notifications/components/NotificationBadge';
+import SincLogo from './common/SincLogo';
 
 export default function Header({
   showSearchIcon = true,
-  onSearchClick,
-  onNotificationClick,
-  isNotificationActive = false
+  onSearchClick
 }) {
   const { user, logout } = useAuth();
-  const currentUserId = user?.id;
-  const { unreadCount } = useNotifications(currentUserId);
 
   const userName = user?.name || 'Alex Rivers';
+
   const userSubtext = user?.role || 'Senior Developer';
 
   const initials = userName
@@ -31,6 +27,10 @@ export default function Header({
   return (
     <header className="app-header">
       <div className="header-left">
+        <div className="header-brand-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+          <SincLogo size={32} alt="SINC logo" />
+          <span style={{ fontWeight: '800', fontSize: '17px', letterSpacing: '-0.02em', color: 'var(--text-main, #0f172a)' }}>SINC</span>
+        </div>
         <div className="header-avatar" title={userName}>
           {user?.avatarUrl ? (
             <img src={user.avatarUrl} alt={userName} className="header-avatar-img" />
@@ -58,21 +58,8 @@ export default function Header({
           </button>
         )}
 
-        {/* Top-Right Notification Hub Icon (Navigates to /notifications) */}
-        <button
-          className={`header-icon-btn ${isNotificationActive ? 'active' : ''}`}
-          aria-label="Notifications"
-          onClick={onNotificationClick}
-          style={{ position: 'relative' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <NotificationBadge unreadCount={unreadCount} />
-        </button>
-
         {/* Top-Right Log Out Icon */}
+
         <button
           className="header-icon-btn header-logout-btn"
           aria-label="Log Out"

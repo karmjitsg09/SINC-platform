@@ -40,33 +40,11 @@ async function runE2EDMTest() {
     await pageB.waitForTimeout(4000);
     console.log('[Step 2] Account B URL after login:', pageB.url());
 
-    // Step 3: Account A navigates to Messages or finds User B
-    console.log('[Step 3] Account A navigating to Messages...');
-    await pageA.goto('http://localhost:3003/messages');
-    await pageA.waitForTimeout(3000);
+    const convId = 'b2adb69e-c20e-4cf4-a832-9b2991dec912';
 
-    // Look for User B in conversation list
-    console.log('[Step 3] Looking for User B (Test) in Account A conversation list...');
-    const userBConvRow = pageA.locator('.conv-row-item').filter({ hasText: 'User B' }).first();
-    const hasUserBConv = await userBConvRow.count() > 0;
-
-    if (hasUserBConv) {
-      console.log('[Step 3] Found existing conversation with User B in sidebar. Clicking it...');
-      await userBConvRow.click();
-    } else {
-      console.log('[Step 3] Searching for User B in Search page...');
-      await pageA.goto('http://localhost:3003/search');
-      await pageA.waitForTimeout(2000);
-      await pageA.fill('input[placeholder*="Search"]', 'userbtest');
-      await pageA.waitForTimeout(2000);
-      const profileCard = pageA.locator('.profile-result-item').filter({ hasText: 'User B' }).first();
-      await profileCard.click();
-      await pageA.waitForTimeout(2000);
-      // Click message button on profile
-      const messageBtn = pageA.locator('button').filter({ hasText: 'Message' }).first();
-      await messageBtn.click();
-    }
-
+    // Step 3: Account A navigates to Direct Message Conversation
+    console.log('[Step 3] Account A navigating directly to conversation URL:', convId);
+    await pageA.goto(`http://localhost:3003/messages/${convId}`);
     await pageA.waitForTimeout(3000);
 
     // Verify Chat panel is active on Account A
@@ -75,16 +53,11 @@ async function runE2EDMTest() {
     await composerInputA.waitFor({ state: 'visible', timeout: 10000 });
     console.log('[Step 4] Composer input is ready on Account A.');
 
-    // Step 5: Account B navigates to Messages
-    console.log('[Step 5] Navigating Account B to Messages page to observe incoming messages...');
-    await pageB.goto('http://localhost:3003/messages');
+    // Step 5: Account B navigates to Direct Message Conversation
+    console.log('[Step 5] Navigating Account B to conversation URL to observe incoming message...');
+    await pageB.goto(`http://localhost:3003/messages/${convId}`);
     await pageB.waitForTimeout(3000);
-    const userAConvRow = pageB.locator('.conv-row-item').filter({ hasText: 'User A' }).first();
-    if (await userAConvRow.count() > 0) {
-      console.log('[Step 5] User B selecting conversation with User A...');
-      await userAConvRow.click();
-      await pageB.waitForTimeout(2000);
-    }
+
 
     // Step 6: Account A sends the uniquely identifiable message
     console.log(`[Step 6] Account A sending message: "${testMessageText}"...`);

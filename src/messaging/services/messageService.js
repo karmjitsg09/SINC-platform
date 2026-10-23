@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { notifyMessagingStateChange, localConversations, localMessages } from './realtimeService';
+import { notifyMessagingStateChange, localConversations, localMessages, localConversationMembers } from './realtimeService';
+import { dispatchServerPushNotification } from '../../lib/pushNotificationService';
 
 function isUuid(str) {
   if (typeof str !== 'string') return false;
@@ -104,7 +105,39 @@ export const sendMessage = async (conversationId, senderId, text, messageType = 
           // Ignore conversation timestamp update warning
         }
 
-        notifyMessagingStateChange();
+        // Asynchronously dispatch push notification to conversation recipient
+        (async () => {
+          try {
+            const { data: members } = await supabase
+              .from('conversation_members')
+              .select('user_id')
+              .eq('conversation_id', conversationId);
+
+            const recipient = (members || []).find((m) => m.user_id !== senderId);
+            if (recipient?.user_id) {
+              const { data: senderProf } = await supabase
+                .from('profiles')
+                .select('name, username')
+                .eq('id', senderId)
+                .maybeSingle();
+
+              const senderName = senderProf?.name || (senderProf?.username ? `@${senderProf.username}` : 'Direct Message');
+              const previewText = content.length > 80 ? content.slice(0, 77) + '...' : content;
+
+              dispatchServerPushNotification({
+                recipientId: recipient.user_id,
+                type: 'message',
+                title: senderName,
+                message: previewText,
+                url: `/messages/${conversationId}`,
+                entityType: 'conversation',
+                entityId: conversationId
+              });
+            }
+          } catch (pushErr) {
+            console.warn('[messageService] Push trigger error:', pushErr);
+          }
+        })();
 
         return {
           id: data.id,
@@ -147,6 +180,23 @@ export const sendMessage = async (conversationId, senderId, text, messageType = 
     conv.updated_at = createdAt;
   }
 
+  // Dispatch push for mock conversation if other member exists
+  const members = localConversationMembers?.[conversationId] || [];
+  const otherMember = members.find((uid) => uid !== senderId);
+  if (otherMember) {
+    const previewText = content.length > 80 ? content.slice(0, 77) + '...' : content;
+    dispatchServerPushNotification({
+      recipientId: otherMember,
+      type: 'message',
+      title: 'Direct Message',
+      message: previewText,
+      url: `/messages/${conversationId}`,
+      entityType: 'conversation',
+      entityId: conversationId
+    });
+  }
+
   notifyMessagingStateChange();
   return newMsg;
 };
+

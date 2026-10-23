@@ -5,6 +5,7 @@ import { validateLocationFields } from '../../lib/locationService';
 import { checkUsernameAvailability, calculateAge, saveStepProfile, uploadProfilePhoto, isValidUrl } from '../../lib/profileService';
 import { domains as platformDomains } from '../../data/mockData';
 import { SKILL_OPTIONS } from '../../data/skillsData';
+import SincLogo from '../common/SincLogo';
 
 // Reusable Skill Tag Input Component
 function SkillTagInput({ label, helper, tags = [], onTagsChange, placeholder, suggestions = [] }) {
@@ -1006,9 +1007,12 @@ export default function ProfileSetupWizard({
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#2563eb', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-              STEP {currentStep} OF 9
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <SincLogo size={20} alt="" role="presentation" />
+              <span style={{ fontSize: '12px', fontWeight: '800', color: '#2563eb', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                STEP {currentStep} OF 9
+              </span>
+            </div>
             <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
               {currentStep === 1 && 'Basic Information'}
               {currentStep === 2 && 'Location Details'}

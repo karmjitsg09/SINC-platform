@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { users as mockUsers } from '../../data/mockData';
+import { dispatchServerPushNotification } from '../../lib/pushNotificationService';
 
 // Reactive local notifications storage
 export let localNotifications = [
@@ -460,6 +461,20 @@ export const createNotification = async ({
         };
         localNotifications.unshift(fullNotif);
         notifyNotificationStateChange();
+
+        // Dispatch Web Push notification to recipient
+        const notifTitle = title || (type === 'follow_request' ? 'Follow Request' : type === 'follow_accepted' ? 'Follow Accepted' : 'Notification');
+        const notifUrl = entityType === 'conversation' ? `/messages/${entityId}` : '/notifications';
+        dispatchServerPushNotification({
+          recipientId,
+          type,
+          title: notifTitle,
+          message: finalMessage,
+          url: notifUrl,
+          entityType,
+          entityId: String(entityId)
+        }).catch(() => {});
+
         return { success: true, notification: fullNotif };
       }
     } catch (e) {
@@ -485,8 +500,23 @@ export const createNotification = async ({
 
   localNotifications.unshift(newNotif);
   notifyNotificationStateChange();
+
+  // Dispatch Web Push for local state notification
+  const notifTitle = title || (type === 'follow_request' ? 'Follow Request' : type === 'follow_accepted' ? 'Follow Accepted' : 'Notification');
+  const notifUrl = entityType === 'conversation' ? `/messages/${entityId}` : '/notifications';
+  dispatchServerPushNotification({
+    recipientId,
+    type,
+    title: notifTitle,
+    message: finalMessage,
+    url: notifUrl,
+    entityType,
+    entityId: String(entityId)
+  }).catch(() => {});
+
   return { success: true, notification: newNotif };
 };
+
 
 export const subscribeToRealtimeNotifications = (recipientId, callback) => {
   if (!recipientId) return () => {};

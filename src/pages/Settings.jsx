@@ -18,11 +18,22 @@ import {
   Info,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
+  Smartphone,
+  Send,
+  RefreshCw,
   ChevronRight
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { getUserPrivateDetails, upsertUserPrivateDetails } from '../lib/profileService';
 import { getBlockedUserList, unblockUser } from '../lib/blockService';
+import {
+  getPushSubscriptionState,
+  subscribeToPush,
+  unsubscribeFromPush,
+  subscribeToPushState,
+  dispatchServerPushNotification
+} from '../lib/pushNotificationService';
 
 export default function Settings({
   currentUser,
@@ -155,12 +166,113 @@ export default function Settings({
     }
   };
 
+  // Web Push Notifications state
+  const [pushState, setPushState] = useState('loading');
+  const [isTogglingPush, setIsTogglingPush] = useState(false);
+  const [pushError, setPushError] = useState(null);
+  const [testPushStatus, setTestPushStatus] = useState(null);
+  const [pushPrefs, setPushPrefs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sinc_push_preferences');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { direct_messages: true, follow_requests: true, interactions: true };
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadPushState() {
+      try {
+        const state = await getPushSubscriptionState();
+        if (isMounted) setPushState(state);
+      } catch (e) {
+        if (isMounted) setPushState('default');
+      }
+    }
+    loadPushState();
+    const unsub = subscribeToPushState(() => {
+      loadPushState();
+    });
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (!currentUser?.id) {
+      alert('Please log in to manage push notifications.');
+      return;
+    }
+    setIsTogglingPush(true);
+    setPushError(null);
+    setTestPushStatus(null);
+    try {
+      if (pushState === 'granted_subscribed') {
+        const res = await unsubscribeFromPush(currentUser.id);
+        if (!res.success) {
+          setPushError(res.error || 'Failed to disable notifications');
+        } else {
+          setPushState('granted_unsubscribed');
+        }
+      } else {
+        const res = await subscribeToPush(currentUser.id);
+        if (res.success) {
+          setPushState('granted_subscribed');
+        } else {
+          setPushError(res.error || 'Failed to enable notifications');
+          const nextState = await getPushSubscriptionState();
+          setPushState(nextState);
+        }
+      }
+    } catch (err) {
+      setPushError(err.message || 'An unexpected error occurred');
+    } finally {
+      setIsTogglingPush(false);
+    }
+  };
+
+  const handleTogglePref = (key) => {
+    setPushPrefs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem('sinc_push_preferences', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const handleSendTestPush = async () => {
+    if (!currentUser?.id) return;
+    setTestPushStatus('sending');
+    try {
+      const res = await dispatchServerPushNotification({
+        recipientId: currentUser.id,
+        type: 'system',
+        title: 'SINC Web Push Notification',
+        message: 'Your browser is successfully connected to SINC Web Push!',
+        url: '/notifications'
+      });
+      if (res && res.delivered > 0) {
+        setTestPushStatus('Delivered to this device!');
+      } else {
+        setTestPushStatus('Dispatched (check your notification tray)');
+      }
+      setTimeout(() => setTestPushStatus(null), 5000);
+    } catch (e) {
+      setTestPushStatus('Failed: ' + (e.message || 'Unknown error'));
+      setTimeout(() => setTestPushStatus(null), 5000);
+    }
+  };
+
   const navItems = [
     { id: 'appearance', label: 'Appearance & Theme', icon: Palette, description: 'Dark, Light, System themes & styling' },
     { id: 'account', label: 'Account & Security', icon: User, description: 'User info, email & credentials' },
     { id: 'privacy', label: 'Privacy & Visibility', icon: Shield, description: 'Profile audience and data visibility' },
+    { id: 'notifications', label: 'Notifications & Web Push', icon: Bell, description: 'Browser push alerts & preferences' },
     { id: 'blocked', label: 'Blocked Accounts', icon: UserX, description: 'Manage blocked profiles and restrictions' }
   ];
+
 
   return (
     <div className="settings-page-layout">
@@ -717,9 +829,283 @@ export default function Settings({
           )}
 
           {/* ======================================================== */}
+          {/* NOTIFICATIONS & WEB PUSH SECTION */}
+          {/* ======================================================== */}
+          {activeSection === 'notifications' && (
+            <div className="settings-section">
+              <div className="settings-section-header">
+                <div>
+                  <h2 className="section-title">Web Push Notifications</h2>
+                  <p className="section-desc">
+                    Receive genuine background notifications for direct messages, follow requests, and social activity even when SINC is closed.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status & Master Switch Card */}
+              <div className="settings-card" style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      backgroundColor: pushState === 'granted_subscribed' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(40, 120, 255, 0.12)',
+                      color: pushState === 'granted_subscribed' ? '#10B981' : 'var(--color-primary-blue)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Bell size={22} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                        Push Notifications on this Device
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor:
+                            pushState === 'granted_subscribed'
+                              ? 'rgba(16, 185, 129, 0.15)'
+                              : pushState === 'denied'
+                              ? 'rgba(239, 68, 68, 0.15)'
+                              : pushState === 'unsupported'
+                              ? 'rgba(100, 116, 139, 0.15)'
+                              : 'rgba(245, 158, 11, 0.15)',
+                          color:
+                            pushState === 'granted_subscribed'
+                              ? '#10B981'
+                              : pushState === 'denied'
+                              ? '#EF4444'
+                              : pushState === 'unsupported'
+                              ? '#94A3B8'
+                              : '#F59E0B'
+                        }}>
+                          {pushState === 'granted_subscribed' && <CheckCircle2 size={13} />}
+                          {pushState === 'denied' && <AlertCircle size={13} />}
+                          {pushState === 'unsupported' && <Info size={13} />}
+                          {pushState === 'granted_subscribed'
+                            ? 'Enabled on this device'
+                            : pushState === 'denied'
+                            ? 'Permission denied by browser'
+                            : pushState === 'unsupported'
+                            ? 'Unsupported browser'
+                            : pushState === 'loading'
+                            ? 'Checking status...'
+                            : 'Not enabled'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle Button / Switch */}
+                  <div>
+                    {pushState === 'unsupported' ? (
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Unavailable</span>
+                    ) : (
+                      <button
+                        type="button"
+                        id="web-push-master-toggle"
+                        className={`toggle-switch ${pushState === 'granted_subscribed' ? 'active' : ''}`}
+                        onClick={handleTogglePush}
+                        disabled={isTogglingPush || pushState === 'loading'}
+                        role="switch"
+                        aria-checked={pushState === 'granted_subscribed'}
+                        aria-label="Toggle Web Push Notifications"
+                        style={{ cursor: isTogglingPush ? 'wait' : 'pointer' }}
+                      >
+                        <span className="toggle-slider" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* State Explanations */}
+                {pushState === 'denied' && (
+                  <div style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    fontSize: '13px',
+                    color: '#EF4444',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    marginTop: '12px'
+                  }}>
+                    <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong>Notifications are blocked by your browser.</strong>
+                      <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>
+                        To enable Web Push, click the site settings / lock icon in your browser address bar, set Notifications to "Allow", and reload.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {pushError && (
+                  <div style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    fontSize: '13px',
+                    color: '#EF4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginTop: '12px'
+                  }}>
+                    <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                    <span>{pushError}</span>
+                  </div>
+                )}
+
+                {pushState === 'granted_subscribed' && (
+                  <div style={{
+                    marginTop: '16px',
+                    paddingTop: '16px',
+                    borderTop: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        Verify Delivery
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Send a test Web Push alert to this active device
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {testPushStatus && (
+                        <span style={{ fontSize: '12.5px', color: 'var(--color-primary-blue)', fontWeight: '500' }}>
+                          {testPushStatus === 'sending' ? 'Sending...' : testPushStatus}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        id="test-push-notification-btn"
+                        onClick={handleSendTestPush}
+                        disabled={testPushStatus === 'sending'}
+                        className="btn-primary-sm"
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px' }}
+                      >
+                        <Send size={14} />
+                        <span>Send Test Alert</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notification Categories Card */}
+              <div className="settings-card" style={{ marginBottom: '24px' }}>
+                <h3 className="card-heading">Push Notification Categories</h3>
+                <p className="card-subheading" style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  Choose which platform events dispatch background alerts to your registered devices.
+                </p>
+
+                {/* Category 1: Direct Messages */}
+                <div className="setting-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <div style={{ maxWidth: '80%' }}>
+                    <div className="setting-label" style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' }}>
+                      Direct Messages
+                    </div>
+                    <div className="setting-subtext" style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Get notified when another member sends you a direct message in conversations.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`toggle-switch ${pushPrefs.direct_messages ? 'active' : ''}`}
+                    onClick={() => handleTogglePref('direct_messages')}
+                    role="switch"
+                    aria-checked={pushPrefs.direct_messages}
+                    aria-label="Toggle Direct Message Push Alerts"
+                  >
+                    <span className="toggle-slider" />
+                  </button>
+                </div>
+
+                {/* Category 2: Follow Requests */}
+                <div className="setting-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <div style={{ maxWidth: '80%' }}>
+                    <div className="setting-label" style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' }}>
+                      Follow Requests & Approvals
+                    </div>
+                    <div className="setting-subtext" style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Get notified when someone requests to follow you or accepts your follow request.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`toggle-switch ${pushPrefs.follow_requests ? 'active' : ''}`}
+                    onClick={() => handleTogglePref('follow_requests')}
+                    role="switch"
+                    aria-checked={pushPrefs.follow_requests}
+                    aria-label="Toggle Follow Request Push Alerts"
+                  >
+                    <span className="toggle-slider" />
+                  </button>
+                </div>
+
+                {/* Category 3: Social Interactions */}
+                <div className="setting-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }}>
+                  <div style={{ maxWidth: '80%' }}>
+                    <div className="setting-label" style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' }}>
+                      Likes, Comments & Domain Updates
+                    </div>
+                    <div className="setting-subtext" style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Get notified when someone likes or comments on your shared technology posts.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`toggle-switch ${pushPrefs.interactions ? 'active' : ''}`}
+                    onClick={() => handleTogglePref('interactions')}
+                    role="switch"
+                    aria-checked={pushPrefs.interactions}
+                    aria-label="Toggle Interaction Push Alerts"
+                  >
+                    <span className="toggle-slider" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Informational Card */}
+              <div className="settings-info-card">
+                <div className="info-icon-badge">
+                  <Smartphone size={20} />
+                </div>
+                <div>
+                  <h4 className="info-title">Independent & Battery-Conscious</h4>
+                  <p className="info-text">
+                    SINC Web Push relies on the standard W3C Push API and Service Workers. Alerts are delivered even if the browser tab is in the background or closed.
+                    Disabling push on this device does not affect other registered devices or delete your in-app notification history.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
           {/* BLOCKED USERS SECTION */}
           {/* ======================================================== */}
           {activeSection === 'blocked' && (
+
             <div className="settings-section">
               <div className="settings-section-header">
                 <div>

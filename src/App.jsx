@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Header from './components/Header';
 import TopHeader from './components/TopHeader';
 import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
+import SincLogo from './components/common/SincLogo';
 
 import Feed from './pages/Feed';
 import DomainList from './pages/DomainList';
@@ -294,8 +294,23 @@ function MainAppContent() {
 
   if (loadingSession) {
     return (
-      <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: '500', fontSize: '14px' }}>
-        Loading platform...
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          width: '100vw',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#080E18',
+          color: '#F3F6FC',
+          gap: '16px'
+        }}
+      >
+        <SincLogo size={72} priority={true} />
+        <div style={{ fontSize: '14px', fontWeight: '500', color: '#A7B5CA', letterSpacing: '0.02em' }}>
+          Loading SINC platform...
+        </div>
       </div>
     );
   }

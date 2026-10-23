@@ -1,13 +1,11 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../notifications/hooks/useNotifications';
 import { useConversations } from '../messaging/hooks/useConversations';
 import {
   Home,
   Compass,
   MessageSquare,
   Search,
-  Bell,
   Bookmark,
   User,
   Settings,
@@ -17,6 +15,7 @@ import {
   ShieldCheck,
   PanelLeftClose
 } from 'lucide-react';
+import SincLogo from './common/SincLogo';
 
 export default function SidebarNavigation({
   activeTab,
@@ -28,7 +27,6 @@ export default function SidebarNavigation({
 }) {
   const { user, logout } = useAuth();
   const currentUserId = user?.id;
-  const { unreadCount: notificationsUnread } = useNotifications(currentUserId);
   const { unreadCount: messagesUnread } = useConversations(currentUserId);
 
   const navItems = [
@@ -54,12 +52,6 @@ export default function SidebarNavigation({
       icon: Search
     },
     {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: Bell,
-      badge: notificationsUnread > 0 ? (notificationsUnread > 99 ? '99+' : notificationsUnread) : null
-    },
-    {
       id: 'saved',
       label: 'Saved Posts',
       icon: Bookmark
@@ -75,6 +67,7 @@ export default function SidebarNavigation({
       icon: Settings
     }
   ];
+
 
   const userName = user?.name || 'Alex Rivers';
   const username = user?.username ? `@${user.username}` : '@alexrivers';
@@ -107,9 +100,14 @@ export default function SidebarNavigation({
       <aside className={`sidebar-navigation ${isMobileOpen ? 'mobile-open' : ''}`} aria-label="Main Navigation">
         {/* Navigation Header with Title and Collapse Button */}
         <div className="sidebar-header">
-          <div className="sidebar-header-info">
-            <span className="sidebar-header-dot" />
-            <span className="sidebar-header-title">Menu</span>
+          <div
+            className="sidebar-header-info"
+            onClick={() => handleNavClick('home')}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            title="SINC Platform — Home"
+          >
+            <SincLogo size={22} alt="" role="presentation" />
+            <span className="sidebar-header-title">SINC</span>
           </div>
           <button
             type="button"

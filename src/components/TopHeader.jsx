@@ -1,13 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useNotifications } from '../notifications/hooks/useNotifications';
 import {
   Search,
   Bell,
-  Sun,
-  Moon,
-  Laptop,
   LogOut,
   User,
   Bookmark,
@@ -20,33 +16,42 @@ import {
   PanelLeftOpen
 } from 'lucide-react';
 
+import SincLogo from './common/SincLogo';
+
 export default function TopHeader({
   activeTab,
   onSelectTab,
   onSearch,
+  onSearchSubmit,
   onToggleSidebar,
   isSidebarOpen,
-  onOpenCreatePost
+  onOpenCreatePost,
+  currentUser,
+  currentProfile,
+  unreadNotificationsCount,
+  unreadMessagesCount,
+  onLogout
 }) {
-  const { user, logout } = useAuth();
-  const { theme, effectiveTheme, setTheme } = useTheme();
+  const { user: authUser, logout: authLogout } = useAuth();
+  const user = authUser || currentUser || currentProfile;
+
   const currentUserId = user?.id;
-  const { unreadCount: notificationsUnread } = useNotifications(currentUserId);
+  const { unreadCount: hookUnreadCount } = useNotifications(
+    unreadNotificationsCount === undefined ? currentUserId : null
+  );
+  const notificationsUnread = unreadNotificationsCount !== undefined
+    ? (Number(unreadNotificationsCount) || 0)
+    : (hookUnreadCount || 0);
 
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showThemeDropdown, setShowThemeDropdown] = useState(false);
   const userDropdownRef = useRef(null);
-  const themeDropdownRef = useRef(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
         setShowUserDropdown(false);
-      }
-      if (themeDropdownRef.current && !themeDropdownRef.current.contains(event.target)) {
-        setShowThemeDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -56,7 +61,9 @@ export default function TopHeader({
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (headerSearchQuery.trim()) {
-      if (onSearch) {
+      if (onSearchSubmit) {
+        onSearchSubmit(headerSearchQuery.trim());
+      } else if (onSearch) {
         onSearch(headerSearchQuery.trim());
       } else {
         onSelectTab('search');
@@ -68,7 +75,11 @@ export default function TopHeader({
 
   const handleLogout = async () => {
     setShowUserDropdown(false);
-    await logout();
+    if (onLogout) {
+      await onLogout();
+    } else if (authLogout) {
+      await authLogout();
+    }
   };
 
   const userName = user?.name || 'Alex Rivers';
@@ -103,11 +114,9 @@ export default function TopHeader({
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelectTab('home'); }}
           title="SINC Platform — Home"
+          aria-label="SINC Platform — Home"
         >
-          <div className="brand-logo-symbol">
-            <span className="brand-dot" />
-            <span className="brand-wave" />
-          </div>
+          <SincLogo size={36} className="topheader-logo" alt="" role="presentation" />
           <span className="brand-title">SINC</span>
           <span className="brand-badge">TECH</span>
         </div>
@@ -129,68 +138,20 @@ export default function TopHeader({
         </form>
       </div>
 
-      {/* Right Controls: Theme Toggle, Notifications, User Profile */}
+      {/* Right Controls: Notifications, User Profile */}
       <div className="top-header-right">
-        {/* Theme Mode Toggle Button & Dropdown */}
-        <div className="header-action-wrapper" ref={themeDropdownRef}>
-          <button
-            type="button"
-            className="header-action-btn theme-toggle-btn"
-            onClick={() => setShowThemeDropdown((prev) => !prev)}
-            aria-label={`Theme: ${theme}. Click to change.`}
-            title={`Current theme: ${theme} (${effectiveTheme})`}
-          >
-            {effectiveTheme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-
-          {showThemeDropdown && (
-            <div className="header-dropdown-menu theme-menu-dropdown" role="menu">
-              <div className="dropdown-section-title">Appearance</div>
-              <button
-                type="button"
-                className={`dropdown-item ${theme === 'dark' ? 'active' : ''}`}
-                onClick={() => { setTheme('dark'); setShowThemeDropdown(false); }}
-                role="menuitem"
-              >
-                <Moon size={15} />
-                <span>Dark Theme</span>
-                {theme === 'dark' && <span className="dropdown-check">✓</span>}
-              </button>
-              <button
-                type="button"
-                className={`dropdown-item ${theme === 'light' ? 'active' : ''}`}
-                onClick={() => { setTheme('light'); setShowThemeDropdown(false); }}
-                role="menuitem"
-              >
-                <Sun size={15} />
-                <span>Light Theme</span>
-                {theme === 'light' && <span className="dropdown-check">✓</span>}
-              </button>
-              <button
-                type="button"
-                className={`dropdown-item ${theme === 'system' ? 'active' : ''}`}
-                onClick={() => { setTheme('system'); setShowThemeDropdown(false); }}
-                role="menuitem"
-              >
-                <Laptop size={15} />
-                <span>System Default</span>
-                {theme === 'system' && <span className="dropdown-check">✓</span>}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Notifications Button */}
+        {/* Notifications Bell Button */}
         <button
           type="button"
+          id="header-notifications-btn"
           className={`header-action-btn ${activeTab === 'notifications' ? 'active' : ''}`}
           onClick={() => onSelectTab('notifications')}
-          aria-label={`Notifications${notificationsUnread > 0 ? `, ${notificationsUnread} unread` : ''}`}
+          aria-label={notificationsUnread > 0 ? `Notifications (${notificationsUnread} unread)` : 'Notifications'}
           title="Notifications"
         >
-          <Bell size={18} />
+          <Bell size={18} aria-hidden="true" />
           {notificationsUnread > 0 && (
-            <span className="header-badge-count">
+            <span className="header-badge-count" aria-hidden="true">
               {notificationsUnread > 99 ? '99+' : notificationsUnread}
             </span>
           )}
@@ -198,14 +159,17 @@ export default function TopHeader({
 
         <div className="header-divider" />
 
-        {/* User Account Pill & Dropdown */}
+        {/* User Profile Avatar & Dropdown */}
         <div className="header-user-wrapper" ref={userDropdownRef}>
           <button
             type="button"
-            className="header-user-trigger"
+            id="header-user-menu-btn"
+            className={`header-user-trigger ${showUserDropdown ? 'active' : ''}`}
             onClick={() => setShowUserDropdown((prev) => !prev)}
             aria-expanded={showUserDropdown}
-            aria-label="User Account Menu"
+            aria-haspopup="menu"
+            aria-label="Open profile menu"
+            title={`Profile menu — ${userName}`}
           >
             <div className="header-user-avatar">
               {user?.avatarUrl ? (
@@ -213,10 +177,6 @@ export default function TopHeader({
               ) : (
                 <span className="avatar-initials">{initials}</span>
               )}
-            </div>
-            <div className="header-user-meta">
-              <span className="header-user-display-name">{userName}</span>
-              <span className="header-user-role">{username}</span>
             </div>
           </button>
 

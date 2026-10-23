@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import AuthInput from '../components/AuthInput';
 import PasswordInput from '../components/PasswordInput';
 import AuthButton from '../components/AuthButton';
+import SincLogo from '../components/common/SincLogo';
 import { validatePassword, PASSWORD_POLICY_HINT } from '../lib/passwordPolicy';
 
 export default function ForgotPassword() {
@@ -109,10 +110,7 @@ export default function ForgotPassword() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-brand-logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <circle cx="12" cy="12" r="9"></circle>
-            <circle cx="12" cy="12" r="4"></circle>
-          </svg>
+          <SincLogo size={68} alt="SINC logo" priority={true} />
         </div>
 
         {isRecoveryMode ? (
