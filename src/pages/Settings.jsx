@@ -22,11 +22,13 @@ import {
   Smartphone,
   Send,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  Play
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { getUserPrivateDetails, upsertUserPrivateDetails } from '../lib/profileService';
 import { getBlockedUserList, unblockUser } from '../lib/blockService';
+import { playSincIntro } from '../lib/sinc-intro';
 import {
   getPushSubscriptionState,
   subscribeToPush,
@@ -604,6 +606,45 @@ export default function Settings({
                     All components, cards, navigation bars, dropdowns, and dialogs are powered by CSS design tokens.
                     Theme transitions apply with zero layout shift and are persisted across your browsing sessions.
                   </p>
+                </div>
+              </div>
+
+              {/* SINC Brand Experience Card */}
+              <div className="settings-card" style={{ marginTop: '20px' }}>
+                <h3 className="card-heading">Brand Experience</h3>
+                <p className="card-subheading" style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  Experience the full SINC brand journey, dynamic animation, and mission story.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={{ maxWidth: '75%' }}>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' }}>
+                      SINC Welcome Film & Intro
+                    </div>
+                    <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Play the complete 16.9-second animated introduction drawn live on canvas.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    id="settings-play-intro-btn"
+                    onClick={() => playSincIntro({ mode: 'welcome' })}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      background: 'var(--color-primary-blue, #1868ff)',
+                      color: '#ffffff',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Play size={14} fill="currentColor" />
+                    <span>Play Intro</span>
+                  </button>
                 </div>
               </div>
             </div>

@@ -40,6 +40,7 @@ export default function Search({ onSelectDomain, onSelectProfile, onNavigateToPo
 
   const [searchMode, setSearchMode] = useState('all'); // 'all' | 'profile' | 'post' | 'domain' | 'job'
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState(null);
 
   const [asyncProfiles, setAsyncProfiles] = useState([]);
@@ -48,22 +49,44 @@ export default function Search({ onSelectDomain, onSelectProfile, onNavigateToPo
   const [allPosts, setAllPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
-  // Search profiles
+  const latestProfileReqId = React.useRef(0);
+
+  // 250ms Debounce on search query to prevent N+1 keystroke requests (Phase 6: PERF-006)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 250);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
+  // Search profiles with debounced query and stale-response cancellation
   useEffect(() => {
     let isMounted = true;
+    const reqId = ++latestProfileReqId.current;
+
     async function fetchProfiles() {
       if (searchMode === 'profile' || searchMode === 'all') {
         setLoadingProfiles(true);
-        const results = await searchProfiles(searchQuery, currentUserId);
-        if (isMounted) {
-          setAsyncProfiles(results);
-          setLoadingProfiles(false);
+        try {
+          const results = await searchProfiles(debouncedQuery, currentUserId);
+          if (isMounted && reqId === latestProfileReqId.current) {
+            setAsyncProfiles(results);
+          }
+        } catch (e) {
+          console.warn('[Search] Profile search error:', e);
+        } finally {
+          if (isMounted && reqId === latestProfileReqId.current) {
+            setLoadingProfiles(false);
+          }
         }
       }
     }
     fetchProfiles();
     return () => { isMounted = false; };
-  }, [searchQuery, searchMode, currentUserId]);
+  }, [debouncedQuery, searchMode, currentUserId]);
 
   // Load and search posts
   useEffect(() => {
@@ -208,7 +231,7 @@ export default function Search({ onSelectDomain, onSelectProfile, onNavigateToPo
                   <div
                     key={post.id}
                     className="search-post-result-card"
-                    onClick={() => onNavigateToPostView && onNavigateToPostView(post.id, { activeTab: 'search' })}
+                    onClick={() => onNavigateToPostView && onNavigateToPostView(post.id, { activeTab: 'search', initialPost: post })}
                   >
                     <div className="card-top-row">
                       <span className="search-domain-tag">{post.domain || 'Tech'}</span>
@@ -304,7 +327,7 @@ export default function Search({ onSelectDomain, onSelectProfile, onNavigateToPo
             <div
               key={post.id}
               className="search-post-result-card"
-              onClick={() => onNavigateToPostView && onNavigateToPostView(post.id, { activeTab: 'search' })}
+              onClick={() => onNavigateToPostView && onNavigateToPostView(post.id, { activeTab: 'search', initialPost: post })}
             >
               <div className="card-top-row">
                 <span className="search-domain-tag">{post.domain || 'Tech'}</span>

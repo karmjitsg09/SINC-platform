@@ -78,31 +78,10 @@ export const formatPostRow = (p, mediaRows = []) => {
   };
 };
 
-// Helper to batch fetch and attach media items from public.post_media
+// Helper to attach and format media items for posts (using normalized stored media payloads)
 const attachPostMedia = async (postsList) => {
   if (!postsList || postsList.length === 0) return [];
-  const postIds = postsList.map((p) => p.id).filter(Boolean);
-  if (postIds.length === 0) return postsList.map((p) => formatPostRow(p));
-
-  let mediaMap = {};
-  try {
-    const { data: mediaData, error } = await supabase
-      .from('post_media')
-      .select('*')
-      .in('post_id', postIds)
-      .order('display_order', { ascending: true });
-
-    if (!error && mediaData && Array.isArray(mediaData)) {
-      mediaData.forEach((item) => {
-        if (!mediaMap[item.post_id]) mediaMap[item.post_id] = [];
-        mediaMap[item.post_id].push(item);
-      });
-    }
-  } catch (e) {
-    // If post_media table is not created yet, formatPostRow falls back to legacy columns
-  }
-
-  return postsList.map((p) => formatPostRow(p, mediaMap[p.id] || []));
+  return postsList.map((p) => formatPostRow(p));
 };
 
 // Helper to convert File to base64 DataURL as rock-solid fallback
@@ -318,14 +297,22 @@ export const createPost = async ({
 // ==========================================
 // 2. GET ALL POSTS FROM PUBLIC.POSTS
 // ==========================================
-export const getPosts = async () => {
+export const getPosts = async (page = 0, limit = 15) => {
   if (!isSupabaseConfigured) return [];
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('posts')
       .select('*, profiles:user_id(id, name, username, role, avatar_url)')
       .order('created_at', { ascending: false });
+
+    if (typeof page === 'number' && typeof limit === 'number' && limit > 0) {
+      const from = page * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('[PostService] getPosts error:', error);
@@ -373,9 +360,9 @@ export const getPostsByAuthor = async (authorId) => {
 // ==========================================
 // 4. GET POSTS BY DOMAIN FROM PUBLIC.POSTS
 // ==========================================
-export const getPostsByDomain = async (domain) => {
+export const getPostsByDomain = async (domain, page = 0, limit = 15) => {
   if (!domain || domain === 'explore' || domain === 'all') {
-    return getPosts();
+    return getPosts(page, limit);
   }
 
   const matchValues = getCategoryMatchValues(domain);
@@ -384,11 +371,19 @@ export const getPostsByDomain = async (domain) => {
   if (!isSupabaseConfigured) return [];
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('posts')
       .select('*, profiles:user_id(id, name, username, role, avatar_url)')
       .in('domain', targets)
       .order('created_at', { ascending: false });
+
+    if (typeof page === 'number' && typeof limit === 'number' && limit > 0) {
+      const from = page * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('[PostService] getPostsByDomain error:', error);

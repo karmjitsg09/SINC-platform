@@ -103,6 +103,8 @@ export default function PostMedia({
       <img
         src={resolvedUrl}
         alt={altText || `Attachment ${idx + 1}`}
+        loading="lazy"
+        decoding="async"
         onError={() => markBroken(itemKey)}
         style={{
           width: '100%',
@@ -121,10 +123,11 @@ export default function PostMedia({
   if (items.length === 1 && items[0].media_type === 'video') {
     const resolvedVideoUrl = resolveMediaUrl(items[0].media_url || items[0].url);
     return (
-      <div style={{ marginTop: '12px', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-color, #263750)', backgroundColor: '#000000' }}>
+      <div style={{ marginTop: '12px', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-color, #263750)', backgroundColor: '#000000', minHeight: '200px' }}>
         <video
           src={resolvedVideoUrl}
           controls
+          preload="metadata"
           style={{
             width: '100%',
             maxWidth: '100%',
@@ -153,6 +156,7 @@ export default function PostMedia({
           overflow: 'hidden',
           border: '1px solid var(--border-color, #263750)',
           backgroundColor: 'var(--bg-elevated, #101c2d)',
+          minHeight: '220px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -162,6 +166,7 @@ export default function PostMedia({
           <video
             src={resolvedUrl}
             controls
+            preload="metadata"
             style={{ width: '100%', maxWidth: '100%', maxHeight: 'clamp(260px, 50vh, 520px)', height: 'auto', display: 'block' }}
           />
         ) : isBroken ? (
@@ -184,6 +189,8 @@ export default function PostMedia({
           <img
             src={resolvedUrl}
             alt="Post attachment"
+            loading="lazy"
+            decoding="async"
             onError={() => markBroken(single.id || 'single')}
             style={{
               width: '100%',

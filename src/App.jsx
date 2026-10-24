@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import TopHeader from './components/TopHeader';
 import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
 import SincLogo from './components/common/SincLogo';
+import SincIntro from './components/common/SincIntro';
 
 import Feed from './pages/Feed';
 import DomainList from './pages/DomainList';
@@ -13,27 +14,59 @@ import DomainChat from './pages/DomainChat';
 import MessagesList from './pages/MessagesList';
 import MessageDetail from './pages/MessageDetail';
 import MessagesPage from './pages/MessagesPage';
-import Settings from './pages/Settings';
 import PostView from './pages/PostView';
 import Search from './pages/Search';
 import Profile from './pages/Profile';
-import ProfileDetails from './pages/ProfileDetails';
-import ProfileMenu from './pages/ProfileMenu';
-import SavedPosts from './pages/SavedPosts';
-import ProjectsPage from './pages/ProjectsPage';
-import ExperiencePage from './pages/ExperiencePage';
-import EducationPage from './pages/EducationPage';
-import CertificationsPage from './pages/CertificationsPage';
-import AchievementsPage from './pages/AchievementsPage';
-import ItemUpdatesPage from './pages/ItemUpdatesPage';
-import CreatePost from './pages/CreatePost';
 import Notifications from './pages/Notifications';
-import UpdateStoryViewer from './pages/UpdateStoryViewer';
-
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
-import ForgotPassword from './pages/ForgotPassword';
-import ProfileSetupWizard from './components/profile/ProfileSetupWizard';
+
+// Route-level code splitting for non-critical pages (Phase 5: Bundle Optimization)
+const Settings = lazy(() => import('./pages/Settings'));
+const ProfileDetails = lazy(() => import('./pages/ProfileDetails'));
+const ProfileMenu = lazy(() => import('./pages/ProfileMenu'));
+const SavedPosts = lazy(() => import('./pages/SavedPosts'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const ExperiencePage = lazy(() => import('./pages/ExperiencePage'));
+const EducationPage = lazy(() => import('./pages/EducationPage'));
+const CertificationsPage = lazy(() => import('./pages/CertificationsPage'));
+const AchievementsPage = lazy(() => import('./pages/AchievementsPage'));
+const ItemUpdatesPage = lazy(() => import('./pages/ItemUpdatesPage'));
+const CreatePost = lazy(() => import('./pages/CreatePost'));
+const UpdateStoryViewer = lazy(() => import('./pages/UpdateStoryViewer'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ProfileSetupWizard = lazy(() => import('./components/profile/ProfileSetupWizard'));
+
+function PageLoadingFallback() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '200px',
+        width: '100%',
+        color: '#64748b',
+        fontSize: '13px'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          style={{
+            width: '18px',
+            height: '18px',
+            border: '2px solid rgba(40, 120, 255, 0.2)',
+            borderTopColor: '#2878ff',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }}
+        />
+        <span>Loading...</span>
+      </div>
+    </div>
+  );
+}
+
 import { updateBasicProfile } from './lib/profileService';
 
 import { useConversations } from './messaging/hooks/useConversations';
@@ -100,6 +133,7 @@ function MainAppContent() {
 
   // Dedicated Post View navigation state
   const [activePostId, setActivePostId] = useState(initialRoute.activePostId || null);
+  const [activePostInitialData, setActivePostInitialData] = useState(null);
   const [postViewReturnState, setPostViewReturnState] = useState(null);
 
   // Independent Navigation Visibility Preferences
@@ -323,7 +357,11 @@ function MainAppContent() {
     return (
       <div className="app-shell">
         {authRoute === 'signup' && <SignUp />}
-        {authRoute === 'forgot-password' && <ForgotPassword />}
+        {authRoute === 'forgot-password' && (
+          <Suspense fallback={<PageLoadingFallback />}>
+            <ForgotPassword />
+          </Suspense>
+        )}
         {authRoute === 'login' && <Login />}
       </div>
     );
@@ -333,7 +371,8 @@ function MainAppContent() {
   if (isOnboardingActive) {
     return (
       <div className="app-shell">
-        <Header
+        <SincIntro />
+        <TopHeader
           showSearchIcon={false}
           onSearchClick={() => {}}
           onNotificationClick={() => {}}
@@ -341,27 +380,29 @@ function MainAppContent() {
         />
         <div className="app-body" style={{ justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}>
           <div className="main-content" style={{ maxWidth: '720px', margin: '0 auto', width: '100%' }}>
-            <ProfileSetupWizard
-              profileUser={user}
-              initialStep={user?.firstIncompleteStep || 1}
-              onSave={async (updates) => {
-                await updateBasicProfile(user.id, updates);
-                if (updateAuthProfile) {
-                  updateAuthProfile({ ...updates, onboarding_completed: true, isNewUser: false });
-                }
-                setIsOnboardingActive(false);
-                setActiveTab('home');
-                pushRoute({ tab: 'home' });
-              }}
-              onCancel={() => {
-                if (updateAuthProfile) {
-                  updateAuthProfile({ isNewUser: false, onboarding_completed: true });
-                }
-                setIsOnboardingActive(false);
-                setActiveTab('home');
-                pushRoute({ tab: 'home' });
-              }}
-            />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <ProfileSetupWizard
+                profileUser={user}
+                initialStep={user?.firstIncompleteStep || 1}
+                onSave={async (updates) => {
+                  await updateBasicProfile(user.id, updates);
+                  if (updateAuthProfile) {
+                    updateAuthProfile({ ...updates, onboarding_completed: true, isNewUser: false });
+                  }
+                  setIsOnboardingActive(false);
+                  setActiveTab('home');
+                  pushRoute({ tab: 'home' });
+                }}
+                onCancel={() => {
+                  if (updateAuthProfile) {
+                    updateAuthProfile({ isNewUser: false, onboarding_completed: true });
+                  }
+                  setIsOnboardingActive(false);
+                  setActiveTab('home');
+                  pushRoute({ tab: 'home' });
+                }}
+              />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -383,6 +424,11 @@ function MainAppContent() {
       selectedConversation,
       profileSubView
     };
+    if (returnContext && returnContext.initialPost) {
+      setActivePostInitialData(returnContext.initialPost);
+    } else {
+      setActivePostInitialData(null);
+    }
     setPostViewReturnState(ctx);
     setActivePostId(postId);
     setActiveTab('post-view');
@@ -391,6 +437,7 @@ function MainAppContent() {
   };
 
   const handleBackFromPostView = () => {
+    setActivePostInitialData(null);
     if (postViewReturnState) {
       const {
         activeTab: prevTab,
@@ -668,6 +715,7 @@ function MainAppContent() {
               setActiveTab('create-post');
               pushRoute({ tab: 'create-post' });
             }}
+            onNavigateToPostView={handleNavigateToPostView}
             showComposer={false}
           />
         );
@@ -726,6 +774,7 @@ function MainAppContent() {
         return (
           <PostView
             postId={activePostId}
+            initialPost={activePostInitialData}
             onBack={handleBackFromPostView}
             onNavigateToProfile={handleSelectProfileFromSearch}
           />
@@ -741,6 +790,7 @@ function MainAppContent() {
               pushRoute({ tab: 'domains', domainSubView: 'domain', activeDomainId: domain.id });
             }}
             onSelectProfile={handleSelectProfileFromSearch}
+            onNavigateToPostView={handleNavigateToPostView}
           />
         );
 
@@ -981,6 +1031,7 @@ function MainAppContent() {
               setActiveTab('create-post');
               pushRoute({ tab: 'create-post' });
             }}
+            onNavigateToPostView={handleNavigateToPostView}
             showComposer={false}
           />
         );
@@ -996,6 +1047,7 @@ function MainAppContent() {
 
   return (
     <div className="sinc-app-shell">
+      <SincIntro />
       {/* Top Header Bar */}
       <TopHeader
         activeTab={activeTab}
@@ -1071,7 +1123,9 @@ function MainAppContent() {
               transition: 'padding-bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            {renderScreen()}
+            <Suspense fallback={<PageLoadingFallback />}>
+              {renderScreen()}
+            </Suspense>
           </div>
 
           {/* 4. Floating Horizontal Bottom Navigation Bar */}

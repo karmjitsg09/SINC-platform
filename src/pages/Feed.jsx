@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FEED_CATEGORIES, getCategoryMatchValues } from '../data/mockData';
 import { getPostsByDomain, getPostById, subscribeToPosts } from '../lib/postService';
+import { getBatchPostInteractionSummaries, subscribeToFeedInteractions } from '../lib/postInteractionService';
 import { useAuth } from '../context/AuthContext';
 import PostCardInteractions from '../components/PostCardInteractions';
 import PostInsightsModal from '../components/PostInsightsModal';
@@ -51,11 +52,16 @@ export default function Feed({
   onClearTargetPostId,
   onNavigateToProfile,
   onOpenCreatePost,
+  onNavigateToPostView,
   showComposer = false
 }) {
   const { user: currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [interactionMap, setInteractionMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [highlightedPostId, setHighlightedPostId] = useState(null);
   const [postNotFound, setPostNotFound] = useState(false);
   const [insightsPost, setInsightsPost] = useState(null);
@@ -63,6 +69,7 @@ export default function Feed({
   const [copiedPostId, setCopiedPostId] = useState(null);
   const postRefs = useRef({});
   const categoryScrollRef = useRef(null);
+  const sentinelRef = useRef(null);
 
   const [internalCategory, setInternalCategory] = useState(selectedFeedCategory);
 
@@ -73,40 +80,62 @@ export default function Feed({
   const activeCategory = onSelectFeedCategory ? selectedFeedCategory : internalCategory;
   const categoryLabel = getCategoryLabel(activeCategory);
 
-  // Load posts whenever active feed category changes
+  // Helper to fetch batch interactions for given posts
+  const fetchInteractionsForPosts = useCallback(async (postsList) => {
+    if (!postsList || postsList.length === 0) return;
+    const postIds = postsList.map((p) => p.id).filter(Boolean);
+    if (postIds.length === 0) return;
+    try {
+      const summaries = await getBatchPostInteractionSummaries(postIds, currentUser?.id);
+      setInteractionMap((prev) => ({ ...prev, ...summaries }));
+    } catch (err) {
+      console.warn('[Feed] Error fetching batch interactions:', err);
+    }
+  }, [currentUser?.id]);
+
+  // Initial load when activeCategory or targetPostId changes
   useEffect(() => {
     let isMounted = true;
 
     async function load() {
       setLoading(true);
       setPostNotFound(false);
+      setPage(0);
+      setHasMore(true);
 
-      const list = await getPostsByDomain(activeCategory);
+      const list = await getPostsByDomain(activeCategory, 0, 15);
 
       if (!isMounted) return;
+
+      let finalPosts = list;
+      if (list.length < 15) {
+        setHasMore(false);
+      }
 
       if (targetPostId) {
         const found = list.find((p) => p.id === targetPostId);
         if (found) {
-          setPosts(list);
+          finalPosts = list;
           setHighlightedPostId(targetPostId);
         } else {
           const single = await getPostById(targetPostId);
           if (isMounted) {
             if (single) {
-              setPosts([single, ...list.filter((p) => p.id !== single.id)]);
+              finalPosts = [single, ...list.filter((p) => p.id !== single.id)];
               setHighlightedPostId(targetPostId);
             } else {
-              setPosts(list);
+              finalPosts = list;
               setPostNotFound(true);
             }
           }
         }
-      } else {
-        setPosts(list);
       }
 
+      setPosts(finalPosts);
       setLoading(false);
+
+      // Fetch batch interaction summaries in parallel
+      fetchInteractionsForPosts(finalPosts);
     }
 
     load();
@@ -129,6 +158,7 @@ export default function Feed({
             if (exists) return prev;
             return [newPost, ...prev];
           });
+          fetchInteractionsForPosts([newPost]);
         }
       },
       (deletedPostId) => {
@@ -141,7 +171,75 @@ export default function Feed({
       isMounted = false;
       unsub();
     };
-  }, [activeCategory, targetPostId]);
+  }, [activeCategory, targetPostId, fetchInteractionsForPosts]);
+
+  // Central subscription for all loaded feed posts' interactions
+  useEffect(() => {
+    const postIds = posts.map((p) => p.id).filter(Boolean);
+    if (postIds.length === 0) return;
+
+    const unsub = subscribeToFeedInteractions(postIds, (updatedSummary) => {
+      if (!updatedSummary || !updatedSummary.postId) return;
+      setInteractionMap((prev) => ({
+        ...prev,
+        [updatedSummary.postId]: {
+          ...(prev[updatedSummary.postId] || {}),
+          ...updatedSummary
+        }
+      }));
+    });
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [posts]);
+
+  // Load next page of posts
+  const loadMorePosts = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+
+    const nextPage = page + 1;
+    try {
+      const nextList = await getPostsByDomain(activeCategory, nextPage, 15);
+      if (!nextList || nextList.length < 15) {
+        setHasMore(false);
+      }
+
+      if (nextList && nextList.length > 0) {
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const uniqueNew = nextList.filter((p) => !existingIds.has(p.id));
+          return [...prev, ...uniqueNew];
+        });
+        setPage(nextPage);
+        fetchInteractionsForPosts(nextList);
+      }
+    } catch (err) {
+      console.error('[Feed] loadMorePosts error:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, hasMore, page, activeCategory, fetchInteractionsForPosts]);
+
+  // IntersectionObserver for infinite scrolling
+  useEffect(() => {
+    if (loading || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && hasMore) {
+          loadMorePosts();
+        }
+      },
+      { rootMargin: '300px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, hasMore, loadMorePosts]);
 
   // Scroll to targeted post
   useEffect(() => {
@@ -296,6 +394,7 @@ export default function Feed({
               return (
                 <article
                   key={post.id}
+                  data-post-id={post.id}
                   ref={(el) => { if (el) postRefs.current[post.id] = el; }}
                   className={`feed-post-card ${isHighlighted ? 'highlighted-post' : ''}`}
                 >
@@ -381,11 +480,24 @@ export default function Feed({
 
                   {/* Post Title */}
                   {post.title && post.title !== 'Post' && (
-                    <h2 className="post-card-title">{post.title}</h2>
+                    <h2
+                      className="post-card-title"
+                      onClick={() => onNavigateToPostView && onNavigateToPostView(post.id, { activeTab: 'home', initialPost: post })}
+                      style={{ cursor: onNavigateToPostView ? 'pointer' : 'default' }}
+                    >
+                      {post.title}
+                    </h2>
                   )}
 
                   {/* Post Content */}
-                  <div className="post-card-body">
+                  <div
+                    className="post-card-body"
+                    onClick={(e) => {
+                      if (e.target.closest('a') || e.target.closest('button') || e.target.closest('pre') || e.target.closest('input')) return;
+                      if (onNavigateToPostView) onNavigateToPostView(post.id, { activeTab: 'home', initialPost: post });
+                    }}
+                    style={{ cursor: onNavigateToPostView ? 'pointer' : 'default' }}
+                  >
                     {(() => {
                       const { caption, itemRef } = parseProfileItemRef(post.content);
                       return (
@@ -430,11 +542,39 @@ export default function Feed({
                     )}
                   </div>
 
-                  {/* Social Interactions: Likes, Comments, Share, Save */}
-                  <PostCardInteractions post={post} />
+                  {/* Social Interactions: Likes, Comments, Share, Save (Batched initial data) */}
+                  <PostCardInteractions
+                    post={post}
+                    initialSummary={interactionMap[post.id]}
+                    disableIndividualFetch={true}
+                  />
                 </article>
               );
             })
+          )}
+
+          {/* Sentinel for infinite scroll pagination */}
+          {posts.length > 0 && (
+            <div
+              ref={sentinelRef}
+              className="feed-infinite-scroll-sentinel"
+              style={{
+                padding: '16px 0',
+                textAlign: 'center',
+                minHeight: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+                fontSize: '13px'
+              }}
+            >
+              {loadingMore ? (
+                <div className="feed-loading-more-indicator">Loading more posts...</div>
+              ) : !hasMore ? (
+                <div className="feed-caught-up-text">You've reached the end of the feed</div>
+              ) : null}
+            </div>
           )}
         </div>
 

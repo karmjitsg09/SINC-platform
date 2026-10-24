@@ -83,12 +83,22 @@ function webPushDevPlugin() {
   };
 }
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), webPushDevPlugin()],
   server: {
     host: '0.0.0.0',
     port: 3000,
     open: false
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-icons': ['lucide-react']
+        }
+      }
+    }
   }
 });

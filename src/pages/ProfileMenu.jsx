@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import { playSincIntro } from '../lib/sinc-intro';
 
 export default function ProfileMenu({
   onBack,
@@ -164,6 +165,39 @@ export default function ProfileMenu({
                   </span>
                   <span className="profile-menu-card-desc">
                     View posts you saved
+                  </span>
+                </div>
+              </div>
+
+              <span className="profile-menu-card-chevron">
+                ›
+              </span>
+            </div>
+
+            {/* Watch Intro Animation Option */}
+            <div
+              className="profile-menu-card"
+              onClick={() => playSincIntro({ mode: 'welcome' })}
+              role="button"
+              tabIndex={0}
+              id="profile-menu-watch-intro-btn"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  playSincIntro({ mode: 'welcome' });
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div className="profile-menu-card-icon">
+                  🎬
+                </div>
+                <div className="profile-menu-card-info">
+                  <span className="profile-menu-card-title">
+                    Watch SINC Intro
+                  </span>
+                  <span className="profile-menu-card-desc">
+                    Replay the full welcome story & animation
                   </span>
                 </div>
               </div>

@@ -18,7 +18,6 @@ import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileFollowersModal from '../components/profile/ProfileFollowersModal';
 import ProfileFollowingModal from '../components/profile/ProfileFollowingModal';
 import ProfileEditModal from '../components/profile/ProfileEditModal';
-import ProfileSetupWizard from '../components/profile/ProfileSetupWizard';
 import PostCardInteractions from '../components/PostCardInteractions';
 import PostInsightsModal from '../components/PostInsightsModal';
 import PostMedia from '../components/PostMedia';

@@ -233,6 +233,61 @@ export const getFollowStatus = async (currentUserId, targetUserId) => {
   return { status: 'none', request: req };
 };
 
+// Batched follow status query across multiple user IDs (Phase 7: PERF-007)
+export const getBatchFollowStatuses = async (currentUserId, targetUserIds = []) => {
+  if (!currentUserId || !targetUserIds || targetUserIds.length === 0) return {};
+
+  const statuses = {};
+  targetUserIds.forEach((id) => {
+    statuses[id] = id === currentUserId ? 'self' : 'none';
+  });
+
+  const validTargetIds = targetUserIds.filter((id) => id && id !== currentUserId);
+  if (validTargetIds.length === 0) return statuses;
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('follow_requests')
+        .select('id, follower_user_id, following_user_id, status')
+        .or(
+          `and(follower_user_id.eq.${currentUserId},following_user_id.in.(${validTargetIds.join(',')})),and(following_user_id.eq.${currentUserId},follower_user_id.in.(${validTargetIds.join(',')}))`
+        );
+
+      if (!error && data) {
+        data.forEach((req) => {
+          const otherId = req.follower_user_id === currentUserId ? req.following_user_id : req.follower_user_id;
+          if (req.status === 'accepted') {
+            statuses[otherId] = 'accepted';
+          } else if (req.status === 'pending') {
+            statuses[otherId] = req.follower_user_id === currentUserId ? 'pending_sent' : 'pending_received';
+          }
+        });
+        return statuses;
+      }
+    } catch (e) {
+      console.warn('[socialService] getBatchFollowStatuses error:', e);
+    }
+  }
+
+  // Local fallback
+  validTargetIds.forEach((targetId) => {
+    const req = localFollowRequests.find(
+      (r) =>
+        (r.follower_user_id === currentUserId && r.following_user_id === targetId) ||
+        (r.follower_user_id === targetId && r.following_user_id === currentUserId)
+    );
+    if (req) {
+      if (req.status === 'accepted') statuses[targetId] = 'accepted';
+      else if (req.status === 'pending') {
+        statuses[targetId] = req.follower_user_id === currentUserId ? 'pending_sent' : 'pending_received';
+      }
+    }
+  });
+
+  return statuses;
+};
+
 export const sendFollowRequest = async (currentUserId, targetUserId) => {
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
     return { success: false, error: 'Cannot follow yourself or invalid user IDs' };
@@ -834,31 +889,10 @@ const saveLocalPosts = () => {
   }
 };
 
-let globalPostsChannel = null;
-
+// Consolidated with postService.subscribeToPosts (Phase 9: PERF-009)
 export const initGlobalPostsRealtime = () => {
-  if (isSupabaseConfigured && !globalPostsChannel) {
-    try {
-      globalPostsChannel = supabase.channel('global_posts_channel');
-      globalPostsChannel
-        .on('broadcast', { event: 'new_post' }, (payload) => {
-          if (payload.payload) {
-            const post = payload.payload;
-            const exists = localPosts.some((p) => p.id === post.id);
-            if (!exists) {
-              localPosts.unshift(post);
-              saveLocalPosts();
-              notifyListeners();
-            }
-          }
-        })
-        .subscribe();
-    } catch (e) {
-      console.warn('Realtime global_posts_channel error', e);
-    }
-  }
+  // Deprecated: Realtime post events are authoritatively managed via postService.subscribeToPosts
 };
-initGlobalPostsRealtime();
 
 export const createPost = async ({
   authorId,

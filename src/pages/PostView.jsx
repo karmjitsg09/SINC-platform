@@ -19,10 +19,10 @@ function formatTimeAgo(isoString) {
   return `${days}d`;
 }
 
-export default function PostView({ postId, onBack, onNavigateToProfile }) {
+export default function PostView({ postId, initialPost = null, onBack, onNavigateToProfile }) {
   const { user: currentUser } = useAuth();
-  const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [post, setPost] = useState(initialPost);
+  const [loading, setLoading] = useState(!initialPost);
   const [notFound, setNotFound] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
 
@@ -36,7 +36,10 @@ export default function PostView({ postId, onBack, onNavigateToProfile }) {
         return;
       }
 
-      setLoading(true);
+      // Only show full blocking loader if we have no initial post data
+      if (!initialPost && !post) {
+        setLoading(true);
+      }
       setNotFound(false);
 
       try {
@@ -45,7 +48,7 @@ export default function PostView({ postId, onBack, onNavigateToProfile }) {
           if (data) {
             setPost(data);
             setNotFound(false);
-          } else {
+          } else if (!initialPost && !post) {
             setPost(null);
             setNotFound(true);
           }
@@ -54,8 +57,10 @@ export default function PostView({ postId, onBack, onNavigateToProfile }) {
       } catch (err) {
         console.error('[PostView] Error loading post:', err);
         if (isMounted) {
-          setPost(null);
-          setNotFound(true);
+          if (!initialPost && !post) {
+            setPost(null);
+            setNotFound(true);
+          }
           setLoading(false);
         }
       }

@@ -67,29 +67,9 @@ export const getSavedPosts = async (userId) => {
 
     if (rawPosts.length === 0) return [];
 
-    // Batch query post_media if table exists
-    let mediaMap = {};
-    try {
-      const postIds = rawPosts.map((p) => p.id);
-      const { data: mediaRows, error: mediaErr } = await supabase
-        .from('post_media')
-        .select('*')
-        .in('post_id', postIds)
-        .order('display_order', { ascending: true });
-
-      if (!mediaErr && mediaRows && Array.isArray(mediaRows)) {
-        mediaRows.forEach((item) => {
-          if (!mediaMap[item.post_id]) mediaMap[item.post_id] = [];
-          mediaMap[item.post_id].push(item);
-        });
-      }
-    } catch (e) {
-      // Fallback handled by formatPostRow
-    }
-
-    // Format all posts
+    // Format all posts using normalized stored media
     const formatted = rawPosts.map((p) => {
-      const formattedRow = formatPostRow(p, mediaMap[p.id] || []);
+      const formattedRow = formatPostRow(p);
       return {
         ...formattedRow,
         saved_at: p.saved_at

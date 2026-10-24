@@ -1,0 +1,17 @@
+{
+  "authSignInMs": 1583,
+  "feedPostsCount": 26,
+  "getPostsQueryMs": 3079,
+  "attachPostMediaMs": 344,
+  "interactionsTotalWallClockMs": 2409,
+  "interactionsQueryCount": 156,
+  "avgInteractionMsPerPost": 1857,
+  "postOpeningLatencyMs": 2612,
+  "postOpeningBreakdown": {
+    "postRecordLookupMs": 719,
+    "postMediaLookupMs": 310,
+    "interactionsSummaryMs": 1583
+  },
+  "profileLoadingLatencyMs": 634,
+  "messagingConversationsLatencyMs": 978
+}

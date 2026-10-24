@@ -1,0 +1,298 @@
+{
+  "auditMetadata": {
+    "title": "SINC Platform — Comprehensive Performance, Loading Speed & Real-Time Audit",
+    "timestamp": "2026-10-24T06:17:00Z",
+    "version": "1.0.0",
+    "mode": "AUDIT_ONLY",
+    "status": "COMPLETED",
+    "environment": {
+      "platform": "win32",
+      "node": "v24.14.0",
+      "browser": "Chromium 130 (Playwright automated test suite)",
+      "baseUrl": "http://localhost:3000",
+      "database": "Supabase (PostgreSQL 15 with Postgres Realtime)",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      }
+    }
+  },
+  "summary": {
+    "primaryBottleneck": "Severe N+1 query multiplication on Feed rendering: 26 posts trigger 312 interaction REST queries (104 likes, 104 saves, 52 comments, 52 shares) and 26 distinct Supabase Realtime channels simultaneously, causing full feed stabilization to take 7.1s to 12.3s.",
+    "secondaryBottleneck": "attachPostMedia() queries a non-existent table ('public.post_media') on every feed load and post lookup, adding a 344ms blocking error penalty to every post request.",
+    "postOpeningBottleneck": "Opening an individual post takes 2,612ms because PostView discards existing client state, performs a redundant getPostById() lookup, queries the missing post_media table, and executes 6 interaction queries while rendering a full-page blocking spinner.",
+    "bundleBottleneck": "Monolithic JavaScript bundle (1.07 MB) and CSS bundle (143 KB) with zero React.lazy route splitting or vendor chunk optimization."
+  },
+  "baselineMeasurements": {
+    "coldLoadHomeFeed": {
+      "loginAndAuthMs": 7131,
+      "timeToVisibleFeedContentMs": 7137,
+      "fullFeedSettledMs": 10148,
+      "renderedPostCards": 26,
+      "totalNetworkRequests": 361,
+      "supabaseRestRequests": 354,
+      "interactionQueriesFired": 312,
+      "queryBreakdown": {
+        "post_likes": 104,
+        "post_saves": 104,
+        "post_comments": 52,
+        "post_shares": 52,
+        "profiles": 9,
+        "follow_requests": 6,
+        "conversation_members": 6,
+        "blocked_users": 4,
+        "conversations": 3,
+        "notifications": 3,
+        "messages": 3,
+        "posts": 2,
+        "updates": 2,
+        "user_private_details": 2,
+        "post_media": 2
+      }
+    },
+    "warmLoadTrials": [
+      {
+        "trial": 1,
+        "firstContentRenderMs": 12286,
+        "settledMs": 14286,
+        "totalRequests": 495,
+        "supabaseRestRequests": 489
+      },
+      {
+        "trial": 2,
+        "firstContentRenderMs": 4532,
+        "settledMs": 6532,
+        "totalRequests": 489,
+        "supabaseRestRequests": 483
+      },
+      {
+        "trial": 3,
+        "firstContentRenderMs": 5066,
+        "settledMs": 7066,
+        "totalRequests": 489,
+        "supabaseRestRequests": 483
+      }
+    ],
+    "postOpeningLatency": {
+      "totalPostOpenMs": 2612,
+      "postRecordLookupMs": 719,
+      "postMediaLookupErrorMs": 310,
+      "interactionQueriesMs": 1583,
+      "inlineCommentsExpandMs": 450
+    },
+    "routeTransitions": {
+      "Domains & Hubs": {
+        "transitionMs": 613,
+        "requestsTriggered": 9,
+        "supabaseRequests": 8
+      },
+      "Search": {
+        "transitionMs": 609,
+        "requestsTriggered": 3,
+        "supabaseRequests": 2
+      },
+      "Saved Posts": {
+        "transitionMs": 609,
+        "requestsTriggered": 4,
+        "supabaseRequests": 3
+      },
+      "My Profile": {
+        "transitionMs": 605,
+        "requestsTriggered": 3,
+        "supabaseRequests": 3
+      },
+      "Settings": {
+        "transitionMs": 605,
+        "requestsTriggered": 0,
+        "supabaseRequests": 0
+      },
+      "Messages Landing": {
+        "transitionMs": 608,
+        "requestsTriggered": 0,
+        "supabaseRequests": 0
+      }
+    },
+    "bundleSizes": {
+      "index.js": {
+        "sizeBytes": 1070216,
+        "sizeKB": 1045,
+        "sizeMB": "1.02"
+      },
+      "index.css": {
+        "sizeBytes": 143145,
+        "sizeKB": 140,
+        "sizeMB": "0.14"
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "PERF-001",
+      "severity": "P0",
+      "affectedFeature": "Home Feed & Post Cards Interaction Fetching",
+      "observedSymptom": "Home feed requires 361 to 495 network requests and 7.1s to 12.3s to stabilize, freezing the UI with hundreds of parallel Supabase REST calls.",
+      "evidence": "perf_audit_runner measured 312 interaction requests (104 likes, 104 saves, 52 comments, 52 shares) for 26 posts, taking 2,409ms cumulative wall-clock time.",
+      "rootCause": "PostCardInteractions.jsx executes getPostInteractionSummary() on mount for each card, issuing 6 REST queries per post. Additionally, each card subscribes to a dedicated Supabase Realtime channel (post_interactions_channel_${postId}), causing double-execution in React 18 strict mode and connection exhaustion.",
+      "affectedFiles": [
+        "src/components/PostCardInteractions.jsx:L50-L65",
+        "src/lib/postInteractionService.js:L10-L91",
+        "src/lib/postInteractionService.js:L533-L569"
+      ],
+      "expectedBenefit": "Reduces feed network requests from ~490 to ~15 (97% reduction). Feed stabilization drops from ~10s to < 1.2s.",
+      "recommendedFix": "Consolidate interaction stats directly into the posts query via database triggers/columns (likes_count, comments_count already declared in schema) or a single batch RPC (get_feed_interactions_batch). Replace 26 per-post channels with a single global interactions channel with client-side routing.",
+      "risk": "Requires synchronization between optimistic updates and database trigger state.",
+      "verificationPlan": "Verify that feed loading 26 posts triggers exactly 1 interaction batch request and 1 realtime channel.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-002",
+      "severity": "P0",
+      "affectedFeature": "Post Media Service & Error Overhead",
+      "observedSymptom": "Every post loading operation (Feed, PostView, Profile, Saved Posts) incurs an unnecessary 310ms to 344ms delay and logs schema cache 404 errors.",
+      "evidence": "backend_query_benchmarks.json measured attachPostMedia() duration at 344ms with error: 'Could not find the table public.post_media in the schema cache'.",
+      "rootCause": "postService.js attachPostMedia() unconditionally queries the non-existent 'post_media' table on every feed load. The application already persists media as JSON in posts.image_url / posts.video_url.",
+      "affectedFiles": [
+        "src/lib/postService.js:L81-L106",
+        "src/lib/savedPostsService.js:L70-L89"
+      ],
+      "expectedBenefit": "Eliminates 344ms of blocking latency and 404 error logs on every feed and post request.",
+      "recommendedFix": "Check if post_media exists or bypass the remote table query, using the existing parsed image_url JSON payload directly inside formatPostRow().",
+      "risk": "None; formatPostRow() already has complete fallback logic for parsed JSON and single URLs.",
+      "verificationPlan": "Confirm zero 404 errors in console and instantaneous media formatting.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-003",
+      "severity": "P1",
+      "affectedFeature": "Individual Post Opening Experience",
+      "observedSymptom": "Opening an individual post detail view takes 2.61 seconds and displays a full-screen blank 'Loading post...' message.",
+      "evidence": "Measured Post Opening Latency: 2,612ms (Post lookup: 719ms + failing media lookup: 310ms + 6 interaction queries: 1,583ms).",
+      "rootCause": "PostView.jsx discards the post object that the user just clicked in Feed, Search, or SavedPosts, triggering an un-cached getPostById() call and rendering a blank loading screen.",
+      "affectedFiles": [
+        "src/pages/PostView.jsx:L29-L69",
+        "src/App.jsx:L378-L391"
+      ],
+      "expectedBenefit": "Near-instant (< 100ms) perceived post opening using optimistic in-memory post caching with background revalidation (stale-while-revalidate).",
+      "recommendedFix": "Pass initialPost object through handleNavigateToPostView(postId, { initialPost, returnContext }). PostView displays initialPost immediately while revalidating engagement in the background.",
+      "risk": "Stale post content if modified immediately before opening; mitigated by background revalidation.",
+      "verificationPlan": "Verify transition from feed to post view happens in < 150ms without loading skeleton flicker.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-004",
+      "severity": "P1",
+      "affectedFeature": "Frontend Bundling & Code Splitting",
+      "observedSymptom": "Initial page load must download and parse a 1.07 MB monolithic JavaScript bundle and 143 KB CSS bundle.",
+      "evidence": "dist/assets/index-BBHVRi71.js is 1,070,216 bytes; dist/assets/index-BmAplZFG.css is 143,145 bytes.",
+      "rootCause": "App.jsx statically imports all 27 pages and heavy modals eagerly. Vite config has no manualChunks configuration for vendor libraries (@supabase/supabase-js, lucide-react).",
+      "affectedFiles": [
+        "src/App.jsx:L9-L36",
+        "vite.config.js:L87-L95"
+      ],
+      "expectedBenefit": "Reduces initial bundle by 60% (from ~1.07 MB to ~400 KB). Faster parsing and execution on mobile.",
+      "recommendedFix": "Implement React.lazy() and Suspense for non-feed routes (Settings, ProfileDetails, ItemUpdates, Achievements, Certifications) and configure Vite manualChunks for vendor splitting.",
+      "risk": "Requires Suspense fallback skeletons for lazy-loaded route transitions.",
+      "verificationPlan": "Run vite build and verify main entry bundle size drops below 450 KB.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-005",
+      "severity": "P1",
+      "affectedFeature": "Database Query Pagination & Limits",
+      "observedSymptom": "All available posts and search results are loaded at once without pagination.",
+      "evidence": "postService.js getPosts() queries public.posts with no .limit() or .range(). Currently 26 rows take 3,079ms; with 500 rows this will time out.",
+      "rootCause": "Lack of cursor-based or range-based pagination in getPosts(), searchProfiles(), and getConversations().",
+      "affectedFiles": [
+        "src/lib/postService.js:L321-L343",
+        "src/lib/socialService.js:L120-L125",
+        "src/messaging/services/conversationService.js:L90-L96"
+      ],
+      "expectedBenefit": "Limits initial query size to top 15-20 posts, keeping query response under 300ms regardless of database size.",
+      "recommendedFix": "Add .range(offset, offset + limit - 1) to getPosts() and implement infinite scroll sentinel in Feed.jsx.",
+      "risk": "Requires handling load-more pagination state in feed components.",
+      "verificationPlan": "Verify that getPosts() fetches exactly 15 rows on initial load.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-006",
+      "severity": "P2",
+      "affectedFeature": "Search Input Query Throttling",
+      "observedSymptom": "Typing rapidly into the Search input bar triggers database queries on every character.",
+      "evidence": "Search.jsx useEffect fires searchProfiles() directly whenever searchQuery changes with 0ms delay.",
+      "rootCause": "Absence of a debounced input hook (e.g. 250ms - 300ms debounce).",
+      "affectedFiles": [
+        "src/pages/Search.jsx:L52-L66"
+      ],
+      "expectedBenefit": "Reduces search API requests during typing by 75-85%, preventing out-of-order race conditions.",
+      "recommendedFix": "Introduce useDebounce(searchQuery, 250) in Search.jsx.",
+      "risk": "Minor 250ms perceived delay before results update after user stops typing.",
+      "verificationPlan": "Type 5 characters in under 1 second and verify exactly 1 query is dispatched.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-007",
+      "severity": "P2",
+      "affectedFeature": "Who To Follow Widget Query Serialization",
+      "observedSymptom": "Right sidebar recommendations exhibit a waterfall delay on Home feed load.",
+      "evidence": "WhoToFollowWidget.jsx executes a sequential for...of loop calling getFollowStatus() individually for 4 candidates.",
+      "rootCause": "Sequential N+1 query pattern.",
+      "affectedFiles": [
+        "src/components/WhoToFollowWidget.jsx:L50-L57"
+      ],
+      "expectedBenefit": "Reduces candidate follow-status resolution from ~600ms to < 120ms.",
+      "recommendedFix": "Batch query follow statuses using .in('following_user_id', candidateIds) or Promise.all.",
+      "risk": "None.",
+      "verificationPlan": "Verify all candidate follow statuses resolve in a single network roundtrip.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-008",
+      "severity": "P2",
+      "affectedFeature": "Post Media Image Rendering & Layout Shifts",
+      "observedSymptom": "Feed post images cause Cumulative Layout Shift (CLS) as images finish loading.",
+      "evidence": "PostMedia.jsx renderItemImage renders <img> tags with no loading='lazy', decoding='async', or explicit dimensions/aspect ratios.",
+      "rootCause": "Missing standard modern image optimization attributes.",
+      "affectedFiles": [
+        "src/components/PostMedia.jsx:L103-L115"
+      ],
+      "expectedBenefit": "Eliminates feed layout jumps, defers off-screen image decoding, and saves mobile bandwidth.",
+      "recommendedFix": "Add loading='lazy', decoding='async', and aspectRatio: '16/9' or '1/1' container styling to post images.",
+      "risk": "None.",
+      "verificationPlan": "Verify that off-screen images are not requested until scrolled near viewport.",
+      "confidence": "High"
+    },
+    {
+      "id": "PERF-009",
+      "severity": "P2",
+      "affectedFeature": "Supabase Realtime Channel Duplication",
+      "observedSymptom": "Redundant WebSocket channels listening to the same underlying tables; risk of duplicate processing.",
+      "evidence": "Both postService.js (public_posts_realtime) and socialService.js (global_posts_channel) subscribe to post events on startup.",
+      "rootCause": "Legacy socialService channel left active alongside new postService channel.",
+      "affectedFiles": [
+        "src/lib/socialService.js:L837-L861",
+        "src/lib/postService.js:L411-L465"
+      ],
+      "expectedBenefit": "Halves post-related Realtime WebSocket messages and eliminates redundant listeners.",
+      "recommendedFix": "Decommission legacy globalPostsChannel in socialService and use unified postService channel.",
+      "risk": "Ensure legacy components importing socialService.js receive post events through postService.",
+      "verificationPlan": "Verify exactly 1 Realtime channel exists for posts.",
+      "confidence": "High"
+    }
+  ],
+  "implementationOrder": [
+    "Phase 1: Consolidate post interaction queries into a single batch query or column triggers (Fixes PERF-001 - 97% request reduction)",
+    "Phase 2: Eliminate nonexistent post_media table lookups (Fixes PERF-002 - removes 344ms error penalty)",
+    "Phase 3: Implement optimistic post passing & stale-while-revalidate in PostView (Fixes PERF-003 - instant post open)",
+    "Phase 4: Implement pagination (.range(0, 19)) in getPosts() (Fixes PERF-005 - scales to large datasets)",
+    "Phase 5: Route-level code splitting with React.lazy and Vite manualChunks (Fixes PERF-004 - 60% smaller bundle)",
+    "Phase 6: Search debounce and WhoToFollow batch query (Fixes PERF-006 & PERF-007)",
+    "Phase 7: Image lazy loading, async decoding, and aspect-ratio reservation (Fixes PERF-008)",
+    "Phase 8: Realtime channel consolidation (Fixes PERF-009)"
+  ],
+  "confirmation": {
+    "gitOperations": "Zero Git commands executed (STRICT ZERO-GIT MODE maintained).",
+    "sourceModifications": "Zero application source files modified (AUDIT ONLY).",
+    "productionDatabase": "Zero schema mutations, zero data generation/deletion in production.",
+    "messagingPreserved": "Direct messaging interface verified and untouched."
+  }
+}

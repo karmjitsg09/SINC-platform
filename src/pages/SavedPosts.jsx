@@ -63,7 +63,8 @@ export default function SavedPosts({
     if (onNavigateToPostView) {
       onNavigateToPostView(post.id, {
         activeTab: 'profile',
-        profileSubView: 'saved-posts'
+        profileSubView: 'saved-posts',
+        initialPost: post
       });
     }
   };

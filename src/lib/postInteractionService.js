@@ -91,6 +91,77 @@ export const getPostInteractionSummary = async (postId, currentUserId = null) =>
 };
 
 // ============================================================
+// 1B. GET BATCH SUMMARY OF INTERACTIONS FOR MULTIPLE POSTS
+// Consolidates hundreds of individual queries into 4 parallel queries
+// ============================================================
+export const getBatchPostInteractionSummaries = async (postIds = [], currentUserId = null) => {
+  const summaryMap = {};
+  if (!Array.isArray(postIds) || postIds.length === 0) return summaryMap;
+
+  // Initialize clean defaults for every requested post ID
+  postIds.forEach((id) => {
+    if (id) {
+      summaryMap[id] = {
+        likeCount: 0,
+        commentCount: 0,
+        shareCount: 0,
+        saveCount: 0,
+        likedByMe: false,
+        savedByMe: false
+      };
+    }
+  });
+
+  const validUuids = postIds.filter((id) => id && !id.startsWith('post-'));
+  if (!isSupabaseConfigured || validUuids.length === 0) {
+    return summaryMap;
+  }
+
+  try {
+    const [likesRes, commentsRes, savesRes, sharesRes] = await Promise.all([
+      supabase.from('post_likes').select('post_id, user_id').in('post_id', validUuids),
+      supabase.from('post_comments').select('post_id').in('post_id', validUuids),
+      supabase.from('post_saves').select('post_id, user_id').in('post_id', validUuids),
+      supabase.from('post_shares').select('post_id').in('post_id', validUuids)
+    ]);
+
+    (likesRes.data || []).forEach((r) => {
+      if (summaryMap[r.post_id]) {
+        summaryMap[r.post_id].likeCount++;
+        if (currentUserId && r.user_id === currentUserId) {
+          summaryMap[r.post_id].likedByMe = true;
+        }
+      }
+    });
+
+    (commentsRes.data || []).forEach((r) => {
+      if (summaryMap[r.post_id]) {
+        summaryMap[r.post_id].commentCount++;
+      }
+    });
+
+    (savesRes.data || []).forEach((r) => {
+      if (summaryMap[r.post_id]) {
+        summaryMap[r.post_id].saveCount++;
+        if (currentUserId && r.user_id === currentUserId) {
+          summaryMap[r.post_id].savedByMe = true;
+        }
+      }
+    });
+
+    (sharesRes.data || []).forEach((r) => {
+      if (summaryMap[r.post_id]) {
+        summaryMap[r.post_id].shareCount++;
+      }
+    });
+  } catch (err) {
+    console.warn('[PostInteractionService] getBatchPostInteractionSummaries exception:', err);
+  }
+
+  return summaryMap;
+};
+
+// ============================================================
 // 2. LIKE / UNLIKE POST
 // ============================================================
 export const likePost = async (postId, userId, authorId = null) => {
@@ -559,10 +630,76 @@ export const subscribeToPostInteractions = (postId, onUpdate) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {}
     };
   } catch (e) {
     console.warn('[PostInteractionService] subscribeToPostInteractions error:', e);
+  }
+
+  return () => {};
+};
+
+// ============================================================
+// 6B. CENTRALIZED FEED REALTIME SUBSCRIPTION FOR INTERACTIONS
+// Single WebSocket channel for entire feed, filtering events by post_id
+// ============================================================
+export const subscribeToFeedInteractions = (postIds = [], onUpdate) => {
+  if (!isSupabaseConfigured) return () => {};
+
+  try {
+    const channel = supabase
+      .channel('central_feed_interactions_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'post_likes' },
+        (payload) => {
+          const targetPostId = payload.new?.post_id || payload.old?.post_id;
+          if (targetPostId && (!postIds || postIds.length === 0 || postIds.includes(targetPostId))) {
+            onUpdate({ table: 'post_likes', postId: targetPostId, payload });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'post_comments' },
+        (payload) => {
+          const targetPostId = payload.new?.post_id || payload.old?.post_id;
+          if (targetPostId && (!postIds || postIds.length === 0 || postIds.includes(targetPostId))) {
+            onUpdate({ table: 'post_comments', postId: targetPostId, payload });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'post_shares' },
+        (payload) => {
+          const targetPostId = payload.new?.post_id || payload.old?.post_id;
+          if (targetPostId && (!postIds || postIds.length === 0 || postIds.includes(targetPostId))) {
+            onUpdate({ table: 'post_shares', postId: targetPostId, payload });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'post_saves' },
+        (payload) => {
+          const targetPostId = payload.new?.post_id || payload.old?.post_id;
+          if (targetPostId && (!postIds || postIds.length === 0 || postIds.includes(targetPostId))) {
+            onUpdate({ table: 'post_saves', postId: targetPostId, payload });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {}
+    };
+  } catch (e) {
+    console.warn('[PostInteractionService] subscribeToFeedInteractions error:', e);
   }
 
   return () => {};

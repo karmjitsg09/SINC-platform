@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { users as defaultUsers } from '../data/mockData';
-import { getFollowStatus, sendFollowRequest, searchProfiles } from '../lib/socialService';
+import { getFollowStatus, getBatchFollowStatuses, sendFollowRequest, searchProfiles } from '../lib/socialService';
 import { isBlockedSync } from '../lib/blockService';
 import { Users, UserPlus, Check, Clock } from 'lucide-react';
 
@@ -44,18 +44,15 @@ export default function WhoToFollowWidget({ onNavigateToProfile }) {
       if (!isMounted) return;
       setRecommendedUsers(topCandidates);
 
-      // Fetch follow status for each candidate
-      if (currentUserId) {
-        const statuses = {};
-        for (const u of topCandidates) {
-          try {
-            const res = await getFollowStatus(currentUserId, u.id);
-            statuses[u.id] = res?.status || 'none';
-          } catch (e) {
-            statuses[u.id] = 'none';
-          }
+      // Fetch follow status for candidates in a single batched query (Phase 7: PERF-007)
+      if (currentUserId && topCandidates.length > 0) {
+        try {
+          const candidateIds = topCandidates.map((u) => u.id);
+          const statuses = await getBatchFollowStatuses(currentUserId, candidateIds);
+          if (isMounted) setFollowStatuses(statuses);
+        } catch (e) {
+          console.warn('[WhoToFollowWidget] Batch follow status error:', e);
         }
-        if (isMounted) setFollowStatuses(statuses);
       }
     }
 
@@ -111,7 +108,7 @@ export default function WhoToFollowWidget({ onNavigateToProfile }) {
       <div className="recommended-users-list">
         {recommendedUsers.map((recUser) => {
           const status = followStatuses[recUser.id] || 'none';
-          const isPending = status === 'pending';
+          const isPending = status === 'pending' || status === 'pending_sent';
           const isFollowing = status === 'accepted';
           const isLoading = loadingAction[recUser.id];
           const initials = getInitials(recUser.name);

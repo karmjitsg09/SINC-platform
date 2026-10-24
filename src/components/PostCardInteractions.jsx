@@ -25,15 +25,20 @@ function formatTimeAgo(isoString) {
   return `${days}d`;
 }
 
-export default function PostCardInteractions({ post, onSaveToggle }) {
+export default function PostCardInteractions({
+  post,
+  initialSummary = null,
+  onSaveToggle,
+  disableIndividualFetch = false
+}) {
   const { user: currentUser } = useAuth();
 
-  const [likeCount, setLikeCount] = useState(post?.likes_count || 0);
-  const [commentCount, setCommentCount] = useState(post?.comments_count || 0);
-  const [shareCount, setShareCount] = useState(0);
-  const [saveCount, setSaveCount] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [likeCount, setLikeCount] = useState(initialSummary?.likeCount ?? post?.likes_count ?? 0);
+  const [commentCount, setCommentCount] = useState(initialSummary?.commentCount ?? post?.comments_count ?? 0);
+  const [shareCount, setShareCount] = useState(initialSummary?.shareCount ?? 0);
+  const [saveCount, setSaveCount] = useState(initialSummary?.saveCount ?? 0);
+  const [isLiked, setIsLiked] = useState(initialSummary?.likedByMe ?? false);
+  const [isSaved, setIsSaved] = useState(initialSummary?.savedByMe ?? false);
 
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -47,6 +52,18 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  // Sync state whenever parent passes an updated batch summary
+  useEffect(() => {
+    if (initialSummary) {
+      setLikeCount(initialSummary.likeCount);
+      setCommentCount(initialSummary.commentCount);
+      setShareCount(initialSummary.shareCount);
+      setSaveCount(initialSummary.saveCount);
+      setIsLiked(initialSummary.likedByMe);
+      setIsSaved(initialSummary.savedByMe);
+    }
+  }, [initialSummary]);
+
   const fetchInteractions = useCallback(async () => {
     if (!post?.id) return;
     const summary = await getPostInteractionSummary(post.id, currentUser?.id);
@@ -58,11 +75,13 @@ export default function PostCardInteractions({ post, onSaveToggle }) {
     setIsSaved(summary.savedByMe);
   }, [post?.id, currentUser?.id]);
 
+  // Only run individual REST query and per-post WebSocket channel if NOT batched by parent
   useEffect(() => {
+    if (disableIndividualFetch || initialSummary) return;
     fetchInteractions();
     const unsub = subscribeToPostInteractions(post?.id, fetchInteractions);
     return () => unsub();
-  }, [post?.id, fetchInteractions]);
+  }, [post?.id, disableIndividualFetch, initialSummary, fetchInteractions]);
 
   // 1. LIKE / UNLIKE HANDLER (TRIGGERS ONLY ON HEART CLICK)
   const handleLike = async (e) => {
