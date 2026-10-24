@@ -438,9 +438,19 @@ export default function Profile({
   const handleStartChat = async () => {
     if (!onOpenConversation || isSelf || !currentUser?.id || !activeUserId) return;
     setLoadingAction(true);
-    const conversation = await getOrCreateDirectConversation(currentUser.id, activeUserId, profileData);
-    setLoadingAction(false);
-    onOpenConversation(conversation);
+    try {
+      const conversation = await getOrCreateDirectConversation(currentUser.id, activeUserId, profileData);
+      setLoadingAction(false);
+      if (conversation?.error) {
+        alert(conversation.error);
+        return;
+      }
+      onOpenConversation(conversation);
+    } catch (err) {
+      setLoadingAction(false);
+      console.error('[Profile] Start chat error:', err);
+      alert('Unable to open direct message. Please try again.');
+    }
   };
 
   // Save profile updates from ProfileSetupWizard or ProfileEditModal

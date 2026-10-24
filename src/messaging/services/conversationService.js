@@ -341,12 +341,13 @@ export const getOrCreateDirectConversation = async (currentUserId, targetUserId,
         .insert([
           {
             id: newConvId,
-            created_at: createdAt
+            created_at: createdAt,
+            updated_at: createdAt
           }
         ]);
 
       console.log('[CONVERSATION INSERT RESULT]', {
-        data: convInsertError ? null : { id: newConvId, created_at: createdAt },
+        data: convInsertError ? null : { id: newConvId, created_at: createdAt, updated_at: createdAt },
         error: convInsertError
           ? {
               message: convInsertError.message,
@@ -435,6 +436,12 @@ export const getOrCreateDirectConversation = async (currentUserId, targetUserId,
         conversationId: newConvId,
         conversation: verifyConversation,
         error: verifyConvErr
+      });
+
+      notifyMessagingStateChange({
+        type: 'conversation_created',
+        conversationId: newConvId,
+        userId: currentUserId
       });
 
       return {

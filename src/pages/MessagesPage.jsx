@@ -250,8 +250,8 @@ export default function MessagesPage({
       </div>
 
       {/* ── RIGHT PANEL: CHAT DETAIL ── */}
-      <div className={`messaging-chat-panel ${!selectedConversation ? 'mobile-hidden' : ''}`}>
-        {!selectedConversation ? (
+      <div className={`messaging-chat-panel ${!conversationId ? 'mobile-hidden' : ''}`}>
+        {!conversationId ? (
           <div className="chat-placeholder-view">
             <div className="placeholder-icon-circle">
               <MessageSquare size={36} className="text-blue" />

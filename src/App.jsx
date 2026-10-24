@@ -545,6 +545,11 @@ function MainAppContent() {
       return;
     }
 
+    if (convOrUser.error) {
+      alert(convOrUser.error);
+      return;
+    }
+
     if (isResolvingConversation) return;
 
     // Distinguish whether convOrUser is an existing conversation or a pure user profile
@@ -557,8 +562,8 @@ function MainAppContent() {
       convOrUser.lastMessage !== undefined ||
       convOrUser.isConversation === true;
 
-    if (isConv && convOrUser.id && isUuid(convOrUser.id)) {
-      if (user?.id) markConversationAsRead(convOrUser.id, user.id);
+    if (isConv && convOrUser.id) {
+      if (user?.id && isUuid(convOrUser.id)) markConversationAsRead(convOrUser.id, user.id);
       setSelectedConversation(convOrUser);
       setActiveTab('messages');
       setMessagesSubView('detail');
@@ -568,14 +573,14 @@ function MainAppContent() {
 
     const targetUserId = convOrUser.otherUser?.id || convOrUser.targetUserId || convOrUser.id;
 
-    if (user?.id && targetUserId && isUuid(user.id) && isUuid(targetUserId)) {
+    if (user?.id && targetUserId) {
       setIsResolvingConversation(true);
       try {
         const resolved = await getOrCreateDirectConversation(user.id, targetUserId, convOrUser.otherUser || convOrUser);
         setIsResolvingConversation(false);
 
         if (resolved && resolved.id && !resolved.error) {
-          if (user?.id) markConversationAsRead(resolved.id, user.id);
+          if (user?.id && isUuid(resolved.id)) markConversationAsRead(resolved.id, user.id);
           setSelectedConversation(resolved);
           setActiveTab('messages');
           setMessagesSubView('detail');
@@ -583,10 +588,12 @@ function MainAppContent() {
           return;
         } else if (resolved?.error) {
           console.error('[CHAT NAV DEBUG] conversation error:', resolved.error);
+          alert(resolved.error);
         }
       } catch (err) {
         console.error('[CHAT NAV DEBUG] conversation exception:', err);
         setIsResolvingConversation(false);
+        alert('Failed to open conversation. Please try again.');
       }
     }
   };

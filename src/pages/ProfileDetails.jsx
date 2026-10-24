@@ -224,13 +224,21 @@ export default function ProfileDetails({
 
   const handleStartDirectChat = async () => {
     if (!currentUser?.id || !activeUserId) return;
+    setLoadingAction(true);
     try {
       const conv = await getOrCreateDirectConversation(currentUser.id, activeUserId);
+      setLoadingAction(false);
+      if (conv?.error) {
+        alert(conv.error);
+        return;
+      }
       if (conv && onOpenConversation) {
         onOpenConversation(conv);
       }
     } catch (err) {
+      setLoadingAction(false);
       console.error('[ProfileDetails] Start chat error:', err);
+      alert('Unable to open direct message. Please try again.');
     }
   };
 
@@ -615,6 +623,7 @@ export default function ProfileDetails({
                     type="button"
                     id="details-message-btn"
                     onClick={handleStartDirectChat}
+                    disabled={loadingAction}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -629,11 +638,12 @@ export default function ProfileDetails({
                       border: '1.5px solid #bfdbfe',
                       fontWeight: '700',
                       fontSize: '13.5px',
-                      cursor: 'pointer'
+                      cursor: loadingAction ? 'not-allowed' : 'pointer',
+                      opacity: loadingAction ? 0.7 : 1
                     }}
                   >
                     <span>💬</span>
-                    <span>Message</span>
+                    <span>{loadingAction ? 'Opening...' : 'Message'}</span>
                   </button>
                 </div>
               )}

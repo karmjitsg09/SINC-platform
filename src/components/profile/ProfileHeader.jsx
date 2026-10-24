@@ -198,9 +198,20 @@ export default function ProfileHeader({
                   type="button"
                   className="profile-btn profile-secondary-btn"
                   onClick={onStartChat}
+                  disabled={loadingAction}
+                  title="Direct Message"
                 >
-                  <MessageSquare size={15} />
-                  <span>Message</span>
+                  {loadingAction ? (
+                    <>
+                      <span className="btn-spinner" />
+                      <span>Opening...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare size={15} />
+                      <span>Message</span>
+                    </>
+                  )}
                 </button>
               </>
             )}
