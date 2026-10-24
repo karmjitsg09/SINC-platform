@@ -27,7 +27,7 @@ export default function SincLogo({
 
   return (
     <img
-      src="/images/sinc-official-logo.png"
+      src="/images/sinc-official-logo-transparent.png"
       alt={alt}
       width={dimension}
       height={dimension}

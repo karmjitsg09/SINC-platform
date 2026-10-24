@@ -1,0 +1,98 @@
+{
+  "timestamp": "2026-10-24T09:36:21.260Z",
+  "tests": {
+    "TEST_1": {
+      "title": "Login & Welcome Screen Logo Asset Transparency",
+      "status": "PASS",
+      "message": "Emblem 1254x1254 rendered with transparent CSS background. Screenshots saved for dark and light themes.",
+      "logoInfoDark": {
+        "src": "http://localhost:3000/images/sinc-official-logo-transparent.png",
+        "naturalWidth": 1254,
+        "naturalHeight": 1254,
+        "renderedWidth": 75.990478515625,
+        "renderedHeight": 75.99041748046875,
+        "parentBg": "rgba(0, 0, 0, 0)",
+        "imgBg": "rgba(0, 0, 0, 0)",
+        "isTransparentAsset": true
+      }
+    },
+    "TEST_2": {
+      "title": "Sign-Up View Logo Transparency & Sizing",
+      "status": "PASS",
+      "message": "Sign-Up screen renders genuine transparent emblem without layout distortion.",
+      "signupLogoInfo": {
+        "src": "http://localhost:3000/images/sinc-official-logo-transparent.png",
+        "renderedWidth": 75.199951171875,
+        "renderedHeight": 75.19999694824219,
+        "naturalWidth": 1254
+      }
+    },
+    "TEST_3": {
+      "title": "Authenticated Header Logo Transparency",
+      "status": "PASS",
+      "message": "Header emblem renders cleanly with transparent container across both dark and light modes.",
+      "headerLogoInfo": {
+        "src": "http://localhost:3000/images/sinc-official-logo-transparent.png",
+        "renderedW": 36,
+        "renderedH": 36,
+        "containerBg": "rgba(0, 0, 0, 0)",
+        "imgBg": "rgba(0, 0, 0, 0)",
+        "naturalWidth": 1254
+      }
+    },
+    "TEST_4": {
+      "title": "Sidebar Navigation Logo Transparency",
+      "status": "PASS",
+      "message": "Sidebar navigation renders transparent emblem (22px) seamlessly without white bounding box.",
+      "sidebarLogoInfo": {
+        "src": "http://localhost:3000/images/sinc-official-logo-transparent.png",
+        "renderedW": 22,
+        "renderedH": 22,
+        "naturalWidth": 1254,
+        "imgBg": "rgba(0, 0, 0, 0)"
+      }
+    },
+    "TEST_5": {
+      "title": "Browser Zoom Scalability (100% - 200%)",
+      "status": "PASS",
+      "message": "Verified 1:1 aspect ratio preserved across 100%, 125%, 150%, and 200% zoom levels.",
+      "zoomResults": [
+        {
+          "zoom": "100%",
+          "width": 36,
+          "height": 36,
+          "aspectRatio1to1": true
+        },
+        {
+          "zoom": "125%",
+          "width": 45,
+          "height": 45,
+          "aspectRatio1to1": true
+        },
+        {
+          "zoom": "150%",
+          "width": 54,
+          "height": 54,
+          "aspectRatio1to1": true
+        },
+        {
+          "zoom": "200%",
+          "width": 72,
+          "height": 72,
+          "aspectRatio1to1": true
+        }
+      ]
+    },
+    "TEST_6": {
+      "title": "Network Asset Cleanliness & Zero Failed Requests",
+      "status": "PASS",
+      "message": "Zero 404s or failed network requests for official transparent logo asset.",
+      "failedRequestsCount": 0
+    }
+  },
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  }
+}

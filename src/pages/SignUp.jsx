@@ -6,7 +6,6 @@ import AuthButton from '../components/AuthButton';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import SincLogo from '../components/common/SincLogo';
 import { validatePassword, PASSWORD_POLICY_HINT } from '../lib/passwordPolicy';
-import { playSincIntro } from '../lib/sinc-intro';
 
 export default function SignUp() {
   const { signup, signInWithGoogle, oauthError, clearOauthError, navigateAuth } = useAuth();
@@ -14,23 +13,40 @@ export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
+  const [confirmationNotice, setConfirmationNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const validate = () => {
     const newErrors = {};
-    if (!name.trim()) newErrors.name = 'Full name is required';
+    if (!name.trim()) {
+      newErrors.name = 'Full name is required';
+    }
+
     if (!email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      newErrors.password = passwordError;
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else {
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        newErrors.password = passwordError;
+      }
     }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Confirm password is required';
+    } else if (confirmPassword !== password) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -56,13 +72,17 @@ export default function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
+    setConfirmationNotice('');
     if (clearOauthError) clearOauthError();
     if (!validate()) return;
 
     setIsLoading(true);
     try {
-      const res = await signup(name, email, password);
-      if (res && res.error) {
+      const res = await signup(name.trim(), email.trim(), password);
+      if (res?.requiresEmailConfirmation) {
+        // Case B: Email confirmation required
+        setConfirmationNotice(res.message || 'Account created! Please check your email to confirm your account before signing in.');
+      } else if (res && !res.success && res.error) {
         setApiError(res.error);
       }
     } catch (err) {
@@ -88,43 +108,11 @@ export default function SignUp() {
           <h1 className="sinc-welcome-title">SINC</h1>
           <div className="sinc-welcome-fullname">Society for Innovation, Network &amp; Collaboration</div>
           <p className="sinc-welcome-tagline">Where Ambition Finds Its People</p>
-
-          <button
-            type="button"
-            className="sinc-welcome-story-trigger"
-            onClick={() => playSincIntro({ mode: 'welcome' })}
-            id="welcome-story-trigger-btn"
-          >
-            <span>▶</span>
-            <span>Experience Welcome Story</span>
-          </button>
-        </div>
-
-        {/* Segmented Auth Navigation Tabs */}
-        <div className="sinc-welcome-tabs" role="tablist">
-          <button
-            type="button"
-            className="sinc-welcome-tab"
-            role="tab"
-            aria-selected="false"
-            onClick={() => navigateAuth('login')}
-            id="auth-tab-signin"
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className="sinc-welcome-tab active"
-            role="tab"
-            aria-selected="true"
-            id="auth-tab-signup"
-          >
-            Create Account
-          </button>
         </div>
 
         {displayedError && (
           <div
+            className="auth-general-error"
             style={{
               marginBottom: '16px',
               padding: '10px 12px',
@@ -143,72 +131,117 @@ export default function SignUp() {
           </div>
         )}
 
-        {/* Continue with Google Action */}
-        <GoogleSignInButton
-          onClick={handleGoogleSignUp}
-          isLoading={isGoogleLoading}
-          disabled={isLoading}
-          text="Continue with Google"
-        />
-
-        {/* Visual Divider */}
-        <div className="auth-divider">
-          <span>or sign up with email</span>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          <AuthInput
-            label="Full Name"
-            id="name"
-            placeholder="Enter your full name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (errors.name) setErrors({ ...errors, name: '' });
+        {confirmationNotice ? (
+          <div
+            style={{
+              margin: '12px 0 20px',
+              padding: '16px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(40, 120, 255, 0.08)',
+              border: '1px solid rgba(40, 120, 255, 0.25)',
+              color: 'var(--navy-900, #0B192C)',
+              fontSize: '14px',
+              lineHeight: 1.5,
+              textAlign: 'center'
             }}
-            error={errors.name}
-          />
+          >
+            <div style={{ fontWeight: '600', marginBottom: '8px', color: '#1868ff' }}>Check Your Email</div>
+            <p style={{ margin: '0 0 16px', color: '#475569', fontSize: '13px' }}>{confirmationNotice}</p>
+            <button
+              type="button"
+              className="auth-link-bold"
+              onClick={() => navigateAuth('login')}
+              style={{ padding: '8px 16px', borderRadius: '6px', background: '#1868ff', color: '#fff', border: 'none', cursor: 'pointer' }}
+            >
+              Back to Sign In
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Continue with Google Action */}
+            <GoogleSignInButton
+              onClick={handleGoogleSignUp}
+              isLoading={isGoogleLoading}
+              disabled={isLoading}
+              text="Continue with Google"
+            />
 
-          <AuthInput
-            label="Email"
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (errors.email) setErrors({ ...errors, email: '' });
-            }}
-            error={errors.email}
-          />
+            {/* Visual Divider */}
+            <div className="auth-divider">
+              <span>or create account with email</span>
+            </div>
 
-          <PasswordInput
-            label="Password"
-            id="password"
-            placeholder="Create a password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errors.password) setErrors({ ...errors, password: '' });
-            }}
-            error={errors.password}
-          />
-          {!errors.password && (
-            <p style={{ fontSize: '11.5px', color: 'var(--text-muted, #7E8EA7)', margin: '-10px 0 14px 2px', lineHeight: 1.4 }}>
-              {PASSWORD_POLICY_HINT}
-            </p>
-          )}
+            <form onSubmit={handleSubmit} className="auth-form" noValidate>
+              <AuthInput
+                label="Full Name"
+                id="name"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors({ ...errors, name: '' });
+                }}
+                error={errors.name}
+              />
 
-          <AuthButton type="submit" isLoading={isLoading}>
-            Create Account
-          </AuthButton>
-        </form>
+              <AuthInput
+                label="Email"
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors({ ...errors, email: '' });
+                }}
+                error={errors.email}
+              />
+
+              <PasswordInput
+                label="Create Password"
+                id="password"
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors({ ...errors, password: '' });
+                  if (errors.confirmPassword && confirmPassword && e.target.value === confirmPassword) {
+                    setErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                  }
+                }}
+                error={errors.password}
+              />
+              {!errors.password && (
+                <p style={{ fontSize: '11.5px', color: 'var(--text-muted, #7E8EA7)', margin: '-10px 0 14px 2px', lineHeight: 1.4 }}>
+                  {PASSWORD_POLICY_HINT}
+                </p>
+              )}
+
+              <PasswordInput
+                label="Confirm Password"
+                id="confirmPassword"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+                }}
+                error={errors.confirmPassword}
+              />
+
+              <AuthButton type="submit" isLoading={isLoading} id="signup-submit-btn">
+                Create Account
+              </AuthButton>
+            </form>
+          </>
+        )}
 
         <div className="auth-footer-text">
           Already have an account?{' '}
           <button
             type="button"
             className="auth-link-bold"
+            id="auth-switch-to-signin-btn"
             onClick={() => navigateAuth('login')}
           >
             Sign In

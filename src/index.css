@@ -1380,6 +1380,90 @@ html, body {
   pointer-events: none;
 }
 
+/* Short Logo-Only Entrance Flourish for Returning Sessions */
+.sinc-logo-splash {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-app);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: sincSplashFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sincSplashFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sinc-logo-splash-emblem-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+}
+
+.sinc-logo-splash-glow {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(40, 120, 255, 0.45) 0%, rgba(67, 142, 255, 0.15) 50%, transparent 70%);
+  filter: blur(16px);
+  pointer-events: none;
+  animation: sincGlowPulse 2.8s ease-in-out infinite alternate;
+}
+
+.sinc-logo-splash-emblem {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: sincSplashScale 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes sincSplashScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sinc-logo-splash-title {
+  margin-top: 14px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--text-main);
+  opacity: 0.95;
+  animation: sincSplashScale 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Post-Authentication Welcome Story Stage */
+.sinc-welcome-story-stage {
+  position: fixed;
+  inset: 0;
+  background-color: #ffffff;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .auth-container {
   width: 100%;
   height: 100%;
@@ -9387,6 +9471,109 @@ html, body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   SINC RETURNING SESSION LOGO SPLASH & WELCOME STAGE
+   ============================================================ */
+.sinc-logo-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  animation: sincSplashFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.sinc-logo-splash-emblem-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sinc-logo-splash-glow {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(24, 104, 255, 0.28) 0%, rgba(24, 104, 255, 0.08) 50%, transparent 72%);
+  filter: blur(12px);
+  pointer-events: none;
+  animation: sincSplashPulse 1.4s ease-in-out infinite alternate;
+}
+
+.sinc-logo-splash-emblem {
+  position: relative;
+  z-index: 1;
+  animation: sincSplashScale 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+.sinc-logo-splash-title {
+  margin-top: 14px;
+  font-family: var(--font-family, "Inter", -apple-system, sans-serif);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgb(14, 26, 70);
+  opacity: 0.95;
+  animation: sincSplashTextFade 0.4s ease 0.1s forwards;
+}
+
+@keyframes sincSplashFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sincSplashScale {
+  from {
+    transform: scale(0.88);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes sincSplashPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes sincSplashTextFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+}
+
+/* Neutral backdrop stage during the 16.9s full welcome film to unmount and decouple dashboard */
+.sinc-welcome-story-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  background-color: #ffffff;
+}
+
 
 
 

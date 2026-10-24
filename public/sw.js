@@ -1,8 +1,8 @@
 // SINC Platform Service Worker — Web Push Notifications & Client Navigation
 // Scope: '/'
 
-const SINC_FALLBACK_ICON = '/images/sinc-official-logo.png';
-const SINC_BADGE_ICON = '/images/sinc-official-logo.png';
+const SINC_FALLBACK_ICON = '/images/sinc-official-logo-transparent.png';
+const SINC_BADGE_ICON = '/images/sinc-official-logo-transparent.png';
 
 self.addEventListener('install', (event) => {
   // Activate updated service worker immediately

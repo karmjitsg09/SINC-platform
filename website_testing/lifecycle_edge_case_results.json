@@ -1,0 +1,5 @@
+{
+  "passFailedLogin": true,
+  "passInvalidToken": true,
+  "passHistory": true
+}

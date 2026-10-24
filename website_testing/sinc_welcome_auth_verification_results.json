@@ -1,22 +1,22 @@
 {
-  "timestamp": "2026-10-24T09:06:21.571Z",
+  "timestamp": "2026-10-24T09:37:37.828Z",
   "metrics": {
-    "freshLogoVisibleMs": 364,
-    "freshInteractiveMs": 374,
-    "signInToFeedMs": 2403,
-    "authenticatedReloadMs": 973,
-    "signOutToWelcomeMs": 594
+    "freshLogoVisibleMs": 541,
+    "freshInteractiveMs": 550,
+    "signInToFeedMs": 3459,
+    "authenticatedReloadMs": 964,
+    "signOutToWelcomeMs": 1074
   },
   "tests": {
     "TEST_1": {
       "title": "Fresh Unauthenticated Browser Welcome Experience",
       "status": "PASS",
-      "message": "Emblem visible in 364ms, interactive in 374ms. Obsolete loader absent: true.",
-      "timingMs": 374,
+      "message": "Emblem visible in 541ms, interactive in 550ms. Obsolete loader absent: true.",
+      "timingMs": 550,
       "emblemInfo": {
-        "src": "http://localhost:3000/images/sinc-official-logo.png",
-        "width": 76.6781005859375,
-        "height": 76.67811584472656,
+        "src": "http://localhost:3000/images/sinc-official-logo-transparent.png",
+        "width": 76.677734375,
+        "height": 76.67776489257812,
         "naturalWidth": 1254,
         "naturalHeight": 1254,
         "aspectRatio": 1,
@@ -31,8 +31,8 @@
     "TEST_2": {
       "title": "Sign-Up View Transition & Tab Navigation",
       "status": "PASS",
-      "message": "Switched between tabs smoothly in 51ms without full page reload.",
-      "timingMs": 51,
+      "message": "Switched between tabs smoothly in 62ms without full page reload.",
+      "timingMs": 62,
       "signupInfo": {
         "hasName": true,
         "hasEmail": true,
@@ -44,8 +44,8 @@
     "TEST_3": {
       "title": "Sign-In Flow & Immediate Feed Entry (< 100ms lag)",
       "status": "PASS",
-      "message": "Signed in and rendered authenticated feed in 2403ms without obsolete loader.",
-      "timingMs": 2403,
+      "message": "Signed in and rendered authenticated feed in 3459ms without obsolete loader.",
+      "timingMs": 3459,
       "authState": {
         "hasShell": true,
         "hasHeader": true,
@@ -57,45 +57,45 @@
     "TEST_4": {
       "title": "Authenticated Reload & Smooth Session Restoration",
       "status": "PASS",
-      "message": "Session restored in 973ms without flashing login card or obsolete loader.",
-      "timingMs": 973,
+      "message": "Session restored in 964ms without flashing login card or obsolete loader.",
+      "timingMs": 964,
       "reloadInfo": {
         "hasLoginCard": false,
         "hasOldLoader": false,
         "hasFeed": true,
-        "headerLogoSrc": "http://localhost:3000/images/sinc-official-logo.png"
+        "headerLogoSrc": "http://localhost:3000/images/sinc-official-logo-transparent.png"
       }
     },
     "TEST_5": {
       "title": "Sign-Out Transition to Unauthenticated Welcome Experience",
       "status": "PASS",
-      "message": "Signed out in 594ms. Welcome screen returned with official emblem. Protected content cleared.",
-      "timingMs": 594,
+      "message": "Signed out in 1074ms. Welcome screen returned with official emblem. Protected content cleared.",
+      "timingMs": 1074,
       "signOutInfo": {
         "hasHero": true,
         "hasEmblem": true,
         "hasFeed": false,
         "hasOldLoader": false,
-        "emblemSrc": "http://localhost:3000/images/sinc-official-logo.png"
+        "emblemSrc": "http://localhost:3000/images/sinc-official-logo-transparent.png"
       }
     },
     "TEST_6": {
       "title": "Browser Reload After Sign-Out Keeps Unauthenticated Welcome",
       "status": "PASS",
-      "message": "After reload, stayed on unauthenticated welcome hero in 114ms.",
-      "timingMs": 114,
+      "message": "After reload, stayed on unauthenticated welcome hero in 107ms.",
+      "timingMs": 107,
       "reloadAfterSignOutInfo": {
         "hasHero": true,
         "hasFeed": false,
         "hasOldLoader": false,
-        "emblemSrc": "http://localhost:3000/images/sinc-official-logo.png"
+        "emblemSrc": "http://localhost:3000/images/sinc-official-logo-transparent.png"
       }
     },
     "TEST_7": {
       "title": "Interactive Welcome Story Launch & Instant Skip",
       "status": "PASS",
-      "message": "Canvas story opened in 145ms and dismissed cleanly via Skip.",
-      "timingMs": 145,
+      "message": "Canvas story opened in 241ms and dismissed cleanly via Skip.",
+      "timingMs": 241,
       "storyDialogInfo": {
         "hasDialog": true,
         "hasCanvas": true,

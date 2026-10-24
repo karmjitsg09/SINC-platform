@@ -5,6 +5,7 @@ import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
 import SincLogo from './components/common/SincLogo';
+import SincLogoSplash from './components/common/SincLogoSplash';
 
 import Feed from './pages/Feed';
 import DomainList from './pages/DomainList';
@@ -81,7 +82,7 @@ function isUuid(str) {
 }
 
 function MainAppContent() {
-  const { user, isAuthenticated, authRoute, loadingSession, logout, updateProfile: updateAuthProfile } = useAuth();
+  const { user, isAuthenticated, authRoute, loadingSession, isPlayingWelcomeStory, logout, updateProfile: updateAuthProfile } = useAuth();
   const currentUserId = isAuthenticated ? user?.id : null;
   const { conversations: rawConversations, hasUnreadMessages, unreadTotal: unreadMessagesCount } = useConversations(currentUserId);
   const { unreadCount: unreadNotificationsCount } = useNotifications(currentUserId);
@@ -329,9 +330,14 @@ function MainAppContent() {
     }
   }, [isAuthenticated, user?.isNewUser, user?.onboarding_completed]);
 
-  // Minimal, neutral initialization placeholder while active session is verified (zero flash, zero obsolete loader)
+  // Short logo-only entrance flourish while existing session is restored (zero flash, zero obsolete loader)
   if (loadingSession) {
-    return <div className="sinc-session-restoring" aria-hidden="true" />;
+    return <SincLogoSplash />;
+  }
+
+  // Decoupled post-authentication welcome film stage (unmounts dashboard to eliminate frame drops & background contention)
+  if (isPlayingWelcomeStory) {
+    return <div className="sinc-welcome-story-stage" role="region" aria-label="SINC Welcome Film" />;
   }
 
   if (!isAuthenticated) {

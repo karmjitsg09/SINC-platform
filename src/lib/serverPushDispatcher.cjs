@@ -168,8 +168,8 @@ async function sendPushNotification({
   const payload = JSON.stringify({
     title: title || 'SINC Notification',
     body: message || 'You have a new update on SINC.',
-    icon: '/images/sinc-official-logo.png',
-    badge: '/images/sinc-official-logo.png',
+    icon: '/images/sinc-official-logo-transparent.png',
+    badge: '/images/sinc-official-logo-transparent.png',
     data: {
       url: url || '/notifications',
       entityType: entityType || null,

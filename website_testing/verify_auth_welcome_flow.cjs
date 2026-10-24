@@ -98,7 +98,7 @@ async function runAuthWelcomeFlowVerification() {
     const t1Passed =
       !hadObsoleteLoader &&
       emblemInfo &&
-      emblemInfo.src.includes('sinc-official-logo.png') &&
+      emblemInfo.src.includes('sinc-official-logo') &&
       emblemInfo.hasHero &&
       emblemInfo.hasTabs &&
       emblemInfo.hasEmail &&
@@ -235,7 +235,7 @@ async function runAuthWelcomeFlowVerification() {
       !reloadInfo.hasLoginCard &&
       !reloadInfo.hasOldLoader &&
       reloadInfo.headerLogoSrc &&
-      reloadInfo.headerLogoSrc.includes('sinc-official-logo.png');
+      reloadInfo.headerLogoSrc.includes('sinc-official-logo');
 
     recordResult('TEST_4', 'Authenticated Reload & Smooth Session Restoration', t4Passed, {
       message: `Session restored in ${t4ReloadMs}ms without flashing login card or obsolete loader.`,
@@ -281,7 +281,7 @@ async function runAuthWelcomeFlowVerification() {
       signOutInfo.hasEmblem &&
       !signOutInfo.hasFeed &&
       !signOutInfo.hasOldLoader &&
-      signOutInfo.emblemSrc.includes('sinc-official-logo.png');
+      signOutInfo.emblemSrc.includes('sinc-official-logo');
 
     recordResult('TEST_5', 'Sign-Out Transition to Unauthenticated Welcome Experience', t5Passed, {
       message: `Signed out in ${t5SignOutMs}ms. Welcome screen returned with official emblem. Protected content cleared.`,
@@ -316,7 +316,7 @@ async function runAuthWelcomeFlowVerification() {
       reloadAfterSignOutInfo.hasHero &&
       !reloadAfterSignOutInfo.hasFeed &&
       !reloadAfterSignOutInfo.hasOldLoader &&
-      reloadAfterSignOutInfo.emblemSrc.includes('sinc-official-logo.png');
+      reloadAfterSignOutInfo.emblemSrc.includes('sinc-official-logo');
 
     recordResult('TEST_6', 'Browser Reload After Sign-Out Keeps Unauthenticated Welcome', t6Passed, {
       message: `After reload, stayed on unauthenticated welcome hero in ${t6ReloadAfterSignOutMs}ms.`,

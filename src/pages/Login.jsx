@@ -5,7 +5,6 @@ import PasswordInput from '../components/PasswordInput';
 import AuthButton from '../components/AuthButton';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import SincLogo from '../components/common/SincLogo';
-import { playSincIntro } from '../lib/sinc-intro';
 
 export default function Login() {
   const { login, signInWithGoogle, oauthError, clearOauthError, navigateAuth } = useAuth();
@@ -90,39 +89,6 @@ export default function Login() {
           <h1 className="sinc-welcome-title">SINC</h1>
           <div className="sinc-welcome-fullname">Society for Innovation, Network &amp; Collaboration</div>
           <p className="sinc-welcome-tagline">Where Ambition Finds Its People</p>
-
-          <button
-            type="button"
-            className="sinc-welcome-story-trigger"
-            onClick={() => playSincIntro({ mode: 'welcome' })}
-            id="welcome-story-trigger-btn"
-          >
-            <span>▶</span>
-            <span>Experience Welcome Story</span>
-          </button>
-        </div>
-
-        {/* Segmented Auth Navigation Tabs */}
-        <div className="sinc-welcome-tabs" role="tablist">
-          <button
-            type="button"
-            className="sinc-welcome-tab active"
-            role="tab"
-            aria-selected="true"
-            id="auth-tab-signin"
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className="sinc-welcome-tab"
-            role="tab"
-            aria-selected="false"
-            onClick={() => navigateAuth('signup')}
-            id="auth-tab-signup"
-          >
-            Create Account
-          </button>
         </div>
 
         {displayedError && <div className="auth-general-error">{displayedError}</div>}
@@ -187,6 +153,7 @@ export default function Login() {
           <button
             type="button"
             className="auth-link-bold"
+            id="auth-switch-to-signup-btn"
             onClick={() => navigateAuth('signup')}
           >
             Sign Up
