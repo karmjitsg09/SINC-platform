@@ -1,0 +1,64 @@
+{
+  "tests": {
+    "TEST_1_WELCOME_FILM": {
+      "name": "First login plays 16.9s welcome film with Skip button",
+      "pass": true,
+      "details": "Skip button confirmed present"
+    },
+    "TEST_1_STORAGE": {
+      "name": "Storage markers updated after welcome film",
+      "pass": true,
+      "details": ""
+    },
+    "TEST_2_QUICK_NO_SKIP": {
+      "name": "Quick 2-second intro plays without Skip button in new tab",
+      "pass": true,
+      "details": "Overlay visible in 1002ms, Skip button absent as expected"
+    },
+    "TEST_2_QUICK_FINISH": {
+      "name": "Quick animation finishes and reveals page automatically",
+      "pass": true,
+      "details": "Total duration from page open to fade out: 3380ms (~2s)"
+    },
+    "TEST_3_RELOAD_SHORT_INTRO": {
+      "name": "Reloading authenticated tab plays short 2s animation (no Skip)",
+      "pass": true,
+      "details": "Short logo animation played on reload without Skip button"
+    },
+    "TEST_3_RELOAD_FINISH": {
+      "name": "Short animation completes and reveals application shell",
+      "pass": true,
+      "details": ""
+    },
+    "TEST_4_SESSION_RESET": {
+      "name": "resetSincIntroSession() cleared sessionKey on logout",
+      "pass": true,
+      "details": "sessionStorage.sincIntroSeen is null"
+    },
+    "TEST_4_RELOGIN_PLAYS_FULL_STORY": {
+      "name": "Logging back in plays full welcome story with Skip button",
+      "pass": true,
+      "details": "Full welcome story triggered upon re-login with Skip button"
+    },
+    "TEST_5_SIGNED_OUT_NO_INTRO": {
+      "name": "Signed-out visitors never trigger intro",
+      "pass": true,
+      "details": "Login page remains clean with no overlay"
+    },
+    "TEST_6_VIEWPORTS": {
+      "name": "All viewports and dynamic rotation correctly size and re-layout canvas",
+      "pass": true,
+      "details": ""
+    },
+    "TEST_7_ASSETS": {
+      "name": "All 6 logo piece assets exist and load from /sinc-intro/",
+      "pass": true,
+      "details": "sinc-piece-1..6.webp confirmed present"
+    }
+  },
+  "summary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
+  }
+}

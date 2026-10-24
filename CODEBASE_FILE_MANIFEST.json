@@ -1,0 +1,2610 @@
+[
+  {
+    "path": ".env",
+    "sizeBytes": 664,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".env.example",
+    "sizeBytes": 752,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".gitignore",
+    "sizeBytes": 334,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/.supabase/cli-latest",
+    "sizeBytes": 8,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/.supabase/telemetry.json",
+    "sizeBytes": 187,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/01/63/a6f393d5661075632f91fea50cadc2ac6af3b3e4f17c4a38eec2b95f8a10b2d4cabff5ed18433e7dec4e32b8145ada8e1ba7d0fabf8949bd32f76f40ae96",
+    "sizeBytes": 312318,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/05/9b/afa71bae738bdbf517a6b9e81e9662673c75378ec199c0bbc932e3a9bf841f7101afaee657db93994f0a84c485c42cbcfcb0af4587e6766ea056526c4810",
+    "sizeBytes": 2668827,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/12/fc/9f17ceef38b9944b14bc684b381c8964cc6db4e519bdbeec1301d96f8c96b0bef71a252357495c8044f234b6df67e0c67e50a43b7228c10ec919e0d6aede",
+    "sizeBytes": 220000,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/1c/78/d318bd2f1c92831704180b0466ebd599c5fdfd5feb87dcb682deb08f445e7d173bccfaf521bd4d4173116fe8da74e70a05c79d95701490b2e1c0fa37ed78",
+    "sizeBytes": 137039,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/1e/88/6141f490d894c421fb8588ade0b508145aa17a24d73661d85037bc4f690c3355ec0c499ec8dac5163910490548325bfd62b685c11c3206283167bffd5ead",
+    "sizeBytes": 1199708,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/2c/5b/2b6c4dcfbb67cfa39ee14c75771eef69ca748bddbe6d47dbeb4494001abdbcae2962de8e267b66efc7a59e3de696f022c5059b6aebf1161f65b4614394f9",
+    "sizeBytes": 5697741,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/3e/2f/848a04e134dae58e1e0ce96ff2dd348c1a3c36c9d9fa40bc0def5e09ce10a7d3a750dcbbc295fc946eb25eb49e7d90cfc6c388ac04007367129070fab0b1",
+    "sizeBytes": 1195618,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/3f/ca/db797f977e87314cc9cdb9da291b4a56af6d9e3b7d59d89382ae5c7aae38b41cc8fbdf8eec4a52aae24916ef1ff7b5565103ca0531dd626282f313a010bf",
+    "sizeBytes": 1164023,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/43/61/73a635442cffb73e2b492c2a4372e9a96d77e4f51aa602af3e4fa8a49a8a8a7002ea4e39548d013f80084205204485e4ed099f6d8a9150207671043de1a4",
+    "sizeBytes": 1460156,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/46/42/fc9a18ec2fccd348712c96952501c554620ae0ab6032e21352f22d61447bfaf3a92e6c26409dccf978015d0e16d548f63bae2d8af0e4de11610feba92e9d",
+    "sizeBytes": 25349,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/6c/ee/e1ef15db6c3db816a1ca87c0a3fbb2d928d54ff562fbe0643afd3386d53fe3435525408c34cca556c6582178eee181c8b24ef685da0e9fb5bc655260a1c3",
+    "sizeBytes": 127874,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/81/b2/86711518223037ff308235a5837224cc148d1d0a4be8bb74cbf199b2e4d73bb09e3b6b48ed39e6684da33192ea91a3d71186339d6495de831604e4537fc7",
+    "sizeBytes": 362302,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/8c/2b/3d95d77b370ce98170c87fa3f7f8dac787dfec0fa0907711f28d023e87feab0cda3cf32a41c71cf8e540ee647cfdaf7b4dcfb37f5489d256855db57108e0",
+    "sizeBytes": 155326,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/95/c9/cfb9a4a6d7ae78ca8a2cc0aadf52b192b2270741ba50b12b537a4a50fc036ab858920f0f912612cff506a73a4850728390b7697f9aafcbed279145430208",
+    "sizeBytes": 1175559,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/9e/22/5da36cbed098767407a552f2b8677c05125e56723e136883ed2da40597d6c558918f616e11a348a15fba86557c3fdb029ddd891f41d72256acb5ccb100e3",
+    "sizeBytes": 1174104,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/a5/ab/60b113ca1a4861a018c44d5e17c43d049f8ba2e5f6d7d21cdacaa23733cb6f34c194a14be6c980085b097105cd4a5f972dbab7ea07261d8f96d8191a4df6",
+    "sizeBytes": 5408,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/b3/42/7d4845580043e0ec9eb7185300a4b6333c7f55348408c82eacd792699ea55cd13a9c29675b805967030784051c8c9a4a3675cb36b1f0bcdc78f8278dedb8",
+    "sizeBytes": 10924,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/ba/f5/a24377062ab661b6472d5c7249634af42fa0f6b3f0db73cfc2c4e543c655c81f9986ddff196eac0cb3d7916cf0ea89fc98165c25f815feb58dda268b08c5",
+    "sizeBytes": 66162454,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/c5/f7/e13a00fdad7b172caf8343edc6abc6f62a66af3233c71ae26bee57d5943f2f28ad471c58206259b3751102a8f98e2fc83761de4f37751171447cc5665c5b",
+    "sizeBytes": 4403,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/d8/8d/209c854fb5f9ccc3d79ef61d5d246eeda7cd7ef0e6f73896f732fdfbaf1e4be34fdbd22edd8e3095bc6395a9cf40108432bf2bb58baca929d170f11f2043",
+    "sizeBytes": 121164,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/d9/1e/ea34f1bb312852cd2858a5cb893ffd05270d1432a2c97dac1683b333ee0087289da0d512b1e51f13dd48abb89598b0e80d5f89a7066756c59de4a2836f94",
+    "sizeBytes": 1173496,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/de/2b/e6c0989a2d7b330260dc6c53895e2576839467b4c82340f060bb12e36888020981a72e918d00be7ee6d114cf6ce79fb92329c2f1a4a735f59684c8146dd8",
+    "sizeBytes": 1183731,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/e1/3e/0b126e8d1ad30a0777595e11ca2a9bb2ef1ff27ec626fadd02c68c02528557f7ca4919d793024cc2ce53e56f5f48888176f4303ef31a22a49178b5d5d71a",
+    "sizeBytes": 1169540,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/content-v2/sha512/f4/d8/8598911ec74b32d83939f23d94181487814b36ca917d7994aee0beaf8ce5f70e9f7a4b0d45dee2fe1fe0f5b31d368d965dcd44f41e0bc2cb9f42baf5dc5b",
+    "sizeBytes": 48946,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/01/ae/36cce0ce2be7ab1a34f7dbccc6db7d283ab8da22a6354a25a88607a17a7c",
+    "sizeBytes": 729,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/04/c3/7f676b6015a864033a31fd83ab9a5658bb0badb738327c78abbb89bdf595",
+    "sizeBytes": 739,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/0b/20/a9024fcb1c37e01a20753b0381ee220100bb723401575a7bfee6e5e9240f",
+    "sizeBytes": 692,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/21/41/051f1de5fb7047e8b182392eaf922f2890c60cbdaa5d8cef042c476a7e65",
+    "sizeBytes": 737,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/3d/d7/35eedef8cd321b5b101d61c00e824ad7a40348cd7e85b54de91e92091f4e",
+    "sizeBytes": 733,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/47/2f/d7dec42c8321b069f46496e77befd1a2acc9df5d1322af2b38121fd29dcf",
+    "sizeBytes": 684,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/58/75/04d2a69203899184348f28d0ca8e46d9559faaed5f3e5dba4cd57a71db53",
+    "sizeBytes": 735,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/5b/95/601902b88ba34f14fb45c8be3c345885c5b2d48d24c6c9b6d16de9eb3f92",
+    "sizeBytes": 657,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/66/70/d072ac14d1df08757d7461c2eca060d7f68010685ca1aaa86c5b04c29146",
+    "sizeBytes": 2231,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/81/f7/72852ec8d5899e5718654dfd20051e3c924b15ea9b01462d99a720d9ea47",
+    "sizeBytes": 710,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/92/8c/fe078492e52da5227c95b489b15f1cd3459a4a61652404af3d6d9cea2192",
+    "sizeBytes": 674,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/99/8a/1c0d4140cc780d88539ebe6869df6c0e63cbda8f0f36f262a675b50189aa",
+    "sizeBytes": 733,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/9e/9f/a2fc60592aed4231a70fa633bb65e1a68022fdfadc20c5bef9887c3ff362",
+    "sizeBytes": 688,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/a0/d6/612fb71f81f808a12a98a090372ddb6eefa6f83220c14c75c576223c6d43",
+    "sizeBytes": 684,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/aa/57/311f229d4e50cc62cb30e461d15de392b76b9688ac7347488c94387db7d4",
+    "sizeBytes": 686,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/b5/30/73456b25e99cdff4de2aa9b0e6da271882987b85c309971d3b2426ab1954",
+    "sizeBytes": 667,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/c0/62/9ac0fc422e142bb7f4e2bd4d165554d9af1f659fa4ae3cab68353ab68bc0",
+    "sizeBytes": 708,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/c1/5d/8138582ea75b55033e95f5e0901fe6be01501eb4718848a12048047a89de",
+    "sizeBytes": 709,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/cf/74/8984da5785d8188de91fd27d97eb07c0c7bdced733303f789b2d3f509d85",
+    "sizeBytes": 708,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/db/f7/af886ff473d2a999e30c0e3a4f34462dd9d1be72c19bb967771d4b86adc5",
+    "sizeBytes": 687,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/e1/f9/8beb8ebf7f5d82c718e99fa3d3754e0c8d110811054357b7d86d4c081abd",
+    "sizeBytes": 743,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/f9/73/284cd84647a1407f33a0ea9f4c79bfb131f17660482980291a1abf7c2e9b",
+    "sizeBytes": 731,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_cacache/index-v5/fa/ff/3da5e42b62d9bcf23abba19bd59d572e099481e0dc772a0b071da2769fd4",
+    "sizeBytes": 732,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_logs/2026-10-16T02_11_47_060Z-debug-0.log",
+    "sizeBytes": 12633,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_logs/2026-10-16T02_12_12_940Z-debug-0.log",
+    "sizeBytes": 1591,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_logs/2026-10-16T02_12_30_401Z-debug-0.log",
+    "sizeBytes": 1587,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_logs/2026-10-16T02_12_51_976Z-debug-0.log",
+    "sizeBytes": 1601,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_npx/aa8e5c70f9d8d161/package-lock.json",
+    "sizeBytes": 7246,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_npx/aa8e5c70f9d8d161/package.json",
+    "sizeBytes": 113,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": ".supabase_home/npm-cache/_update-notifier-last-checked",
+    "sizeBytes": 0,
+    "category": "D",
+    "status": "ignored",
+    "reason": "Supabase CLI local telemetry and cache",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/database/rls-audit.sql",
+    "sizeBytes": 5243,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/README.md",
+    "sizeBytes": 6404,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_achievements_schema.sql",
+    "sizeBytes": 1996,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_auth_trigger.sql",
+    "sizeBytes": 2121,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_blocked_users_schema.sql",
+    "sizeBytes": 4360,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_certifications_schema.sql",
+    "sizeBytes": 2121,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_domain_messages_migration.sql",
+    "sizeBytes": 2962,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_education_schema.sql",
+    "sizeBytes": 1992,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_experience_schema.sql",
+    "sizeBytes": 2014,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_location_schema.sql",
+    "sizeBytes": 1844,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_messaging_schema.sql",
+    "sizeBytes": 9848,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_notifications_schema.sql",
+    "sizeBytes": 6721,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_onboarding_schema.sql",
+    "sizeBytes": 5774,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_post_insights_rls.sql",
+    "sizeBytes": 1085,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_post_media_migration.sql",
+    "sizeBytes": 2699,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_posts_schema.sql",
+    "sizeBytes": 2893,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_profile_item_updates_schema.sql",
+    "sizeBytes": 2538,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_profile_sections_schema.sql",
+    "sizeBytes": 8105,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_projects_schema.sql",
+    "sizeBytes": 1964,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_protect_user_private_details.sql",
+    "sizeBytes": 23523,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_schema.sql",
+    "sizeBytes": 9292,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_social_interactions_schema.sql",
+    "sizeBytes": 6743,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_updates_schema.sql",
+    "sizeBytes": 4052,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "backend/schemas/supabase_web_push_schema.sql",
+    "sizeBytes": 4240,
+    "category": "B",
+    "status": "active",
+    "reason": "Relocated modular PostgreSQL schema definition or database audit script",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "CODEBASE_CLEANUP_FINAL_REPORT.md",
+    "sizeBytes": 24675,
+    "category": "A",
+    "status": "active",
+    "reason": "Workspace resource",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "CODEBASE_FILE_MANIFEST.json",
+    "sizeBytes": 88276,
+    "category": "A",
+    "status": "active",
+    "reason": "Workspace resource",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/cleanup/CODEBASE_CLEANUP_AUDIT.md",
+    "sizeBytes": 21769,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/cleanup/CODEBASE_CLEANUP_FINAL_REPORT.md",
+    "sizeBytes": 24675,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/cleanup/CODEBASE_FILE_MANIFEST.json",
+    "sizeBytes": 88276,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/branding/Glossy Blue SINC Corporate Emblem.png",
+    "sizeBytes": 734673,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/branding/Glossy Blue Triadic Connection Emblem(1).png",
+    "sizeBytes": 1146174,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/01_create_profile 1(1).jpg",
+    "sizeBytes": 100928,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/01_feed 1.png",
+    "sizeBytes": 498043,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/02_domain_list 1.png",
+    "sizeBytes": 459448,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/02_profile_type 1(1).jpg",
+    "sizeBytes": 128076,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/03_domain.png",
+    "sizeBytes": 472322,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/03_other_profile_type 1(1).jpg",
+    "sizeBytes": 106985,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/04_domain_chat.png",
+    "sizeBytes": 443909,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/04_student_information 1(1).jpg",
+    "sizeBytes": 129812,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/05_messages_list 1.png",
+    "sizeBytes": 469099,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/05_professional_information 1(1).jpg",
+    "sizeBytes": 126409,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/06_message_detail 1.png",
+    "sizeBytes": 419641,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/06_other_information 1(1).jpg",
+    "sizeBytes": 114033,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/08_common_profile_details 1(1).jpg",
+    "sizeBytes": 127471,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/09_sync_profile_preview 1(1).jpg",
+    "sizeBytes": 134525,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "docs/design/figma/post.jpeg",
+    "sizeBytes": 64605,
+    "category": "C",
+    "status": "active",
+    "reason": "Project documentation, architectural specifications, and cleanup audit records",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/index.html",
+    "sizeBytes": 1675,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/package.json",
+    "sizeBytes": 195,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/favicon.svg",
+    "sizeBytes": 1586,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/images/sinc-corporate-logo.png",
+    "sizeBytes": 734673,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/images/sinc-official-logo-transparent.png",
+    "sizeBytes": 555249,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/images/sinc-official-logo.png",
+    "sizeBytes": 555249,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sinc-intro/sinc-piece-1.webp",
+    "sizeBytes": 27140,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sinc-intro/sinc-piece-2.webp",
+    "sizeBytes": 27028,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sinc-intro/sinc-piece-3.webp",
+    "sizeBytes": 23784,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sinc-intro/sinc-piece-4.webp",
+    "sizeBytes": 8050,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sinc-intro/sinc-piece-5.webp",
+    "sizeBytes": 7332,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sinc-intro/sinc-piece-6.webp",
+    "sizeBytes": 7868,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/public/sw.js",
+    "sizeBytes": 3622,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/App.jsx",
+    "sizeBytes": 42205,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/AuthButton.jsx",
+    "sizeBytes": 1079,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/AuthInput.jsx",
+    "sizeBytes": 723,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/BottomNav.jsx",
+    "sizeBytes": 3985,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/ChatInput.jsx",
+    "sizeBytes": 1044,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/common/SincIntro.jsx",
+    "sizeBytes": 1505,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/common/SincLogo.jsx",
+    "sizeBytes": 1279,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/DomainSearchResults.jsx",
+    "sizeBytes": 2805,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/DomainShortcutRail.jsx",
+    "sizeBytes": 8052,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/EmptySearchState.jsx",
+    "sizeBytes": 1127,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/GoogleSignInButton.jsx",
+    "sizeBytes": 2671,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/InAppShareModal.jsx",
+    "sizeBytes": 9839,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/JobSearchResults.jsx",
+    "sizeBytes": 3948,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/PasswordInput.jsx",
+    "sizeBytes": 1689,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/PostCardInteractions.jsx",
+    "sizeBytes": 17904,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/PostInsightsModal.jsx",
+    "sizeBytes": 30936,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/PostLikersModal.jsx",
+    "sizeBytes": 5425,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/PostMedia.jsx",
+    "sizeBytes": 16888,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/AchievementModal.jsx",
+    "sizeBytes": 15928,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/CertificationModal.jsx",
+    "sizeBytes": 16170,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/EducationModal.jsx",
+    "sizeBytes": 17914,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ExperienceModal.jsx",
+    "sizeBytes": 15913,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/LocationSelector.jsx",
+    "sizeBytes": 19224,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileAbout.jsx",
+    "sizeBytes": 854,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileAchievements.jsx",
+    "sizeBytes": 19287,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileCertifications.jsx",
+    "sizeBytes": 19493,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileDomains.jsx",
+    "sizeBytes": 1213,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileEditModal.jsx",
+    "sizeBytes": 35486,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileEducation.jsx",
+    "sizeBytes": 18732,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileExperience.jsx",
+    "sizeBytes": 19568,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileFollowersModal.jsx",
+    "sizeBytes": 5625,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileFollowingModal.jsx",
+    "sizeBytes": 5633,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileHeader.jsx",
+    "sizeBytes": 9635,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileItemPostEmbed.jsx",
+    "sizeBytes": 4490,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileItemPostModal.jsx",
+    "sizeBytes": 11023,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileItemUpdateModal.jsx",
+    "sizeBytes": 11403,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileItemUpdatesSnippet.jsx",
+    "sizeBytes": 4577,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileProjects.jsx",
+    "sizeBytes": 16083,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileSetupWizard.jsx",
+    "sizeBytes": 126014,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProfileSkills.jsx",
+    "sizeBytes": 1233,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/ProjectModal.jsx",
+    "sizeBytes": 14559,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/profile/SkillMultiSelect.jsx",
+    "sizeBytes": 16251,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/ProfileSearchResults.jsx",
+    "sizeBytes": 6189,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/QuickPostComposer.jsx",
+    "sizeBytes": 2347,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/RejectFollowRequestModal.jsx",
+    "sizeBytes": 13371,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/SearchInput.jsx",
+    "sizeBytes": 1258,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/SearchModeSelector.jsx",
+    "sizeBytes": 1066,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/SidebarNavigation.jsx",
+    "sizeBytes": 6347,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/TopHeader.jsx",
+    "sizeBytes": 8101,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/TrendingTopicsWidget.jsx",
+    "sizeBytes": 2523,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/UpdatesStories.jsx",
+    "sizeBytes": 8458,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/components/WhoToFollowWidget.jsx",
+    "sizeBytes": 6050,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/context/AuthContext.jsx",
+    "sizeBytes": 26916,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/context/ThemeContext.jsx",
+    "sizeBytes": 2481,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/data/mockData.js",
+    "sizeBytes": 17734,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/data/skillsData.js",
+    "sizeBytes": 3083,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/data/updatesData.js",
+    "sizeBytes": 709,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/index.css",
+    "sizeBytes": 191003,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/achievementService.js",
+    "sizeBytes": 8882,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/authConfig.js",
+    "sizeBytes": 1046,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/blockService.js",
+    "sizeBytes": 9683,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/certificationService.js",
+    "sizeBytes": 9391,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/domainUtils.js",
+    "sizeBytes": 1923,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/educationService.js",
+    "sizeBytes": 8630,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/experienceService.js",
+    "sizeBytes": 8459,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/locationService.js",
+    "sizeBytes": 8194,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/passwordPolicy.js",
+    "sizeBytes": 1141,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/postInteractionService.js",
+    "sizeBytes": 26144,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/postService.js",
+    "sizeBytes": 18140,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/profileItemPostService.js",
+    "sizeBytes": 7107,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/profileItemUpdateService.js",
+    "sizeBytes": 8820,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/profileService.js",
+    "sizeBytes": 42163,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/projectService.js",
+    "sizeBytes": 7684,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/pushNotificationService.js",
+    "sizeBytes": 10595,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/routeUtils.js",
+    "sizeBytes": 8172,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/savedPostsService.js",
+    "sizeBytes": 2037,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/serverPushDispatcher.cjs",
+    "sizeBytes": 6960,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/sinc-intro.d.ts",
+    "sizeBytes": 1583,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/sinc-intro.js",
+    "sizeBytes": 31603,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/socialService.js",
+    "sizeBytes": 34547,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/supabase.js",
+    "sizeBytes": 1058,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/lib/updatesService.js",
+    "sizeBytes": 8093,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/main.jsx",
+    "sizeBytes": 334,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/hooks/useConversations.js",
+    "sizeBytes": 2963,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/hooks/useMessages.js",
+    "sizeBytes": 3493,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/hooks/usePresence.js",
+    "sizeBytes": 597,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/services/conversationService.js",
+    "sizeBytes": 17637,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/services/domainMessageService.js",
+    "sizeBytes": 8974,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/services/messageService.js",
+    "sizeBytes": 6466,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/services/presenceService.js",
+    "sizeBytes": 2015,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/messaging/services/realtimeService.js",
+    "sizeBytes": 9261,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/notifications/components/NotificationItem.jsx",
+    "sizeBytes": 8308,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/notifications/hooks/useNotifications.js",
+    "sizeBytes": 1491,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/notifications/services/notificationService.js",
+    "sizeBytes": 18790,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/AchievementsPage.jsx",
+    "sizeBytes": 6974,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/CertificationsPage.jsx",
+    "sizeBytes": 7118,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/CreatePost.jsx",
+    "sizeBytes": 31463,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Domain.jsx",
+    "sizeBytes": 818,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/DomainChat.jsx",
+    "sizeBytes": 9284,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/DomainList.jsx",
+    "sizeBytes": 7768,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/EducationPage.jsx",
+    "sizeBytes": 6842,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/ExperiencePage.jsx",
+    "sizeBytes": 6894,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Feed.jsx",
+    "sizeBytes": 22646,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/ForgotPassword.jsx",
+    "sizeBytes": 8996,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/ItemUpdatesPage.jsx",
+    "sizeBytes": 19385,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Login.jsx",
+    "sizeBytes": 5299,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/MessageDetail.jsx",
+    "sizeBytes": 15944,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/MessagesList.jsx",
+    "sizeBytes": 5882,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/MessagesPage.jsx",
+    "sizeBytes": 14612,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Notifications.jsx",
+    "sizeBytes": 7315,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/PostView.jsx",
+    "sizeBytes": 12156,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Profile.jsx",
+    "sizeBytes": 43846,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/ProfileDetails.jsx",
+    "sizeBytes": 50868,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/ProfileMenu.jsx",
+    "sizeBytes": 8236,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/ProjectsPage.jsx",
+    "sizeBytes": 6635,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/SavedPosts.jsx",
+    "sizeBytes": 14976,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Search.jsx",
+    "sizeBytes": 14518,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/Settings.jsx",
+    "sizeBytes": 54166,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/SignUp.jsx",
+    "sizeBytes": 8739,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/src/pages/UpdateStoryViewer.jsx",
+    "sizeBytes": 7717,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "frontend/vite.config.js",
+    "sizeBytes": 3434,
+    "category": "A",
+    "status": "active",
+    "reason": "Core frontend application code, UI component, style, or public asset",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "package-lock.json",
+    "sizeBytes": 94282,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "package.json",
+    "sizeBytes": 837,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "README.md",
+    "sizeBytes": 8613,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/auth_animation_lifecycle_report.json",
+    "sizeBytes": 2541,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/backend_query_benchmarks.json",
+    "sizeBytes": 449,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/CODEBASE_CLEANUP_FINAL_REPORT.md",
+    "sizeBytes": 15320,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/lifecycle_edge_case_results.json",
+    "sizeBytes": 80,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/master_auth_experience_results.json",
+    "sizeBytes": 2160,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/master_sidebar_bottom_nav_report.json",
+    "sizeBytes": 20870,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/master_ui_ux_verification_report.json",
+    "sizeBytes": 5325,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/mobile_notifications_removed.png",
+    "sizeBytes": 25369,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/remediation_benchmark_results.json",
+    "sizeBytes": 1453,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/SINC_AUTH_WELCOME_ANIMATION_FINAL_REPORT.md",
+    "sizeBytes": 20552,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/sinc_intro_verification_results.json",
+    "sizeBytes": 1001,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/SINC_LOGO_TRANSPARENCY_REPORT.md",
+    "sizeBytes": 8357,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/SINC_PERFORMANCE_REALTIME_AUDIT.json",
+    "sizeBytes": 15973,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/SINC_PERFORMANCE_REALTIME_AUDIT.md",
+    "sizeBytes": 38722,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/SINC_PERFORMANCE_REMEDIATION_REPORT.md",
+    "sizeBytes": 15439,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/sinc_quick_intro_results.json",
+    "sizeBytes": 2107,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/SINC_WELCOME_ANIMATION_AUTH_FLOW_REPORT.md",
+    "sizeBytes": 17227,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/sinc_welcome_auth_verification_results.json",
+    "sizeBytes": 4608,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "reports/transparent_logo_verification_results.json",
+    "sizeBytes": 871,
+    "category": "D",
+    "status": "active",
+    "reason": "Verification benchmark outputs, test run reports, and performance JSON artifacts",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "supabase/functions/send-web-push/index.ts",
+    "sizeBytes": 9818,
+    "category": "B",
+    "status": "active",
+    "reason": "Canonical Supabase CLI migrations, Edge Functions, and database policies",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "supabase/migrations/20261016_protect_user_private_details.sql",
+    "sizeBytes": 23523,
+    "category": "B",
+    "status": "active",
+    "reason": "Canonical Supabase CLI migrations, Edge Functions, and database policies",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "supabase/migrations/20261020_web_push_subscriptions.sql",
+    "sizeBytes": 3536,
+    "category": "B",
+    "status": "active",
+    "reason": "Canonical Supabase CLI migrations, Edge Functions, and database policies",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "supabase/rls-audit.sql",
+    "sizeBytes": 5243,
+    "category": "B",
+    "status": "active",
+    "reason": "Canonical Supabase CLI migrations, Edge Functions, and database policies",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/desktop_header_avatar_only.png",
+    "sizeBytes": 177689,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/e2e_dm_playwright_test.cjs",
+    "sizeBytes": 6086,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/e2e_two_accounts_test.js",
+    "sizeBytes": 7042,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/e2e_web_push_test.cjs",
+    "sizeBytes": 14188,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/mobile_header_avatar_only.png",
+    "sizeBytes": 62208,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/playwright.config.js",
+    "sizeBytes": 0,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_auth_dashboard_entered.png",
+    "sizeBytes": 141506,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_auth_fresh_signin.png",
+    "sizeBytes": 69153,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_auth_signup_form.png",
+    "sizeBytes": 79825,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_auth_welcome_story_canvas.png",
+    "sizeBytes": 24846,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_messaging_preserved.png",
+    "sizeBytes": 182804,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_route_domains.png",
+    "sizeBytes": 196049,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_route_home.png",
+    "sizeBytes": 126213,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_route_profile.png",
+    "sizeBytes": 143834,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_route_saved.png",
+    "sizeBytes": 72144,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_route_search.png",
+    "sizeBytes": 108027,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_route_settings.png",
+    "sizeBytes": 163703,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_state_a_sidebar_open.png",
+    "sizeBytes": 9993,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_state_b_sidebar_collapsed.png",
+    "sizeBytes": 159304,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_viewport_1024x768.png",
+    "sizeBytes": 121097,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_viewport_1366x768.png",
+    "sizeBytes": 123241,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_viewport_400x800.png",
+    "sizeBytes": 60200,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_viewport_600x800.png",
+    "sizeBytes": 70269,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/master_viewport_768x900.png",
+    "sizeBytes": 79421,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/transparent_logo_login_dark.png",
+    "sizeBytes": 69274,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/screenshots/transparent_logo_login_light.png",
+    "sizeBytes": 55490,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_all_chat_layout_requirements.cjs",
+    "sizeBytes": 11885,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_auth_animation_lifecycle.cjs",
+    "sizeBytes": 14071,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_auth_welcome_flow.cjs",
+    "sizeBytes": 18055,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_avatar_only_header.cjs",
+    "sizeBytes": 9747,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_lifecycle_and_edge_cases.cjs",
+    "sizeBytes": 3421,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_master_auth_experience.cjs",
+    "sizeBytes": 17689,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_master_ui_ux_optimization.cjs",
+    "sizeBytes": 18191,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_notifications_ui_removed.cjs",
+    "sizeBytes": 5221,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_quick_2s_intro.cjs",
+    "sizeBytes": 12585,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_sidebar_bottom_nav_master.cjs",
+    "sizeBytes": 13995,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_sinc_intro.cjs",
+    "sizeBytes": 16320,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_theme_to_notifications.cjs",
+    "sizeBytes": 8513,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_transparent_logo.cjs",
+    "sizeBytes": 11874,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/e2e/verify_zoom_and_motion.cjs",
+    "sizeBytes": 2357,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/check_auth_counts.cjs",
+    "sizeBytes": 1776,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/check_children.cjs",
+    "sizeBytes": 1038,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/check_profiles_queries.cjs",
+    "sizeBytes": 605,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/check_table_counts.cjs",
+    "sizeBytes": 1502,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/check_vis.cjs",
+    "sizeBytes": 1672,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/phase5_phase6_complete_test.cjs",
+    "sizeBytes": 12054,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/setup_test_notifications.js",
+    "sizeBytes": 2784,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_batch_interactions.cjs",
+    "sizeBytes": 3320,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_click_user_b.cjs",
+    "sizeBytes": 1577,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_enabled_state.cjs",
+    "sizeBytes": 1870,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_exact_profile_message.cjs",
+    "sizeBytes": 1610,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_post_service_direct.cjs",
+    "sizeBytes": 3497,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_push_subscription.cjs",
+    "sizeBytes": 2315,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_query_user_b.cjs",
+    "sizeBytes": 746,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_search_ui.cjs",
+    "sizeBytes": 1085,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/integration/test_user_a_to_b_journey.cjs",
+    "sizeBytes": 3938,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/performance/benchmark_queries.cjs",
+    "sizeBytes": 8601,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/performance/perf_audit_runner.cjs",
+    "sizeBytes": 16818,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/performance/perf_remediation_runner.cjs",
+    "sizeBytes": 12401,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "tests/README.md",
+    "sizeBytes": 4205,
+    "category": "E",
+    "status": "active",
+    "reason": "Playwright E2E, performance benchmark, or integration verification suite",
+    "verificationStatus": "verified"
+  },
+  {
+    "path": "vercel.json",
+    "sizeBytes": 1268,
+    "category": "A",
+    "status": "active",
+    "reason": "Root workspace configuration, lockfile, deployment spec, or environment definition",
+    "verificationStatus": "verified"
+  }
+]

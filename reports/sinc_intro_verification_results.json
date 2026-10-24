@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-10-24T12:01:51.459Z",
+  "checklist": {
+    "CHECK-1": {
+      "name": "First login plays 16.9s welcome film with canvas, skip button, and 6 logo assets",
+      "passed": true,
+      "details": "Canvas: 1366x768, Skip button: \"Skip\", Z-index: 9999, Images: 6/6 loaded"
+    },
+    "CHECK-3A": {
+      "name": "Skip button closes overlay smoothly and restores page scrolling",
+      "passed": true,
+      "details": "LocalStorage: 1, SessionStorage: 1, HTML overflow: \"\""
+    }
+  },
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "fatalError": "page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div[role=\"dialog\"][aria-label*=\"Society for Innovation\"]') to be detached\u001b[22m\n\u001b[2m    14 × locator resolved to visible <div role=\"dialog\" data-intro-mode=\"welcome\" class=\"sinc-intro-overlay sinc-intro-welcome\" aria-label=\"SINC — Society for Innovation, Network & Collaboration\">…</div>\u001b[22m\n"
+  }
+}

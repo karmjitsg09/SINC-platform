@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-10-24T11:23:04.418Z",
+  "tests": {
+    "TEST_1": {
+      "title": "Login & Welcome Screen Logo Asset Transparency",
+      "status": "PASS",
+      "message": "Emblem 1254x1254 rendered with transparent CSS background. Screenshots saved for dark and light themes.",
+      "logoInfoDark": {
+        "src": "http://localhost:3000/images/sinc-official-logo-transparent.png",
+        "naturalWidth": 1254,
+        "naturalHeight": 1254,
+        "renderedWidth": 76.6802978515625,
+        "renderedHeight": 76.68031311035156,
+        "parentBg": "rgba(0, 0, 0, 0)",
+        "imgBg": "rgba(0, 0, 0, 0)",
+        "isTransparentAsset": true
+      }
+    }
+  },
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 1
+  },
+  "error": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#auth-tab-signup')\u001b[22m\n"
+}

@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-10-24T12:00:36.100Z",
+  "tests": {
+    "TEST_1_UNAUTH_VISIT": {
+      "title": "Fresh unauthenticated visitor sees official SINC welcome and sign-in",
+      "status": "PASS",
+      "message": "Unauthenticated login form loaded with official logo; no intro overlay triggered",
+      "timingMs": 1457
+    },
+    "TEST_2_LOGIN_FULL_WELCOME": {
+      "title": "Successful email/password login automatically plays full welcome story",
+      "status": "PASS",
+      "message": "Full welcome story triggered with Skip button (mode: welcome)",
+      "timingMs": 2403
+    },
+    "TEST_2_WELCOME_SKIP": {
+      "title": "Skip button smoothly dismisses welcome film into application shell",
+      "status": "PASS"
+    },
+    "TEST_3_NO_REPLAY_ON_ROUTE_CHANGE": {
+      "title": "Ordinary route change must not replay either animation",
+      "status": "PASS",
+      "message": "Navigated Home -> #search -> #settings -> #home without any animation replay"
+    },
+    "TEST_4_RELOAD_SHORT_ANIMATION": {
+      "title": "Already-authenticated reload plays short logo animation (NO Skip button)",
+      "status": "PASS",
+      "message": "Short logo animation verified without Skip button (mode: quick, splashClass: true)"
+    },
+    "TEST_4_RELOAD_FINISH": {
+      "title": "Short logo animation automatically completes and reveals app",
+      "status": "PASS",
+      "timingMs": 2883,
+      "message": "Reload transition completed in 2883ms"
+    },
+    "TEST_5_SIGNOUT": {
+      "title": "Signing out returns user to unauthenticated sign-in without animations",
+      "status": "PASS",
+      "message": "Successfully returned to unauthenticated login view (http://localhost:3000/login)"
+    },
+    "TEST_6_RELOGIN_FULL_STORY": {
+      "title": "New successful login after sign-out plays full welcome story again",
+      "status": "PASS",
+      "message": "Full welcome story re-played on fresh login (Skip button verified: true, mode: welcome)"
+    },
+    "TEST_7_FAILED_LOGIN_NO_ANIMATION": {
+      "title": "Failed authentication never triggers authenticated welcome story",
+      "status": "PASS",
+      "message": "Wrong password displayed error message without triggering any intro animation"
+    },
+    "TEST_8_SAFEGUARDS": {
+      "title": "OAuth pending storage and intro engine integrations verified",
+      "status": "PASS",
+      "message": "OAuth callback tokens and pending session keys correctly trigger mode: welcome upon completion"
+    }
+  },
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0
+  }
+}
