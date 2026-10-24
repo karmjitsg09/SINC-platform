@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectUrl } from '../lib/authConfig';
-import { playSincIntro } from '../lib/sinc-intro';
+import { resetSincIntroSession } from '../lib/sinc-intro';
 
 const AuthContext = createContext(null);
 
@@ -30,44 +30,14 @@ export function AuthProvider({ children }) {
     return false;
   };
 
-  const isOAuthReturnVisit = () => {
-    if (typeof window === 'undefined') return false;
-    const hasHash = window.location.hash.includes('access_token=') || window.location.hash.includes('error=');
-    const hasCode = window.location.search.includes('code=');
-    let hasPending = false;
-    try {
-      hasPending = sessionStorage.getItem('sinc_pending_oauth') === '1';
-    } catch (e) {}
-    return hasHash || hasCode || hasPending;
-  };
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [authRoute, setAuthRoute] = useState(getInitialAuthRoute); // 'login' | 'signup' | 'forgot-password'
   const [loadingSession, setLoadingSession] = useState(hasLikelyStoredSession);
   const [oauthError, setOauthError] = useState('');
-  const [isPlayingWelcomeStory, setIsPlayingWelcomeStory] = useState(false);
-
-  const welcomeStoryActiveRef = useRef(false);
-  const explicitLoginActiveRef = useRef(false);
-  const isOAuthCallbackRef = useRef(isOAuthReturnVisit());
 
   const currentUserRef = useRef(null);
   currentUserRef.current = user;
-
-  const triggerWelcomeStory = async () => {
-    if (welcomeStoryActiveRef.current) return;
-    welcomeStoryActiveRef.current = true;
-    setIsPlayingWelcomeStory(true);
-    try {
-      await playSincIntro({ mode: 'welcome' });
-    } catch (err) {
-      console.warn('[Welcome Story Notice]:', err);
-    } finally {
-      setIsPlayingWelcomeStory(false);
-      welcomeStoryActiveRef.current = false;
-    }
-  };
 
   // Listen to popstate when unauthenticated to sync login / signup routes
   useEffect(() => {
@@ -348,18 +318,9 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     async function initAuth() {
-      const hasLikely = hasLikelyStoredSession();
-      // Lightweight flourish guarantee for returning sessions so logo entrance feels intentional and smooth
-      const minFlourishPromise = hasLikely
-        ? new Promise((resolve) => setTimeout(resolve, 450))
-        : Promise.resolve();
-
       if (isSupabaseConfigured) {
         try {
-          const [{ data: { session }, error }] = await Promise.all([
-            supabase.auth.getSession(),
-            minFlourishPromise
-          ]);
+          const { data: { session }, error } = await supabase.auth.getSession();
 
           if (error) {
             console.warn('[Supabase getSession notice]:', error.message);
@@ -375,8 +336,6 @@ export function AuthProvider({ children }) {
         } catch (e) {
           console.warn('[Supabase getSession exception]:', e);
         }
-      } else {
-        await minFlourishPromise;
       }
 
       if (isMounted) {
@@ -395,31 +354,17 @@ export function AuthProvider({ children }) {
         console.log(`[Supabase Auth Event]: ${event}`);
 
         if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-          const isOAuthReturn = isOAuthCallbackRef.current && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION');
-          if (isOAuthReturn) {
-            isOAuthCallbackRef.current = false;
-            try {
-              sessionStorage.removeItem('sinc_pending_oauth');
-            } catch (e) {}
-          }
-
           const profile = await fetchUserProfile(session.user);
           if (isMounted && profile) {
             setUser(profile);
             setIsAuthenticated(true);
             setLoadingSession(false);
-
-            // If genuine Google OAuth sign-in return, trigger full welcome story once
-            if (isOAuthReturn && !explicitLoginActiveRef.current) {
-              triggerWelcomeStory();
-            }
           }
         } else if (event === 'SIGNED_OUT' || !session) {
           if (isMounted) {
             setUser(null);
             setIsAuthenticated(false);
             setLoadingSession(false);
-            setIsPlayingWelcomeStory(false);
           }
         }
       });
@@ -485,7 +430,6 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     setOauthError('');
-    explicitLoginActiveRef.current = true;
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -494,7 +438,6 @@ export function AuthProvider({ children }) {
         });
 
         if (error) {
-          explicitLoginActiveRef.current = false;
           return { success: false, error: error.message };
         }
 
@@ -502,12 +445,9 @@ export function AuthProvider({ children }) {
           const profile = await fetchUserProfile(data.user);
           setUser(profile);
           setIsAuthenticated(true);
-          await triggerWelcomeStory();
-          explicitLoginActiveRef.current = false;
           return { success: true };
         }
       } catch (e) {
-        explicitLoginActiveRef.current = false;
         return { success: false, error: e.message || 'Unable to sign in' };
       }
     }
@@ -526,8 +466,6 @@ export function AuthProvider({ children }) {
 
     setUser(mockUser);
     setIsAuthenticated(true);
-    await triggerWelcomeStory();
-    explicitLoginActiveRef.current = false;
     return { success: true };
   };
 
@@ -566,7 +504,6 @@ export function AuthProvider({ children }) {
 
         // Case A: Account created and authenticated immediately
         if (data.user && data.session) {
-          explicitLoginActiveRef.current = true;
           // Insert row into public.profiles referencing auth.users.id
           try {
             await supabase.from('profiles').upsert([
@@ -584,8 +521,6 @@ export function AuthProvider({ children }) {
           const profile = await fetchUserProfile(data.user);
           setUser({ ...profile, isNewUser: true, onboarding_completed: false });
           setIsAuthenticated(true);
-          await triggerWelcomeStory();
-          explicitLoginActiveRef.current = false;
           return { success: true, user: data.user };
         }
       } catch (e) {
@@ -594,7 +529,6 @@ export function AuthProvider({ children }) {
     }
 
     // Mock fallback (Case A)
-    explicitLoginActiveRef.current = true;
     const mockUser = {
       id: `u-${Date.now()}`,
       name: trimmedName,
@@ -607,8 +541,6 @@ export function AuthProvider({ children }) {
     };
     setUser(mockUser);
     setIsAuthenticated(true);
-    await triggerWelcomeStory();
-    explicitLoginActiveRef.current = false;
     return { success: true };
   };
 
@@ -699,9 +631,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    welcomeStoryActiveRef.current = false;
-    explicitLoginActiveRef.current = false;
-    setIsPlayingWelcomeStory(false);
+    resetSincIntroSession();
     if (isSupabaseConfigured) {
       try {
         await supabase.auth.signOut();
@@ -739,8 +669,6 @@ export function AuthProvider({ children }) {
         authRoute,
         loadingSession,
         oauthError,
-        isPlayingWelcomeStory,
-        triggerWelcomeStory,
         clearOauthError,
         signInWithGoogle,
         login,

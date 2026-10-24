@@ -1,9 +1,11 @@
-export type SincIntroMode = "auto" | "welcome" | "intro";
+export type SincIntroMode = "auto" | "welcome" | "intro" | "quick";
 export type SincIntroResult = "played" | "skipped" | "not-needed";
 
 export interface SincIntroOptions {
-  /** "auto" (default): welcome film on this browser's first login, short intro once per session after. */
+  /** "auto" (default): welcome film on this browser's very first visit, then `returningMode` once per tab session. */
   mode?: SincIntroMode;
+  /** What "auto" plays on every visit after the first. Default "quick" (2 s); "intro" = 5.2 s. */
+  returningMode?: "quick" | "intro";
   /** Folder (URL) holding sinc-piece-1..6.webp. Default "/sinc-intro/". */
   assetsBase?: string;
   ext?: string;
@@ -20,10 +22,13 @@ export interface SincIntroOptions {
 
 export function playSincIntro(options?: SincIntroOptions): Promise<SincIntroResult>;
 
+/** Call on logout so the next login in the same tab plays the animation again. */
+export function resetSincIntroSession(options?: Pick<SincIntroOptions, "sessionKey">): void;
+
 export function createSincIntroRenderer(
   images: CanvasImageSource[],
   options?: {
-    mode?: "welcome" | "intro";
+    mode?: "welcome" | "intro" | "quick";
     fontFamily?: string;
     background?: string;
     makeCanvas?: (w: number, h: number) => HTMLCanvasElement | OffscreenCanvas;
@@ -31,5 +36,5 @@ export function createSincIntroRenderer(
 ): {
   draw(ctx: CanvasRenderingContext2D, width: number, height: number, timeSeconds: number): void;
   duration: number;
-  mode: "welcome" | "intro";
+  mode: "welcome" | "intro" | "quick";
 };

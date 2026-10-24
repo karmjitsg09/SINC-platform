@@ -5,7 +5,7 @@ import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
 import SincLogo from './components/common/SincLogo';
-import SincLogoSplash from './components/common/SincLogoSplash';
+import SincIntro from './components/common/SincIntro';
 
 import Feed from './pages/Feed';
 import DomainList from './pages/DomainList';
@@ -82,7 +82,7 @@ function isUuid(str) {
 }
 
 function MainAppContent() {
-  const { user, isAuthenticated, authRoute, loadingSession, isPlayingWelcomeStory, logout, updateProfile: updateAuthProfile } = useAuth();
+  const { user, isAuthenticated, authRoute, loadingSession, logout, updateProfile: updateAuthProfile } = useAuth();
   const currentUserId = isAuthenticated ? user?.id : null;
   const { conversations: rawConversations, hasUnreadMessages, unreadTotal: unreadMessagesCount } = useConversations(currentUserId);
   const { unreadCount: unreadNotificationsCount } = useNotifications(currentUserId);
@@ -330,14 +330,9 @@ function MainAppContent() {
     }
   }, [isAuthenticated, user?.isNewUser, user?.onboarding_completed]);
 
-  // Short logo-only entrance flourish while existing session is restored (zero flash, zero obsolete loader)
+  // Neutral initialization placeholder while active session is verified
   if (loadingSession) {
-    return <SincLogoSplash />;
-  }
-
-  // Decoupled post-authentication welcome film stage (unmounts dashboard to eliminate frame drops & background contention)
-  if (isPlayingWelcomeStory) {
-    return <div className="sinc-welcome-story-stage" role="region" aria-label="SINC Welcome Film" />;
+    return <div className="sinc-session-restoring" aria-hidden="true" />;
   }
 
   if (!isAuthenticated) {
@@ -1135,9 +1130,15 @@ function MainAppContent() {
   );
 }
 
+function AuthenticatedIntroWatcher() {
+  const { isAuthenticated, loadingSession } = useAuth();
+  return <SincIntro signedIn={!loadingSession && isAuthenticated} />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
+      <AuthenticatedIntroWatcher />
       <MainAppContent />
     </AuthProvider>
   );

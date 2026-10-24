@@ -3,21 +3,23 @@ import { playSincIntro } from '../../lib/sinc-intro';
 
 /**
  * SINC Intro Animation Component
- * Mounts once on the first authenticated render of the application.
- * Runs in 'auto' mode:
- *  - 16.9s full Welcome Film if this browser has never seen it (localStorage.sincWelcomeSeen)
- *  - 5.2s short Intro once per browser session (sessionStorage.sincIntroSeen)
- *  - Nothing if already viewed in this session
- * StrictMode-guarded to prevent double-execution in development.
+ * Runs on the first client-side render of any authenticated page:
+ * - Very first visit on a browser: 16.9s welcome film (with Skip)
+ * - Every login after that & opening in new tab/window: 2s quick animation
+ * - Reloading / navigating inside an already-open tab: nothing (already played)
  */
-export default function SincIntro() {
+export default function SincIntro({ signedIn }) {
   const started = useRef(false);
 
   useEffect(() => {
-    if (started.current) return; // React StrictMode guard
+    if (!signedIn) {
+      started.current = false;
+      return;
+    }
+    if (started.current) return; // wait until auth is resolved and user is signed in
     started.current = true;
-    playSincIntro(); // auto: welcome film first time, short intro after
-  }, []);
+    playSincIntro();
+  }, [signedIn]);
 
   return null;
 }

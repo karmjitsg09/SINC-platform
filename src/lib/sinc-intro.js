@@ -2,9 +2,12 @@
  * SINC intro animation — zero dependencies, drawn live on <canvas>.
  *
  *   import { playSincIntro } from "./sinc-intro.js";
- *   playSincIntro();                       // auto: welcome film on first login, short intro after
+ *   playSincIntro();                       // auto: welcome film on the very first visit,
+ *                                          //       then the 2s animation on every new visit / login
  *   playSincIntro({ mode: "welcome" });    // always the 16.9s welcome film
  *   playSincIntro({ mode: "intro" });      // always the 5.2s intro
+ *   playSincIntro({ mode: "quick" });      // always the 2s animation
+ *   resetSincIntroSession();               // call on logout so the next login plays it again
  *
  * Needs the six logo pieces (sinc-piece-1..6.webp) at `assetsBase`.
  * Resolves with "played" | "skipped" | "not-needed". Never throws, never blocks the app.
@@ -12,7 +15,8 @@
 
 // --------------------------------------------------------------------------- config
 const DEFAULTS = {
-  mode: "auto",                       // "auto" | "welcome" | "intro"
+  mode: "auto",                       // "auto" | "welcome" | "intro" | "quick"
+  returningMode: "quick",             // what "auto" plays on every visit after the first: "quick" (2s) or "intro" (5.2s)
   assetsBase: "/sinc-intro/",         // folder holding sinc-piece-1..6.webp
   ext: "webp",
   zIndex: 9999,
@@ -110,11 +114,13 @@ const LOCK = (() => {
   return { s, logo: [540, top + logoH / 2], sinc, name: sinc + 62, tag: sinc + 132 };
 })();
 
-// Precomputed weights for 13-stop specular glint gradient band (eliminates Math.exp calculation on every frame)
-const GLINT_WEIGHTS = Array.from({ length: 13 }, (_, i) => {
-  const u = -2.5 + (5 * i) / 12;
-  return Math.exp(-u * u);
-});
+// 2-second "quick" layout: logo + SINC only
+const QUICK = (() => {
+  const s = 0.46, logoH = LOGO_H * s;
+  const top = 540 - (logoH + 50 + 109) / 2;
+  return { s, logo: [540, top + logoH / 2], sinc: top + logoH + 50 + 109 };
+})();
+const QUICK_SPEED = 1.6;   // the quick version runs the logo assembly 1.6x faster
 
 // --------------------------------------------------------------------------- renderer
 /**
@@ -123,8 +129,8 @@ const GLINT_WEIGHTS = Array.from({ length: 13 }, (_, i) => {
  */
 export function createSincIntroRenderer(images, { mode = "welcome", fontFamily = DEFAULTS.fontFamily,
   background = DEFAULTS.background, makeCanvas } = {}) {
-  const film = mode === "welcome";
-  const duration = film ? 16.9 : 5.2;
+  const film = mode === "welcome", quick = mode === "quick";
+  const duration = film ? 16.9 : quick ? 1.6 : 5.2;
   const A = film ? 3.5 : 0;                       // logo assembly start
   const scratch = {};
   const mk = makeCanvas || ((w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; });
@@ -161,12 +167,12 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
     [13.35, 14.05, [LOCK.logo[0], LOCK.logo[1], LOCK.s]],
   ];
   const introSegs = [[1.95, 2.8, [LOCK.logo[0], LOCK.logo[1], LOCK.s]]];
-  const START = [540, 540, 0.56];
+  const START = quick ? [QUICK.logo[0], QUICK.logo[1], QUICK.s] : [540, 540, 0.56];
   const nodeT = [6.2, ...[1, 2, 3, 4, 5].map((i) => 6.45 + 2.4 * Math.acos(1 - (2 * i) / 6) / Math.PI - 0.1)];
 
   function logoState(t) {
     let cur = START.slice();
-    for (const [ts, te, tgt] of film ? filmSegs : introSegs) {
+    for (const [ts, te, tgt] of film ? filmSegs : quick ? [] : introSegs) {
       if (t <= ts) break;
       const p = inOutCubic(prog(t, ts, te - ts));
       cur = cur.map((v, i) => v + (tgt[i] - v) * p);
@@ -293,7 +299,8 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
     function glintBand(c, cx, cy, nx, ny, w, rgb, peak) {
       const g = c.createLinearGradient(cx - nx * 2.5 * w, cy - ny * 2.5 * w, cx + nx * 2.5 * w, cy + ny * 2.5 * w);
       for (let i = 0; i <= 12; i++) {
-        g.addColorStop(i / 12, `rgba(${rgb},${(GLINT_WEIGHTS[i] * peak).toFixed(4)})`);
+        const u = -2.5 + (5 * i) / 12;
+        g.addColorStop(i / 12, `rgba(${rgb},${(Math.exp(-u * u) * peak).toFixed(4)})`);
       }
       c.globalCompositeOperation = "source-atop";
       c.fillStyle = g;
@@ -338,12 +345,12 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
       });
     }
 
-    function lockup(t0, glintAt) {
+    function lockup(t0, glintAt, { sincY = LOCK.sinc, full = true, stagger = 0.075, dur = 0.7 } = {}) {
       // SINC — letters rise out of a clip line
       if (t >= t0) {
         const px = 150 * k, track = 0.14 * px, word = "SINC";
         const wTot = (width100(800, word) * px) / 100 + track * 3;
-        const x0 = X(540) - wTot / 2, base = Y(LOCK.sinc);
+        const x0 = X(540) - wTot / 2, base = Y(sincY);
         const rx = Math.floor(x0 - 6 * k), ry = Math.floor(base - 0.8 * px);
         const rw = Math.ceil(wTot + 12 * k), rh = Math.ceil(0.86 * px);
         const [cv, c] = surface("sinc", rw, rh);
@@ -351,7 +358,7 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
         c.textAlign = "left"; c.textBaseline = "alphabetic";
         c.fillStyle = grad(c, 0, 0, rw, rh * 0.6);
         for (let i = 0; i < 4; i++) {
-          const p = prog(t, t0 + 0.075 * i, 0.7);
+          const p = prog(t, t0 + stagger * i, dur);
           if (p <= 0) continue;
           const lx = x0 - rx + (width100(800, word.slice(0, i)) * px) / 100 + track * i;
           c.fillText(word[i], lx, base - ry + (1 - outQuart(p)) * rh * 1.05);
@@ -364,6 +371,7 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
         }
         ctx.drawImage(cv, 0, 0, rw, rh, rx, ry, rw, rh);
       }
+      if (!full) return;
       // full name — letter-spacing settles as it fades in
       const tn = t0 + 0.48, p = prog(t, tn, 0.9);
       if (p > 0) {
@@ -395,10 +403,17 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
 
     // ---- frame ---------------------------------------------------------------
     const [lcx, lcy, ls] = logoState(t);
-    const ta = t - A;
+    const ta = quick ? t * QUICK_SPEED : t - A;
     const [vx, vy] = apply(logoG(...START), ROT_C[0], ROT_C[1]);   // swirl centre while forming
 
     rippleRings(vx, vy, ta);
+
+    if (quick) {
+      // 2-second version: fast assembly, light sweep, SINC rises beneath
+      logo(logoG(lcx, lcy, ls), ta, ls, prog(t, 0.92, 0.55));
+      lockup(0.6, 1.05, { sincY: QUICK.sinc, full: false, stagger: 0.05, dur: 0.45 });
+      return;
+    }
 
     if (!film) {
       logo(logoG(lcx, lcy, ls), ta, ls, prog(t, 1.5, 0.75));
@@ -510,7 +525,7 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
     if (t > 13.8) lockup(13.85, 15.75);
   }
 
-  return { draw, duration, mode: film ? "welcome" : "intro" };
+  return { draw, duration, mode: film ? "welcome" : quick ? "quick" : "intro" };
 }
 
 // --------------------------------------------------------------------------- player
@@ -535,7 +550,7 @@ function loadImage(src) {
   });
 }
 
-async function loadFonts(o) {
+async function loadFonts(o, timeoutMs) {
   if (!document.fonts) return;
   if (o.loadGoogleFont && !document.querySelector("link[data-sinc-intro-font]")) {
     const l = document.createElement("link");
@@ -546,15 +561,29 @@ async function loadFonts(o) {
   }
   const fam = o.fontFamily.split(",")[0].trim();
   await withTimeout(Promise.all([500, 600, 700, 800].map((w) =>
-    document.fonts.load(`${w} 40px ${fam}`).catch(() => null))), 2500);
+    document.fonts.load(`${w} 40px ${fam}`).catch(() => null))), timeoutMs);
+}
+
+let running = null;   // one overlay at a time, even if several places call playSincIntro()
+
+/** Forget that the intro was shown in this tab — call on logout so the next login plays it again. */
+export function resetSincIntroSession(options = {}) {
+  const o = { ...DEFAULTS, ...options };
+  try { window.sessionStorage.removeItem(o.sessionKey); } catch (_) { /* ignore */ }
 }
 
 /**
  * Show the SINC intro as a full-screen overlay. Safe to call from any client-side code;
  * returns immediately on the server or when nothing needs to play.
  */
-export async function playSincIntro(options = {}) {
-  if (typeof window === "undefined" || typeof document === "undefined") return "not-needed";
+export function playSincIntro(options = {}) {
+  if (typeof window === "undefined" || typeof document === "undefined") return Promise.resolve("not-needed");
+  if (running) return running;
+  running = run(options).finally(() => { running = null; });
+  return running;
+}
+
+async function run(options) {
   const o = { ...DEFAULTS, ...options };
 
   if (o.respectReducedMotion && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
@@ -562,37 +591,54 @@ export async function playSincIntro(options = {}) {
   }
   let mode = o.mode;
   if (mode === "auto") {
-    if (!store("local", o.welcomeKey)) mode = "welcome";
-    else if (!store("session", o.sessionKey)) mode = "intro";
-    else return "not-needed";
+    if (!store("local", o.welcomeKey)) mode = "welcome";                // very first visit on this browser
+    else if (!store("session", o.sessionKey)) mode = o.returningMode;   // every new visit / login
+    else return "not-needed";                                           // already shown in this tab
   }
+  const quick = mode === "quick";
+  store("session", o.sessionKey, "1");   // mark now, so reloads/route changes don't restart it
 
-  let images;
-  try {
-    [images] = await Promise.all([
-      withTimeout(Promise.all([1, 2, 3, 4, 5, 6].map((i) => loadImage(`${o.assetsBase}sinc-piece-${i}.${o.ext}`))), 6000),
-      loadFonts(o),
-    ]);
-  } catch (_) { images = null; }
-  if (!images || images.length !== 6) return "skipped";   // never block the app on missing assets
-
-  store("local", o.welcomeKey, "1");
-  store("session", o.sessionKey, "1");
-
-  const renderer = createSincIntroRenderer(images, { mode, fontFamily: o.fontFamily, background: o.background });
-
-  // ---- overlay
+  // ---- overlay goes up immediately (plain white) so the page never flashes before the logo
   const root = document.createElement("div");
   root.setAttribute("role", "dialog");
   root.setAttribute("aria-label", "SINC — Society for Innovation, Network & Collaboration");
+  const fadeMs = quick ? 350 : 450;
   Object.assign(root.style, {
     position: "fixed", inset: "0", zIndex: String(o.zIndex), background: o.background,
-    opacity: "1", transition: "opacity .45s ease", cursor: "pointer", touchAction: "none",
+    opacity: "1", transition: `opacity ${fadeMs}ms ease`, cursor: "pointer", touchAction: "none",
   });
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-hidden", "true");
   Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", display: "block" });
   root.appendChild(canvas);
+  const prevOverflow = document.documentElement.style.overflow;
+  document.documentElement.style.overflow = "hidden";
+  (document.body || document.documentElement).appendChild(root);
+
+  const close = (result) => new Promise((resolve) => {
+    root.style.opacity = "0";
+    root.style.pointerEvents = "none";
+    setTimeout(() => {
+      root.remove();
+      document.documentElement.style.overflow = prevOverflow;
+      resolve(result);
+      o.onDone?.(result);
+    }, fadeMs + 10);
+  });
+
+  // ---- load the six logo pieces + fonts (short timeouts — cached after the first visit)
+  let images;
+  try {
+    [images] = await Promise.all([
+      withTimeout(Promise.all([1, 2, 3, 4, 5, 6].map((i) => loadImage(`${o.assetsBase}sinc-piece-${i}.${o.ext}`))),
+        quick ? 2500 : 6000),
+      loadFonts(o, quick ? 700 : 2500),
+    ]);
+  } catch (_) { images = null; }
+  if (!images || images.length !== 6) return close("skipped");   // never block the app on missing assets
+  if (mode === "welcome") store("local", o.welcomeKey, "1");
+
+  const renderer = createSincIntroRenderer(images, { mode, fontFamily: o.fontFamily, background: o.background });
 
   let skipBtn = null;
   if (mode === "welcome") {
@@ -609,17 +655,13 @@ export async function playSincIntro(options = {}) {
     });
     root.appendChild(skipBtn);
   }
-
-  const prevOverflow = document.documentElement.style.overflow;
-  document.documentElement.style.overflow = "hidden";
-  document.body.appendChild(root);
   const ctx = canvas.getContext("2d");
 
-  // ---- sizing: follows every resize / rotation; device pixels capped for silky 60fps performance
+  // ---- sizing: follows every resize / rotation; device pixels capped for performance
   let W = 0, H = 0;
   const fit = () => {
     const cw = Math.max(1, root.clientWidth), ch = Math.max(1, root.clientHeight);
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(2.6e6 / (cw * ch)));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4.2e6 / (cw * ch)));
     W = Math.max(1, Math.round(cw * dpr)); H = Math.max(1, Math.round(ch * dpr));
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
   };
@@ -637,14 +679,7 @@ export async function playSincIntro(options = {}) {
       ro?.disconnect();
       window.removeEventListener("resize", fit);
       document.removeEventListener("keydown", onKey);
-      root.style.opacity = "0";
-      root.style.pointerEvents = "none";
-      setTimeout(() => {
-        root.remove();
-        document.documentElement.style.overflow = prevOverflow;
-        resolve(result);
-        o.onDone?.(result);
-      }, 460);
+      close(result).then(resolve);
     };
     const skip = () => { result = "skipped"; finish(); };
     const onKey = (e) => { if (e.key === "Escape" || e.key === "Enter" || e.key === " ") skip(); };
@@ -660,7 +695,7 @@ export async function playSincIntro(options = {}) {
         console.warn("[sinc-intro] render error, closing intro", err);
         return skip();
       }
-      if (t >= renderer.duration) { setTimeout(finish, 300); return; }
+      if (t >= renderer.duration) { setTimeout(finish, quick ? 80 : 300); return; }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
