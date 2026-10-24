@@ -1369,8 +1369,16 @@ html, body {
 }
 
 /* ==================================================
-   AUTHENTICATION STYLES (Login, SignUp, ForgotPassword)
+   AUTHENTICATION & WELCOME STYLES (Login, SignUp, ForgotPassword)
    ================================================== */
+
+.sinc-session-restoring {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-app);
+  z-index: 9999;
+  pointer-events: none;
+}
 
 .auth-container {
   width: 100%;
@@ -1379,20 +1387,196 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px 16px;
+  box-sizing: border-box;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   background-color: var(--bg-app);
   border: 1.5px solid var(--border-app);
   border-radius: 24px;
-  padding: 32px 36px;
+  padding: 32px 32px;
   box-shadow: 0 10px 30px rgba(181, 210, 253, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .auth-card {
+  background: linear-gradient(180deg, #0d1624 0%, #0a111c 100%);
+  border: 1.5px solid rgba(40, 120, 255, 0.22);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 28px rgba(40, 120, 255, 0.08);
+}
+
+/* SINC Official Welcome Hero & Emblem Experience */
+.sinc-welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.sinc-welcome-emblem-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 12px;
+}
+
+.sinc-welcome-emblem-glow {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(40, 120, 255, 0.45) 0%, rgba(67, 142, 255, 0.15) 50%, transparent 70%);
+  filter: blur(14px);
+  pointer-events: none;
+  animation: sincGlowPulse 3.5s ease-in-out infinite alternate;
+}
+
+@keyframes sincGlowPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0.95;
+  }
+}
+
+.sinc-welcome-emblem {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: sincEmblemEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes sincEmblemEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sinc-welcome-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.sinc-welcome-fullname {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-bright-blue, #438eff);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.sinc-welcome-tagline {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.sinc-welcome-story-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: rgba(40, 120, 255, 0.08);
+  border: 1px solid rgba(67, 142, 255, 0.28);
+  border-radius: 9999px;
+  color: var(--color-bright-blue, #438eff);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.sinc-welcome-story-trigger:hover {
+  background: rgba(40, 120, 255, 0.18);
+  border-color: rgba(67, 142, 255, 0.5);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(40, 120, 255, 0.22);
+}
+
+.sinc-welcome-story-trigger:active {
+  transform: translateY(0);
+}
+
+.sinc-welcome-tabs {
+  display: flex;
+  width: 100%;
+  background: var(--bg-surface-secondary, rgba(17, 29, 45, 0.6));
+  border: 1px solid var(--border-app, rgba(40, 120, 255, 0.2));
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 20px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+[data-theme="light"] .sinc-welcome-tabs {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.sinc-welcome-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.sinc-welcome-tab:hover:not(.active) {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sinc-welcome-tab.active {
+  background: var(--color-primary-blue, #2878ff);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(40, 120, 255, 0.35);
+}
+
+[data-theme="light"] .sinc-welcome-tab.active {
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .auth-brand-logo {

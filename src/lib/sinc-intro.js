@@ -110,6 +110,12 @@ const LOCK = (() => {
   return { s, logo: [540, top + logoH / 2], sinc, name: sinc + 62, tag: sinc + 132 };
 })();
 
+// Precomputed weights for 13-stop specular glint gradient band (eliminates Math.exp calculation on every frame)
+const GLINT_WEIGHTS = Array.from({ length: 13 }, (_, i) => {
+  const u = -2.5 + (5 * i) / 12;
+  return Math.exp(-u * u);
+});
+
 // --------------------------------------------------------------------------- renderer
 /**
  * Low-level renderer: draw(ctx, W, H, t) paints frame `t` (seconds) for the given mode.
@@ -287,8 +293,7 @@ export function createSincIntroRenderer(images, { mode = "welcome", fontFamily =
     function glintBand(c, cx, cy, nx, ny, w, rgb, peak) {
       const g = c.createLinearGradient(cx - nx * 2.5 * w, cy - ny * 2.5 * w, cx + nx * 2.5 * w, cy + ny * 2.5 * w);
       for (let i = 0; i <= 12; i++) {
-        const u = -2.5 + (5 * i) / 12;
-        g.addColorStop(i / 12, `rgba(${rgb},${(Math.exp(-u * u) * peak).toFixed(4)})`);
+        g.addColorStop(i / 12, `rgba(${rgb},${(GLINT_WEIGHTS[i] * peak).toFixed(4)})`);
       }
       c.globalCompositeOperation = "source-atop";
       c.fillStyle = g;
@@ -610,11 +615,11 @@ export async function playSincIntro(options = {}) {
   document.body.appendChild(root);
   const ctx = canvas.getContext("2d");
 
-  // ---- sizing: follows every resize / rotation; device pixels capped for performance
+  // ---- sizing: follows every resize / rotation; device pixels capped for silky 60fps performance
   let W = 0, H = 0;
   const fit = () => {
     const cw = Math.max(1, root.clientWidth), ch = Math.max(1, root.clientHeight);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4.2e6 / (cw * ch)));
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(2.6e6 / (cw * ch)));
     W = Math.max(1, Math.round(cw * dpr)); H = Math.max(1, Math.round(ch * dpr));
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
   };

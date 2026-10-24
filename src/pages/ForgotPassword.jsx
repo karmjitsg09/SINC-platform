@@ -109,8 +109,11 @@ export default function ForgotPassword() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div className="auth-brand-logo">
-          <SincLogo size={68} alt="SINC logo" priority={true} />
+        <div className="sinc-welcome-emblem-wrap" style={{ marginBottom: '16px' }}>
+          <div className="sinc-welcome-emblem-glow" aria-hidden="true" />
+          <div className="sinc-welcome-emblem">
+            <SincLogo size={80} alt="SINC Official Emblem" priority={true} />
+          </div>
         </div>
 
         {isRecoveryMode ? (

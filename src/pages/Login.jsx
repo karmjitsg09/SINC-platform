@@ -5,6 +5,7 @@ import PasswordInput from '../components/PasswordInput';
 import AuthButton from '../components/AuthButton';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import SincLogo from '../components/common/SincLogo';
+import { playSincIntro } from '../lib/sinc-intro';
 
 export default function Login() {
   const { login, signInWithGoogle, oauthError, clearOauthError, navigateAuth } = useAuth();
@@ -78,13 +79,51 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        {/* Brand Logo / Mark */}
-        <div className="auth-brand-logo">
-          <SincLogo size={68} alt="SINC logo" priority={true} />
+        {/* SINC Official Welcome Hero */}
+        <div className="sinc-welcome-hero">
+          <div className="sinc-welcome-emblem-wrap">
+            <div className="sinc-welcome-emblem-glow" aria-hidden="true" />
+            <div className="sinc-welcome-emblem">
+              <SincLogo size={80} alt="SINC Official Emblem" priority={true} />
+            </div>
+          </div>
+          <h1 className="sinc-welcome-title">SINC</h1>
+          <div className="sinc-welcome-fullname">Society for Innovation, Network &amp; Collaboration</div>
+          <p className="sinc-welcome-tagline">Where Ambition Finds Its People</p>
+
+          <button
+            type="button"
+            className="sinc-welcome-story-trigger"
+            onClick={() => playSincIntro({ mode: 'welcome' })}
+            id="welcome-story-trigger-btn"
+          >
+            <span>▶</span>
+            <span>Experience Welcome Story</span>
+          </button>
         </div>
 
-        <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to continue to your account</p>
+        {/* Segmented Auth Navigation Tabs */}
+        <div className="sinc-welcome-tabs" role="tablist">
+          <button
+            type="button"
+            className="sinc-welcome-tab active"
+            role="tab"
+            aria-selected="true"
+            id="auth-tab-signin"
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className="sinc-welcome-tab"
+            role="tab"
+            aria-selected="false"
+            onClick={() => navigateAuth('signup')}
+            id="auth-tab-signup"
+          >
+            Create Account
+          </button>
+        </div>
 
         {displayedError && <div className="auth-general-error">{displayedError}</div>}
 

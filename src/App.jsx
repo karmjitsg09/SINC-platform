@@ -5,7 +5,6 @@ import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
 import SincLogo from './components/common/SincLogo';
-import SincIntro from './components/common/SincIntro';
 
 import Feed from './pages/Feed';
 import DomainList from './pages/DomainList';
@@ -330,27 +329,9 @@ function MainAppContent() {
     }
   }, [isAuthenticated, user?.isNewUser, user?.onboarding_completed]);
 
+  // Minimal, neutral initialization placeholder while active session is verified (zero flash, zero obsolete loader)
   if (loadingSession) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100vh',
-          width: '100vw',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#080E18',
-          color: '#F3F6FC',
-          gap: '16px'
-        }}
-      >
-        <SincLogo size={72} priority={true} />
-        <div style={{ fontSize: '14px', fontWeight: '500', color: '#A7B5CA', letterSpacing: '0.02em' }}>
-          Loading SINC platform...
-        </div>
-      </div>
-    );
+    return <div className="sinc-session-restoring" aria-hidden="true" />;
   }
 
   if (!isAuthenticated) {
@@ -371,7 +352,6 @@ function MainAppContent() {
   if (isOnboardingActive) {
     return (
       <div className="app-shell">
-        <SincIntro />
         <TopHeader
           showSearchIcon={false}
           onSearchClick={() => {}}
@@ -1047,7 +1027,6 @@ function MainAppContent() {
 
   return (
     <div className="sinc-app-shell">
-      <SincIntro />
       {/* Top Header Bar */}
       <TopHeader
         activeTab={activeTab}

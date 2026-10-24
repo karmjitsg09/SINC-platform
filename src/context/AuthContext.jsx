@@ -15,10 +15,24 @@ export function AuthProvider({ children }) {
     return 'login';
   };
 
+  const hasLikelyStoredSession = () => {
+    if (typeof window === 'undefined') return false;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          const val = localStorage.getItem(key);
+          if (val && val !== 'null' && val !== 'undefined') return true;
+        }
+      }
+    } catch (e) {}
+    return false;
+  };
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [authRoute, setAuthRoute] = useState(getInitialAuthRoute); // 'login' | 'signup' | 'forgot-password'
-  const [loadingSession, setLoadingSession] = useState(true);
+  const [loadingSession, setLoadingSession] = useState(hasLikelyStoredSession);
   const [oauthError, setOauthError] = useState('');
 
   const currentUserRef = useRef(null);

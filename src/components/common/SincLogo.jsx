@@ -1,8 +1,8 @@
 import React from 'react';
 
 /**
- * SINC Platform — Official Corporate Logo Component
- * Renders the official "Glossy Blue SINC Corporate Emblem" (/images/sinc-corporate-logo.png).
+ * SINC Platform — Official Brand Logo Component
+ * Renders the official "Glossy Blue Triadic Connection Emblem" (/images/sinc-official-logo.png).
  * Preserves the 1:1 aspect ratio with object-fit: contain.
  */
 export default function SincLogo({
@@ -27,11 +27,11 @@ export default function SincLogo({
 
   return (
     <img
-      src="/images/sinc-corporate-logo.png"
+      src="/images/sinc-official-logo.png"
       alt={alt}
       width={dimension}
       height={dimension}
-      className={`sinc-corporate-logo ${className}`}
+      className={`sinc-official-logo sinc-corporate-logo ${className}`}
       onClick={onClick}
       role={role}
       loading={priority ? 'eager' : 'lazy'}
