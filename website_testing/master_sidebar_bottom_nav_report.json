@@ -1,0 +1,663 @@
+{
+  "stateA_sidebarOpen": {
+    "description": "Home - Sidebar OPEN",
+    "url": "/",
+    "isSidebarExpanded": true,
+    "sidebarWidth": 240,
+    "sidebarVisibility": "visible",
+    "sidebarOpacity": "1",
+    "isBottomNavVisible": false,
+    "bottomNavVisibility": "hidden",
+    "bottomNavOpacity": "0",
+    "bottomNavHiddenClass": true,
+    "paddingBottom": "0px",
+    "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+    "backdropVisible": true,
+    "bottomNavButtonsDisabled": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "bottomNavButtonsTabIndex": [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  },
+  "stateB_sidebarCollapsed": {
+    "description": "Home - Sidebar COLLAPSED",
+    "url": "/",
+    "isSidebarExpanded": false,
+    "sidebarWidth": 1,
+    "sidebarVisibility": "hidden",
+    "sidebarOpacity": "0",
+    "isBottomNavVisible": true,
+    "bottomNavVisibility": "visible",
+    "bottomNavOpacity": "1",
+    "bottomNavHiddenClass": false,
+    "paddingBottom": "78px",
+    "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+    "backdropVisible": true,
+    "bottomNavButtonsDisabled": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "bottomNavButtonsTabIndex": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "stateC_toggleTransitions": {
+    "afterExpand": {
+      "description": "Toggle: Expanded",
+      "url": "/",
+      "isSidebarExpanded": true,
+      "sidebarWidth": 240,
+      "sidebarVisibility": "visible",
+      "sidebarOpacity": "1",
+      "isBottomNavVisible": false,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "bottomNavHiddenClass": true,
+      "paddingBottom": "0px",
+      "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+      "backdropVisible": true,
+      "bottomNavButtonsDisabled": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "bottomNavButtonsTabIndex": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    "afterCollapse": {
+      "description": "Toggle: Collapsed",
+      "url": "/",
+      "isSidebarExpanded": false,
+      "sidebarWidth": 1,
+      "sidebarVisibility": "hidden",
+      "sidebarOpacity": "0",
+      "isBottomNavVisible": true,
+      "bottomNavVisibility": "visible",
+      "bottomNavOpacity": "1",
+      "bottomNavHiddenClass": false,
+      "paddingBottom": "78px",
+      "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+      "backdropVisible": true,
+      "bottomNavButtonsDisabled": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "bottomNavButtonsTabIndex": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "cycleDurationMs": 712
+  },
+  "stateD_routesAndHistory": {
+    "routes": {
+      "domains": {
+        "collapsedCheck": {
+          "bottomNavVisible": true,
+          "sidebarExpanded": false
+        },
+        "expandedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": true
+        }
+      },
+      "search": {
+        "collapsedCheck": {
+          "bottomNavVisible": true,
+          "sidebarExpanded": false
+        },
+        "expandedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": true
+        }
+      },
+      "saved": {
+        "collapsedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": false
+        },
+        "expandedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": true
+        }
+      },
+      "profile": {
+        "collapsedCheck": {
+          "bottomNavVisible": true,
+          "sidebarExpanded": false
+        },
+        "expandedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": true
+        }
+      },
+      "settings": {
+        "collapsedCheck": {
+          "bottomNavVisible": true,
+          "sidebarExpanded": false
+        },
+        "expandedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": true
+        }
+      },
+      "home": {
+        "collapsedCheck": {
+          "bottomNavVisible": true,
+          "sidebarExpanded": false
+        },
+        "expandedCheck": {
+          "bottomNavVisible": false,
+          "sidebarExpanded": true
+        }
+      }
+    },
+    "historyBack": {
+      "description": "History Back",
+      "url": "/settings",
+      "isSidebarExpanded": false,
+      "sidebarWidth": 1,
+      "sidebarVisibility": "hidden",
+      "sidebarOpacity": "0",
+      "isBottomNavVisible": true,
+      "bottomNavVisibility": "visible",
+      "bottomNavOpacity": "1",
+      "bottomNavHiddenClass": false,
+      "paddingBottom": "78px",
+      "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+      "backdropVisible": true,
+      "bottomNavButtonsDisabled": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "bottomNavButtonsTabIndex": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "historyForward": {
+      "description": "History Forward",
+      "url": "/",
+      "isSidebarExpanded": false,
+      "sidebarWidth": 1,
+      "sidebarVisibility": "hidden",
+      "sidebarOpacity": "0",
+      "isBottomNavVisible": true,
+      "bottomNavVisibility": "visible",
+      "bottomNavOpacity": "1",
+      "bottomNavHiddenClass": false,
+      "paddingBottom": "78px",
+      "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+      "backdropVisible": true,
+      "bottomNavButtonsDisabled": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "bottomNavButtonsTabIndex": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "directReload": {
+      "description": "Direct Reload on Search",
+      "url": "/search",
+      "isSidebarExpanded": false,
+      "sidebarWidth": 0,
+      "sidebarVisibility": null,
+      "sidebarOpacity": null,
+      "isBottomNavVisible": false,
+      "bottomNavVisibility": null,
+      "bottomNavOpacity": null,
+      "bottomNavHiddenClass": false,
+      "paddingBottom": null,
+      "mainViewportClasses": "",
+      "backdropVisible": false,
+      "bottomNavButtonsDisabled": [],
+      "bottomNavButtonsTabIndex": []
+    }
+  },
+  "viewports": {
+    "1366x768": {
+      "initial": {
+        "description": "1366x768 initial",
+        "url": "/search",
+        "isSidebarExpanded": false,
+        "sidebarWidth": 0,
+        "sidebarVisibility": null,
+        "sidebarOpacity": null,
+        "isBottomNavVisible": false,
+        "bottomNavVisibility": null,
+        "bottomNavOpacity": null,
+        "bottomNavHiddenClass": false,
+        "paddingBottom": null,
+        "mainViewportClasses": "",
+        "backdropVisible": false,
+        "bottomNavButtonsDisabled": [],
+        "bottomNavButtonsTabIndex": []
+      },
+      "toggled": {
+        "description": "1366x768 toggled",
+        "url": "/search",
+        "isSidebarExpanded": true,
+        "sidebarWidth": 240,
+        "sidebarVisibility": "visible",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": false,
+        "bottomNavVisibility": "hidden",
+        "bottomNavOpacity": "0",
+        "bottomNavHiddenClass": true,
+        "paddingBottom": "0px",
+        "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+        "backdropVisible": true,
+        "bottomNavButtonsDisabled": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "bottomNavButtonsTabIndex": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    },
+    "1024x768": {
+      "initial": {
+        "description": "1024x768 initial",
+        "url": "/search",
+        "isSidebarExpanded": false,
+        "sidebarWidth": 1,
+        "sidebarVisibility": "hidden",
+        "sidebarOpacity": "0",
+        "isBottomNavVisible": true,
+        "bottomNavVisibility": "visible",
+        "bottomNavOpacity": "1",
+        "bottomNavHiddenClass": false,
+        "paddingBottom": "78px",
+        "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+        "backdropVisible": true,
+        "bottomNavButtonsDisabled": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "bottomNavButtonsTabIndex": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "toggled": {
+        "description": "1024x768 toggled",
+        "url": "/search",
+        "isSidebarExpanded": true,
+        "sidebarWidth": 240,
+        "sidebarVisibility": "visible",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": false,
+        "bottomNavVisibility": "hidden",
+        "bottomNavOpacity": "0",
+        "bottomNavHiddenClass": true,
+        "paddingBottom": "0px",
+        "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+        "backdropVisible": true,
+        "bottomNavButtonsDisabled": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "bottomNavButtonsTabIndex": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    },
+    "768x900": {
+      "initial": {
+        "description": "768x900 initial",
+        "url": "/search",
+        "isSidebarExpanded": false,
+        "sidebarWidth": 280,
+        "sidebarVisibility": "hidden",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": true,
+        "bottomNavVisibility": "visible",
+        "bottomNavOpacity": "1",
+        "bottomNavHiddenClass": false,
+        "paddingBottom": "64px",
+        "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+        "backdropVisible": false,
+        "bottomNavButtonsDisabled": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "bottomNavButtonsTabIndex": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "toggled": {
+        "description": "768x900 toggled",
+        "url": "/search",
+        "isSidebarExpanded": true,
+        "sidebarWidth": 280,
+        "sidebarVisibility": "visible",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": false,
+        "bottomNavVisibility": "hidden",
+        "bottomNavOpacity": "0",
+        "bottomNavHiddenClass": true,
+        "paddingBottom": "0px",
+        "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+        "backdropVisible": true,
+        "bottomNavButtonsDisabled": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "bottomNavButtonsTabIndex": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    },
+    "600x800": {
+      "initial": {
+        "description": "600x800 initial",
+        "url": "/search",
+        "isSidebarExpanded": false,
+        "sidebarWidth": 280,
+        "sidebarVisibility": "hidden",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": true,
+        "bottomNavVisibility": "visible",
+        "bottomNavOpacity": "1",
+        "bottomNavHiddenClass": false,
+        "paddingBottom": "64px",
+        "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+        "backdropVisible": false,
+        "bottomNavButtonsDisabled": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "bottomNavButtonsTabIndex": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "toggled": {
+        "description": "600x800 toggled",
+        "url": "/search",
+        "isSidebarExpanded": true,
+        "sidebarWidth": 280,
+        "sidebarVisibility": "visible",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": false,
+        "bottomNavVisibility": "hidden",
+        "bottomNavOpacity": "0",
+        "bottomNavHiddenClass": true,
+        "paddingBottom": "0px",
+        "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+        "backdropVisible": true,
+        "bottomNavButtonsDisabled": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "bottomNavButtonsTabIndex": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    },
+    "400x800": {
+      "initial": {
+        "description": "400x800 initial",
+        "url": "/search",
+        "isSidebarExpanded": false,
+        "sidebarWidth": 280,
+        "sidebarVisibility": "hidden",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": true,
+        "bottomNavVisibility": "visible",
+        "bottomNavOpacity": "1",
+        "bottomNavHiddenClass": false,
+        "paddingBottom": "64px",
+        "mainViewportClasses": "sinc-main-viewport has-bottom-nav  sidebar-collapsed",
+        "backdropVisible": false,
+        "bottomNavButtonsDisabled": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "bottomNavButtonsTabIndex": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "toggled": {
+        "description": "400x800 toggled",
+        "url": "/search",
+        "isSidebarExpanded": true,
+        "sidebarWidth": 280,
+        "sidebarVisibility": "visible",
+        "sidebarOpacity": "1",
+        "isBottomNavVisible": false,
+        "bottomNavVisibility": "hidden",
+        "bottomNavOpacity": "0",
+        "bottomNavHiddenClass": true,
+        "paddingBottom": "0px",
+        "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+        "backdropVisible": true,
+        "bottomNavButtonsDisabled": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "bottomNavButtonsTabIndex": [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    }
+  },
+  "zoomLevels": {},
+  "messagingPreservation": {
+    "convListState": {
+      "description": "Messages List",
+      "url": "/messages",
+      "isSidebarExpanded": true,
+      "sidebarWidth": 240,
+      "sidebarVisibility": "visible",
+      "sidebarOpacity": "1",
+      "isBottomNavVisible": false,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "bottomNavHiddenClass": true,
+      "paddingBottom": "0px",
+      "mainViewportClasses": "sinc-main-viewport no-bottom-nav  sidebar-expanded",
+      "backdropVisible": true,
+      "bottomNavButtonsDisabled": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "bottomNavButtonsTabIndex": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    "activeChatNavState": {
+      "bottomNavHidden": true,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "composerVisible": true,
+      "sendBtnVisible": true,
+      "inputSendAligned": true
+    },
+    "isMessagingPreserved": true
+  },
+  "accessibilityAndMotion": {},
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ]
+}

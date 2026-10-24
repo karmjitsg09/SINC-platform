@@ -1,0 +1,205 @@
+{
+  "stateA_conversationList": {
+    "hasBottomNavContainer": true,
+    "isHiddenClassPresent": false,
+    "opacity": "1",
+    "visibility": "visible",
+    "pointerEvents": "none",
+    "paddingBottom": "66px",
+    "buttonsCount": 5,
+    "buttonsDisabled": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "buttonsTabIndex": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "isChatOpen": false
+  },
+  "stateB_directChatOpen": {
+    "hasBottomNavContainer": true,
+    "isHiddenClassPresent": true,
+    "opacity": "0",
+    "visibility": "hidden",
+    "pointerEvents": "none",
+    "paddingBottom": "0px",
+    "mainViewportClasses": "sinc-main-viewport no-bottom-nav direct-chat-open",
+    "buttonsDisabled": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "buttonsTabIndex": [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    "composerVisible": true,
+    "composerBottomDistFromViewportBottom": 17,
+    "sendButtonAccessible": true,
+    "inputWidth": 556,
+    "composerRowAligned": true
+  },
+  "stateC_conversationClosed": {
+    "isHiddenClassPresent": false,
+    "opacity": "1",
+    "visibility": "visible",
+    "paddingBottom": "66px",
+    "buttonsDisabled": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "currentUrl": "/messages"
+  },
+  "stateD_navigationAndHistory": {
+    "routes": {
+      "home": {
+        "url": "/",
+        "navVisible": true
+      },
+      "domains": {
+        "url": "/domains",
+        "navVisible": true
+      },
+      "search": {
+        "url": "/search",
+        "navVisible": true
+      },
+      "profile": {
+        "url": "/profile",
+        "navVisible": true
+      }
+    },
+    "directReload": {
+      "url": "/messages/b2adb69e-c20e-4cf4-a832-9b2991dec912",
+      "navHidden": true,
+      "visibility": "hidden",
+      "opacity": "0"
+    },
+    "historyBack": {
+      "url": "/messages",
+      "navHidden": false,
+      "visibility": "visible"
+    },
+    "historyForward": {
+      "url": "/messages/b2adb69e-c20e-4cf4-a832-9b2991dec912",
+      "navHidden": true,
+      "visibility": "hidden"
+    }
+  },
+  "messageFlow": {
+    "testMessageText": "Verified UI Optimization Test Message [8945]",
+    "latencyMs": 1048,
+    "occurrencesCount": 1,
+    "hasDuplicates": false
+  },
+  "viewports": {
+    "1366x768": {
+      "bottomNavHidden": true,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "composerVisible": true,
+      "composerBottom": 745,
+      "viewportHeight": 768,
+      "sendBtnVisible": true,
+      "inputSendSingleRow": true
+    },
+    "1024x768": {
+      "bottomNavHidden": true,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "composerVisible": true,
+      "composerBottom": 745,
+      "viewportHeight": 768,
+      "sendBtnVisible": true,
+      "inputSendSingleRow": true
+    },
+    "768x900": {
+      "bottomNavHidden": true,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "composerVisible": true,
+      "composerBottom": 882,
+      "viewportHeight": 900,
+      "sendBtnVisible": true,
+      "inputSendSingleRow": true
+    },
+    "600x800": {
+      "bottomNavHidden": true,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "composerVisible": true,
+      "composerBottom": 794,
+      "viewportHeight": 800,
+      "sendBtnVisible": true,
+      "inputSendSingleRow": true
+    },
+    "400x800": {
+      "bottomNavHidden": true,
+      "bottomNavVisibility": "hidden",
+      "bottomNavOpacity": "0",
+      "composerVisible": true,
+      "composerBottom": 794,
+      "viewportHeight": 800,
+      "sendBtnVisible": true,
+      "inputSendSingleRow": true
+    }
+  },
+  "zoomLevels": {
+    "100pct": {
+      "composerVisible": true,
+      "sendBtnVisible": true,
+      "navHidden": true
+    },
+    "125pct": {
+      "composerVisible": true,
+      "sendBtnVisible": true,
+      "navHidden": true
+    },
+    "150pct": {
+      "composerVisible": true,
+      "sendBtnVisible": true,
+      "navHidden": true
+    },
+    "200pct": {
+      "composerVisible": true,
+      "sendBtnVisible": true,
+      "navHidden": true
+    }
+  },
+  "accessibilityAndMotion": {
+    "navTransitionDuration": "1e-05s",
+    "compTransitionDuration": "1e-05s"
+  },
+  "performanceMetrics": {
+    "initialAppLoadMs": 4937,
+    "routeTransitionToMessagesMs": 1649,
+    "chatUsableTimeMs": 70,
+    "messageSendToRenderMs": 1048
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Access to fetch at 'https://vctwzlsatqsuinmosnzo.supabase.co/functions/v1/send-web-push' from origin 'http://localhost:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ]
+}

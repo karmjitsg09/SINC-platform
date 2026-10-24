@@ -10,22 +10,26 @@ export function useMessages(conversationId, currentUserId) {
   useEffect(() => {
     let isMounted = true;
 
+    // Immediately reset messages and typing state on conversation switch to prevent stale display
+    setMessages([]);
+    setTypingUsers(new Set());
+
     async function load() {
       if (!conversationId || !currentUserId) {
-        setMessages([]);
         setLoading(false);
         return;
       }
       setLoading(true);
       const msgs = await getMessages(conversationId, currentUserId);
       if (isMounted) {
-        setMessages(msgs);
+        setMessages(msgs || []);
         setLoading(false);
       }
     }
 
     load();
 
+    // Throttled fallback check (10s) to reconcile state if a WebSocket event drops, avoiding aggressive 2.5s DB spamming
     const pollInterval = setInterval(async () => {
       if (!isMounted || !conversationId || !currentUserId) return;
       const latest = await getMessages(conversationId, currentUserId);
@@ -37,7 +41,7 @@ export function useMessages(conversationId, currentUserId) {
           return prev;
         });
       }
-    }, 2500);
+    }, 10000);
 
     const unsubMessages = subscribeToRealtimeMessages(conversationId, currentUserId, (newMsg) => {
       if (!isMounted) return;

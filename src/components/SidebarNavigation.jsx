@@ -22,6 +22,7 @@ export default function SidebarNavigation({
   onSelectTab,
   onOpenCreatePost,
   isMobileOpen,
+  isOpen = true,
   onCloseMobile,
   onToggleSidebar
 }) {
@@ -89,15 +90,17 @@ export default function SidebarNavigation({
   return (
     <>
       {/* Mobile Backdrop */}
-      {isMobileOpen && (
-        <div
-          className="sidebar-backdrop"
-          onClick={onCloseMobile}
-          aria-hidden="true"
-        />
-      )}
+      <div
+        className={`sidebar-backdrop ${isOpen ? 'backdrop-visible' : ''}`}
+        onClick={onCloseMobile}
+        aria-hidden="true"
+      />
 
-      <aside className={`sidebar-navigation ${isMobileOpen ? 'mobile-open' : ''}`} aria-label="Main Navigation">
+      <aside
+        className={`sidebar-navigation ${isOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${isMobileOpen ? 'mobile-open' : ''}`}
+        aria-label="Main Navigation"
+        aria-hidden={!isOpen}
+      >
         {/* Navigation Header with Title and Collapse Button */}
         <div className="sidebar-header">
           <div
@@ -112,6 +115,8 @@ export default function SidebarNavigation({
           <button
             type="button"
             className="sidebar-collapse-btn"
+            tabIndex={isOpen ? 0 : -1}
+            disabled={!isOpen}
             onClick={() => {
               if (isMobileOpen && onCloseMobile) {
                 onCloseMobile();
@@ -133,6 +138,8 @@ export default function SidebarNavigation({
           <button
             type="button"
             className="sidebar-create-post-btn"
+            tabIndex={isOpen ? 0 : -1}
+            disabled={!isOpen}
             onClick={() => {
               if (onOpenCreatePost) onOpenCreatePost();
               if (isMobileOpen && onCloseMobile) onCloseMobile();
@@ -153,6 +160,8 @@ export default function SidebarNavigation({
               <button
                 key={item.id}
                 type="button"
+                tabIndex={isOpen ? 0 : -1}
+                disabled={!isOpen}
                 className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => handleNavClick(item.id)}
                 aria-current={isActive ? 'page' : undefined}
@@ -175,7 +184,7 @@ export default function SidebarNavigation({
             className="sidebar-user-card"
             onClick={() => handleNavClick('profile')}
             role="button"
-            tabIndex={0}
+            tabIndex={isOpen ? 0 : -1}
             title="View your profile"
           >
             <div className="sidebar-user-avatar">
@@ -195,6 +204,8 @@ export default function SidebarNavigation({
           <button
             type="button"
             className="sidebar-logout-btn"
+            tabIndex={isOpen ? 0 : -1}
+            disabled={!isOpen}
             onClick={logout}
             title="Log Out"
             aria-label="Log out of SINC platform"

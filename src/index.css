@@ -54,6 +54,14 @@
   --bottom-nav-item-active-bg: #142238;
   --bottom-nav-indicator: #438EFF;
 
+  /* Floating Bottom Navigation Layout Dimensions */
+  --bottom-nav-height: 52px;
+  --bottom-nav-offset: 14px;
+  --bottom-nav-gap: 12px;
+  --bottom-nav-safe-inset: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--bottom-nav-offset) + var(--bottom-nav-safe-inset));
+  --bottom-nav-reserved-height: calc(var(--bottom-nav-total-height) + var(--bottom-nav-gap));
+
   /* Legacy variable backward compatibility bindings */
   --bg-page: var(--bg-app);
   --border-app: var(--border-color);
@@ -76,6 +84,14 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+
+  /* Standard Motion System Tokens */
+  --motion-duration-fast: 0.15s;
+  --motion-duration-normal: 0.22s;
+  --motion-duration-slow: 0.32s;
+  --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
@@ -539,7 +555,7 @@ html, body {
    ============================================================ */
 .bottom-nav-container {
   position: absolute;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--bottom-nav-offset) + var(--bottom-nav-safe-inset));
   left: 50%;
   transform: translateX(-50%);
   z-index: 35;
@@ -549,11 +565,23 @@ html, body {
   display: flex;
   justify-content: center;
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              transform var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              visibility var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+  will-change: opacity, transform;
+}
+
+.bottom-nav-container.bottom-nav-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 20px);
+  pointer-events: none !important;
 }
 
 .bottom-nav {
-  height: 52px;
+  height: var(--bottom-nav-height);
   width: 100%;
   max-width: 440px;
   background-color: var(--fill-bottom-nav);
@@ -737,73 +765,7 @@ html, body {
   padding: 2px;
 }
 
-/* Bottom Nav Floating Bar */
-.bottom-nav-container {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
-  width: 100%;
-  max-width: 460px;
-  padding: 0 12px;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-}
 
-.bottom-nav {
-  height: 48px;
-  width: 100%;
-  max-width: 460px;
-  background-color: var(--fill-rail);
-  border: 1.5px solid var(--border-rail);
-  border-radius: 28px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 0 12px;
-  pointer-events: auto;
-  box-shadow: 0 4px 16px rgba(181, 210, 253, 0.35);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-main);
-  gap: 2px;
-  position: relative;
-  padding: 4px 10px;
-  text-decoration: none;
-}
-
-.nav-item-icon {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-item-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.active-dot {
-  position: absolute;
-  bottom: -6px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background-color: var(--accent-blue);
-}
 
 /* Sleek custom scrollbars matching application palette */
 ::-webkit-scrollbar {
@@ -2824,15 +2786,15 @@ html, body {
     padding: 12px;
   }
   .bottom-nav-container {
-    bottom: 6px;
+    bottom: calc(var(--bottom-nav-offset) + var(--bottom-nav-safe-inset));
     padding: 0 8px;
     max-width: 100%;
   }
   .bottom-nav {
-    height: 44px;
+    height: var(--bottom-nav-height);
     max-width: 100%;
     padding: 0 6px;
-    border-radius: 22px;
+    border-radius: 24px;
   }
   .nav-item {
     padding: 2px 4px;
@@ -3572,6 +3534,26 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
+  opacity: 1;
+  visibility: visible;
+  transition: width var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              padding var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              opacity var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              border-color var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              visibility var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+  will-change: width, opacity;
+}
+
+.sidebar-navigation.sidebar-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  border-right-color: transparent !important;
 }
 
 .sidebar-backdrop {
@@ -3842,7 +3824,7 @@ html, body {
   gap: 24px;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 20px 24px 60px;
+  padding: 20px 24px 20px;
   width: 100%;
   box-sizing: border-box;
   justify-content: center;
@@ -6659,10 +6641,35 @@ html, body {
   padding-bottom: 0 !important;
   overflow: hidden !important;
 }
+
 .sinc-main-viewport:has(.messaging-desktop-container) .sinc-viewport-scroll-area {
   padding-bottom: 0 !important;
   overflow: hidden !important;
+  flex: 1;
+  min-height: 0;
   height: 100% !important;
+  max-height: 100% !important;
+  box-sizing: border-box;
+}
+
+/* When the floating bottom navigation is present and NOT hidden, reserve space so the composer and messages are positioned cleanly above it */
+.sinc-main-viewport.has-bottom-nav:not(.direct-chat-open):has(.messaging-desktop-container) .sinc-viewport-scroll-area,
+.sinc-main-viewport:has(.bottom-nav-container:not(.bottom-nav-hidden)):has(.messaging-desktop-container):not(.direct-chat-open) .sinc-viewport-scroll-area {
+  padding-bottom: var(--bottom-nav-total-height, 66px) !important;
+}
+
+@media (max-width: 768px) {
+  .sinc-main-viewport.has-bottom-nav:not(.direct-chat-open):has(.messaging-desktop-container) .sinc-viewport-scroll-area,
+  .sinc-main-viewport:has(.bottom-nav-container:not(.bottom-nav-hidden)):has(.messaging-desktop-container):not(.direct-chat-open) .sinc-viewport-scroll-area {
+    padding-bottom: var(--bottom-nav-reserved-height, 64px) !important;
+  }
+}
+
+/* When direct chat is open or bottom nav is hidden, collapse padding completely so no blank strip remains */
+.sinc-main-viewport.direct-chat-open .sinc-viewport-scroll-area,
+.sinc-main-viewport.no-bottom-nav .sinc-viewport-scroll-area,
+.sinc-main-viewport:has(.bottom-nav-container.bottom-nav-hidden) .sinc-viewport-scroll-area {
+  padding-bottom: 0px !important;
 }
 
 .messaging-desktop-container {
@@ -7020,7 +7027,7 @@ html, body {
 }
 
 .mobile-back-to-convs-btn {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 34px;
@@ -7031,7 +7038,7 @@ html, body {
   color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: all var(--motion-duration-fast, 0.15s) ease;
 }
 
 .mobile-back-to-convs-btn:hover {
@@ -8786,6 +8793,12 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  :root {
+    --bottom-nav-height: 48px;
+    --bottom-nav-offset: 8px;
+    --bottom-nav-gap: 8px;
+  }
+
   .left-rail {
     display: none !important;
   }
@@ -8797,6 +8810,17 @@ html, body {
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(4px);
     z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--motion-duration-normal, 0.22s) ease,
+                visibility var(--motion-duration-normal, 0.22s) ease;
+  }
+
+  .sidebar-backdrop.backdrop-visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   .sidebar-navigation {
@@ -8804,13 +8828,26 @@ html, body {
     top: 0;
     left: 0;
     bottom: 0;
-    width: 280px;
-    max-width: 85vw;
+    width: 280px !important;
+    max-width: 85vw !important;
     z-index: 999;
     background-color: var(--bg-surface);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
     display: flex !important;
-    animation: slideInLeft 0.2s ease-out;
+    transform: translateX(0);
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: transform var(--motion-duration-normal, 0.22s) var(--motion-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+                visibility var(--motion-duration-normal, 0.22s) ease;
+  }
+
+  .sidebar-navigation.sidebar-collapsed {
+    transform: translateX(-100%) !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    opacity: 1 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   .sidebar-toggle-btn,
@@ -8819,18 +8856,11 @@ html, body {
   }
 
   .mobile-only-nav {
-    display: block;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    background-color: var(--bg-surface);
-    border-top: 1px solid var(--border-color);
+    display: none !important;
   }
 
   .sinc-main-viewport {
-    padding-bottom: 72px;
+    padding-bottom: 0 !important;
   }
 
   .top-header {
@@ -8897,6 +8927,27 @@ html, body {
 
   .messaging-chat-panel.mobile-hidden {
     display: none !important;
+  }
+
+  .active-chat-composer,
+  .chat-composer-bar {
+    padding: 10px 14px !important;
+    gap: 10px !important;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .active-chat-composer .chat-composer-input,
+  .chat-composer-input {
+    height: 42px !important;
+    padding: 0 14px !important;
+    font-size: 14px !important;
+  }
+
+  .active-chat-composer .chat-send-btn,
+  .chat-send-btn {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
   }
 
   .mobile-back-to-convs-btn,
@@ -9138,5 +9189,20 @@ html, body {
     padding: 10px 10px 72px;
   }
 }
+
+/* ============================================================
+   ACCESSIBILITY: PREFERS REDUCED MOTION SUPPORT
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 
 

@@ -4,7 +4,8 @@ export default function BottomNav({
   activeTab,
   onSelectTab,
   hasUnreadMessages = false,
-  unreadMessagesCount = 0
+  unreadMessagesCount = 0,
+  isVisible = true
 }) {
   const navItems = [
     {
@@ -59,7 +60,12 @@ export default function BottomNav({
   ];
 
   return (
-    <div className="bottom-nav-container" role="navigation" aria-label="Floating Bottom Navigation">
+    <div
+      className={`bottom-nav-container ${!isVisible ? 'bottom-nav-hidden' : ''}`}
+      role="navigation"
+      aria-label="Floating Bottom Navigation"
+      aria-hidden={!isVisible}
+    >
       <nav className="bottom-nav">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
@@ -70,10 +76,12 @@ export default function BottomNav({
             <button
               key={item.id}
               type="button"
+              tabIndex={isVisible ? 0 : -1}
               className={`nav-item ${isActive ? 'active' : ''} ${showMessagesUnread ? 'has-unread' : ''}`}
               onClick={() => onSelectTab(item.id)}
               aria-label={`${item.label} Navigation`}
               aria-pressed={isActive}
+              disabled={!isVisible}
             >
               <div className="nav-item-icon">
                 {item.icon}

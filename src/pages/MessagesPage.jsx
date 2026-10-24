@@ -153,11 +153,15 @@ export default function MessagesPage({
 
   const handleSend = async (e) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || !conversationId) return;
-    const msg = inputText;
+    const textToSend = inputText.trim();
+    if (!textToSend || !conversationId) return;
     setInputText('');
     setTyping(false);
-    await sendMessage(msg);
+    const sent = await sendMessage(textToSend);
+    if (!sent) {
+      // Preserve input text on failure so user never loses their drafted message
+      setInputText(textToSend);
+    }
   };
 
   const filteredConversations = conversations.filter((c) => {
@@ -269,6 +273,7 @@ export default function MessagesPage({
                   className="mobile-back-to-convs-btn"
                   onClick={onBackToList}
                   aria-label="Back to conversations list"
+                  title="Back to conversations list"
                 >
                   <ArrowLeft size={18} />
                 </button>

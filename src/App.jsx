@@ -106,7 +106,11 @@ function MainAppContent() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => {
     try {
       const stored = localStorage.getItem('sinc_left_sidebar_open');
-      return stored !== null ? stored !== 'false' : true;
+      if (stored !== null) return stored !== 'false';
+      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        return false;
+      }
+      return true;
     } catch (e) {
       return true;
     }
@@ -983,6 +987,13 @@ function MainAppContent() {
     }
   };
 
+  // Authoritative navigation visibility:
+  // 1. If user disabled bottom nav in preferences, keep it hidden.
+  // 2. If the main left sidebar is expanded (showing full labels), hide the floating bottom nav (mutually exclusive).
+  // 3. If an active direct messaging conversation is open, hide the floating bottom nav (preserves existing messaging rule).
+  const isDirectChatOpen = activeTab === 'messages' && Boolean(selectedConversation?.id);
+  const shouldShowBottomNav = showBottomNav && !isLeftSidebarOpen && !isDirectChatOpen;
+
   return (
     <div className="sinc-app-shell">
       {/* Top Header Bar */}
@@ -1009,23 +1020,22 @@ function MainAppContent() {
       {/* Main Persistent Layout: Full Left Menu + Floating Vertical Rail + Viewport + Floating Bottom Nav */}
       <div className="sinc-app-body-container">
         {/* 1. Full Left Menu with Visible Labels */}
-        {isLeftSidebarOpen && (
-          <SidebarNavigation
-            activeTab={activeTab}
-            onSelectTab={handleTabChange}
-            unreadNotificationsCount={unreadNotificationsCount}
-            unreadMessagesCount={unreadMessagesCount}
-            currentUser={user}
-            currentProfile={user}
-            onOpenCreatePost={() => {
-              setActiveTab('create-post');
-              pushRoute({ tab: 'create-post' });
-            }}
-            onCloseMobile={() => setIsLeftSidebarOpen(false)}
-            onToggleSidebar={handleToggleLeftSidebar}
-            isMobileOpen={isLeftSidebarOpen}
-          />
-        )}
+        <SidebarNavigation
+          activeTab={activeTab}
+          onSelectTab={handleTabChange}
+          unreadNotificationsCount={unreadNotificationsCount}
+          unreadMessagesCount={unreadMessagesCount}
+          currentUser={user}
+          currentProfile={user}
+          onOpenCreatePost={() => {
+            setActiveTab('create-post');
+            pushRoute({ tab: 'create-post' });
+          }}
+          onCloseMobile={() => setIsLeftSidebarOpen(false)}
+          onToggleSidebar={handleToggleLeftSidebar}
+          isMobileOpen={isLeftSidebarOpen}
+          isOpen={isLeftSidebarOpen}
+        />
 
         {/* 2. Floating Vertical Icon Sidebar */}
         {showVerticalRail && (
@@ -1042,7 +1052,10 @@ function MainAppContent() {
         )}
 
         {/* 3. Main Content Viewport */}
-        <main className="sinc-main-viewport" id="sinc-main-content">
+        <main
+          className={`sinc-main-viewport ${shouldShowBottomNav ? 'has-bottom-nav' : 'no-bottom-nav'} ${isDirectChatOpen ? 'direct-chat-open' : ''} ${isLeftSidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}
+          id="sinc-main-content"
+        >
           <div
             className="sinc-viewport-scroll-area"
             style={{
@@ -1052,7 +1065,10 @@ function MainAppContent() {
               overflowX: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              paddingBottom: showBottomNav ? '78px' : '20px'
+              paddingBottom: shouldShowBottomNav
+                ? 'var(--bottom-nav-reserved-height, 78px)'
+                : (isDirectChatOpen ? '0px' : '20px'),
+              transition: 'padding-bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
             {renderScreen()}
@@ -1061,6 +1077,7 @@ function MainAppContent() {
           {/* 4. Floating Horizontal Bottom Navigation Bar */}
           {showBottomNav && (
             <BottomNav
+              isVisible={shouldShowBottomNav}
               activeTab={
                 activeTab === 'post-view'
                   ? postViewReturnState?.activeTab || 'messages'
