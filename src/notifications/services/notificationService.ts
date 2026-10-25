@@ -35,8 +35,8 @@ export interface CreateNotificationParams {
   actorObj?: any;
 }
 
-// Reactive local notifications storage
-export let localNotifications: NotificationItem[] = [
+// Reactive local notifications storage (seeded only in offline mock mode)
+export let localNotifications: NotificationItem[] = !isSupabaseConfigured ? [
   {
     id: 'n-1',
     recipient_id: 'u1',
@@ -113,7 +113,8 @@ export let localNotifications: NotificationItem[] = [
       avatarUrl: null
     }
   }
-];
+] : [];
+
 
 const notificationListeners = new Set<() => void>();
 export const notifyNotificationStateChange = (): void => {
@@ -293,13 +294,15 @@ export const getNotifications = async (recipientId: string | null): Promise<Noti
         }
       });
 
-      // Merge with any fresh local notifications for recipient
-      const localList = localNotifications.filter((n) => n.recipient_id === recipientId);
-      localList.forEach((n) => {
-        if (!mergedMap.has(n.entity_id || n.id)) {
-          mergedMap.set(n.entity_id || n.id, n);
-        }
-      });
+      // Merge with local notifications only in pure offline mode
+      if (!isSupabaseConfigured) {
+        const localList = localNotifications.filter((n) => n.recipient_id === recipientId);
+        localList.forEach((n) => {
+          if (!mergedMap.has(n.entity_id || n.id)) {
+            mergedMap.set(n.entity_id || n.id, n);
+          }
+        });
+      }
 
       const finalList = Array.from(mergedMap.values()).sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -307,9 +310,12 @@ export const getNotifications = async (recipientId: string | null): Promise<Noti
 
       return finalList;
     } catch (e) {
-      console.warn('[NotificationService] Supabase getNotifications exception, using local fallback:', e);
+      console.warn('[NotificationService] Supabase getNotifications exception:', e);
+      if (isSupabaseConfigured) return [];
     }
   }
+
+  if (isSupabaseConfigured) return [];
 
   return localNotifications
     .filter((n) => n.recipient_id === recipientId)

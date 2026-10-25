@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { users as defaultUsers } from '../data/mockData';
 import { getBatchFollowStatuses, sendFollowRequest, searchProfiles } from '../lib/socialService';
 import { isBlockedSync } from '../lib/blockService';
@@ -30,28 +31,29 @@ export default function WhoToFollowWidget({ onNavigateToProfile }: WhoToFollowWi
     let isMounted = true;
 
     async function loadCandidates() {
-      // Filter out current user and blocked users
-      let candidates: WhoToFollowUser[] = defaultUsers.filter((u) => {
-        if (currentUserId && u.id === currentUserId) return false;
-        if (currentUserId && isBlockedSync(currentUserId, u.id)) return false;
-        return true;
-      });
+      let candidates: WhoToFollowUser[] = [];
 
-      // Try fetching active real profiles if available
-      try {
-        const liveProfiles = await searchProfiles('', currentUserId);
-        if (Array.isArray(liveProfiles) && liveProfiles.length > 0) {
-          const validLive = liveProfiles.filter((p: any) => {
-            if (currentUserId && p.id === currentUserId) return false;
-            if (currentUserId && isBlockedSync(currentUserId, p.id)) return false;
-            return true;
-          });
-          if (validLive.length >= 3) {
-            candidates = validLive;
+      if (!isSupabaseConfigured) {
+        // Pure local offline demo fallback only
+        candidates = defaultUsers.filter((u) => {
+          if (currentUserId && u.id === currentUserId) return false;
+          if (currentUserId && isBlockedSync(currentUserId, u.id)) return false;
+          return true;
+        });
+      } else {
+        // Production: fetch authoritative profiles from database with no mock fallback
+        try {
+          const liveProfiles = await searchProfiles('', currentUserId);
+          if (Array.isArray(liveProfiles) && liveProfiles.length > 0) {
+            candidates = liveProfiles.filter((p: any) => {
+              if (currentUserId && p.id === currentUserId) return false;
+              if (currentUserId && isBlockedSync(currentUserId, p.id)) return false;
+              return true;
+            });
           }
+        } catch (e) {
+          console.warn('[WhoToFollowWidget] Error fetching live profiles:', e);
         }
-      } catch (e) {
-        // Fallback to candidates
       }
 
       const topCandidates = candidates.slice(0, 4);

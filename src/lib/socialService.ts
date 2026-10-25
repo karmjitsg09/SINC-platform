@@ -145,14 +145,12 @@ export const searchProfiles = async (query: string = '', currentUserId: string =
         }));
 
         const otherMatches = dbProfiles.filter((u: any) => u.id !== currentUserId && !isBlockedSync(currentUserId, u.id));
-        // If authenticated with a real Supabase user, return DB results without mock fallbacks
-        if (currentUserId && !currentUserId.startsWith('u1') && !currentUserId.startsWith('u-')) {
-          return otherMatches;
-        }
-        return otherMatches.length > 0 ? otherMatches : dbProfiles;
+        return otherMatches;
       }
+      return [];
     } catch (e) {
       console.error('Supabase profile search error:', e);
+      return [];
     }
   }
 

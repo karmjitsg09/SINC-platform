@@ -166,6 +166,7 @@ export const getConversations = async (currentUserId: string | null | undefined)
           };
         });
       }
+      return [];
     } catch (e) {
       console.error('Supabase getConversations exception:', e);
       return [];
