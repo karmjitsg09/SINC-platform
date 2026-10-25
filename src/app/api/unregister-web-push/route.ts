@@ -36,11 +36,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!endpoint || typeof endpoint !== 'string') {
-      return NextResponse.json({ error: 'Missing or invalid endpoint' }, { status: 400 });
+    if (!endpoint || typeof endpoint !== 'string' || !endpoint.trim().startsWith('https://')) {
+      return NextResponse.json({ error: 'Missing or invalid endpoint: must be a secure HTTPS URL' }, { status: 400 });
     }
 
-    unregisterLocalSubscription(userId, endpoint);
+    unregisterLocalSubscription(userId, endpoint.trim());
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Unregistration failure' }, { status: 500 });

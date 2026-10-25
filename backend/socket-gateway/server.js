@@ -50,26 +50,73 @@ const onlineUsers = new Map();
  * @returns {{ valid: boolean, payload?: object, error?: string }}
  */
 function verifySupabaseToken(token) {
+  // 1. Mandatory verification configuration — fails closed if secret is missing in any environment
+  const secret = process.env.SUPABASE_JWT_SECRET;
+  if (!secret || typeof secret !== 'string' || secret.trim() === '') {
+    return { valid: false, error: 'Server configuration error: SUPABASE_JWT_SECRET required' };
+  }
+
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Missing access token in handshake auth' };
   }
 
   const clean = token.replace(/^Bearer\s+/i, '').trim();
   const parts = clean.split('.');
-  if (parts.length !== 3) {
+  if (parts.length !== 3 || !parts[0] || !parts[1]) {
     return { valid: false, error: 'Malformed token structure (expected header.payload.signature)' };
   }
 
-  // 1. Decode header & payload
-  let header, payload;
+  // 2. Decode & validate header
+  let header;
   try {
     header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
-    payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
   } catch (parseErr) {
-    return { valid: false, error: 'Failed to decode token JSON' };
+    return { valid: false, error: 'Failed to decode token header JSON' };
   }
 
-  // 2. Validate expiration
+  if (!header || typeof header !== 'object') {
+    return { valid: false, error: 'Invalid token header structure' };
+  }
+
+  // Enforce supported signing algorithm — only HS256 is supported for symmetric HMAC
+  if (!header.alg || header.alg !== 'HS256') {
+    return { valid: false, error: `Unsupported signing algorithm "${header.alg || 'none'}". Expected HS256.` };
+  }
+
+  if (!parts[2]) {
+    return { valid: false, error: 'Missing token signature' };
+  }
+
+  // 3. Cryptographic signature verification (mandatory HMAC-SHA256)
+  try {
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(`${parts[0]}.${parts[1]}`)
+      .digest('base64url');
+
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const actualBuf = Buffer.from(parts[2], 'utf8');
+
+    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+      return { valid: false, error: 'Invalid token signature' };
+    }
+  } catch (sigErr) {
+    return { valid: false, error: 'Cryptographic signature verification failed' };
+  }
+
+  // 4. Decode & validate payload claims
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+  } catch (parseErr) {
+    return { valid: false, error: 'Failed to decode token payload JSON' };
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return { valid: false, error: 'Invalid token payload structure' };
+  }
+
+  // Expiration validation
   if (!payload.exp || typeof payload.exp !== 'number') {
     return { valid: false, error: 'Token missing exp claim' };
   }
@@ -77,38 +124,17 @@ function verifySupabaseToken(token) {
     return { valid: false, error: 'Expired authentication token' };
   }
 
-  // 3. Validate subject claim (authoritative user ID)
-  if (!payload.sub || typeof payload.sub !== 'string') {
+  // Subject claim (authoritative user ID)
+  if (!payload.sub || typeof payload.sub !== 'string' || payload.sub.trim() === '') {
     return { valid: false, error: 'Missing or invalid sub claim in token' };
   }
 
-  // 4. Validate role & audience
+  // Role & audience validation
   if (payload.role && payload.role !== 'authenticated' && payload.role !== 'service_role') {
     return { valid: false, error: 'Invalid token role' };
   }
   if (payload.aud && payload.aud !== 'authenticated') {
     return { valid: false, error: 'Invalid token audience' };
-  }
-
-  // 5. Cryptographic signature verification if secret is provided or in production
-  if (JWT_SECRET) {
-    try {
-      const expectedSignature = crypto
-        .createHmac('sha256', JWT_SECRET)
-        .update(`${parts[0]}.${parts[1]}`)
-        .digest('base64url');
-
-      const expectedBuf = Buffer.from(expectedSignature, 'utf8');
-      const actualBuf = Buffer.from(parts[2], 'utf8');
-
-      if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
-        return { valid: false, error: 'Invalid token signature' };
-      }
-    } catch (sigErr) {
-      return { valid: false, error: 'Cryptographic signature verification failed' };
-    }
-  } else if (IS_PROD) {
-    return { valid: false, error: 'Server missing required SUPABASE_JWT_SECRET configuration' };
   }
 
   return { valid: true, payload };
@@ -249,6 +275,16 @@ io.on('connection', (socket) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`[sinc-socket-gateway] Realtime Socket.IO Gateway listening on port ${PORT}`);
+    const secret = process.env.SUPABASE_JWT_SECRET;
+    if (!secret) {
+      console.warn('[sinc-socket-gateway] WARNING: SUPABASE_JWT_SECRET is not configured. Handshakes will fail closed.');
+    } else {
+      console.log(
+        '[sinc-socket-gateway] Confirmed JWT signing mode: HS256 (Symmetric HMAC-SHA256). ' +
+        'CRITICAL NOTICE: Rotating the Supabase project to asymmetric signing keys (RS256/ES256) ' +
+        'will break socket gateway authentication until JWKS verification is implemented.'
+      );
+    }
   });
 }
 

@@ -68,7 +68,24 @@ async function runSecurityTests() {
 
   try {
     // -------------------------------------------------------------
-    // TEST 1: Missing Token Rejection
+    // TEST 1: Missing Verification Configuration Fail-Closed
+    // -------------------------------------------------------------
+    {
+      const originalSecret = process.env.SUPABASE_JWT_SECRET;
+      delete process.env.SUPABASE_JWT_SECRET;
+      const validToken = createToken('user-alice-123');
+      const noSecretResult = verifySupabaseToken(validToken);
+      process.env.SUPABASE_JWT_SECRET = originalSecret;
+
+      if (!noSecretResult.valid && noSecretResult.error.includes('SUPABASE_JWT_SECRET required')) {
+        recordPass('Missing verification configuration fails closed safely');
+      } else {
+        recordFail('Missing verification configuration', `Expected fail-closed error, got: ${JSON.stringify(noSecretResult)}`);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // TEST 2: Missing Token Rejection
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       const client = Client(`http://localhost:${TEST_PORT}`, {
@@ -93,7 +110,32 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 2: Expired Token Rejection
+    // TEST 3: Malformed Token Rejection
+    // -------------------------------------------------------------
+    await new Promise((resolve) => {
+      const client = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: 'malformed.jwt.token.with.too.many.dots' },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      client.on('connect_error', (err) => {
+        if (err.message.includes('Malformed token structure')) {
+          recordPass('Malformed token structure is rejected');
+        } else {
+          recordFail('Malformed token', `Unexpected error message: ${err.message}`);
+        }
+        client.close();
+        resolve();
+      });
+      client.on('connect', () => {
+        recordFail('Malformed token', 'Expected connection to be rejected');
+        client.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 4: Expired Token Rejection
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       const expiredToken = createToken('user-alice-123', -60); // expired 60 seconds ago
@@ -119,36 +161,7 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 3: Identity Spoofing Rejection (Token sub != Client userId)
-    // -------------------------------------------------------------
-    await new Promise((resolve) => {
-      const validAliceToken = createToken('user-alice-123');
-      const client = Client(`http://localhost:${TEST_PORT}`, {
-        auth: {
-          token: validAliceToken,
-          userId: 'user-bob-999' // Malicious spoof attempt
-        },
-        transports: ['websocket'],
-        reconnection: false
-      });
-      client.on('connect_error', (err) => {
-        if (err.message.includes('Client userId mismatch with token identity')) {
-          recordPass('Identity spoofing (client userId mismatch) is rejected');
-        } else {
-          recordFail('Identity spoofing', `Unexpected error: ${err.message}`);
-        }
-        client.close();
-        resolve();
-      });
-      client.on('connect', () => {
-        recordFail('Identity spoofing', 'Expected spoofed connection to be rejected');
-        client.close();
-        resolve();
-      });
-    });
-
-    // -------------------------------------------------------------
-    // TEST 4: Invalid Cryptographic Signature Rejection
+    // TEST 5: Invalid Cryptographic Signature Rejection
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       const header = { alg: 'HS256', typ: 'JWT' };
@@ -180,7 +193,67 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 5: Valid Token Connection & Personal Room Binding
+    // TEST 6: Unsupported Signing Algorithm Rejection (alg: none / RS256)
+    // -------------------------------------------------------------
+    await new Promise((resolve) => {
+      const noneHeader = { alg: 'none', typ: 'JWT' };
+      const payload = { sub: 'user-attacker-none', exp: Math.floor(Date.now() / 1000) + 3600, aud: 'authenticated', role: 'authenticated' };
+      const hB64 = Buffer.from(JSON.stringify(noneHeader)).toString('base64url');
+      const pB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+      const noneToken = `${hB64}.${pB64}.`;
+
+      const client = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: noneToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      client.on('connect_error', (err) => {
+        if (err.message.includes('Unsupported signing algorithm')) {
+          recordPass('Unsupported signing algorithm (alg: none) is rejected');
+        } else {
+          recordFail('Unsupported algorithm', `Unexpected error: ${err.message}`);
+        }
+        client.close();
+        resolve();
+      });
+      client.on('connect', () => {
+        recordFail('Unsupported algorithm', 'Expected connection to be rejected');
+        client.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 7: Identity Spoofing Rejection (Token sub != Client userId)
+    // -------------------------------------------------------------
+    await new Promise((resolve) => {
+      const validAliceToken = createToken('user-alice-123');
+      const client = Client(`http://localhost:${TEST_PORT}`, {
+        auth: {
+          token: validAliceToken,
+          userId: 'user-bob-999' // Malicious spoof attempt
+        },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      client.on('connect_error', (err) => {
+        if (err.message.includes('Client userId mismatch with token identity')) {
+          recordPass('Identity spoofing (client userId mismatch) is rejected');
+        } else {
+          recordFail('Identity spoofing', `Unexpected error: ${err.message}`);
+        }
+        client.close();
+        resolve();
+      });
+      client.on('connect', () => {
+        recordFail('Identity spoofing', 'Expected spoofed connection to be rejected');
+        client.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 8: Valid Token Connection & Personal Room Binding
     // -------------------------------------------------------------
     let clientAlice;
     await new Promise((resolve) => {
@@ -201,7 +274,7 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 6: Unauthorized Personal Room Join Protection
+    // TEST 9: Unauthorized Personal Room Join Protection
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       if (!clientAlice || !clientAlice.connected) {
@@ -221,7 +294,7 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 7: Ephemeral Typing Authoritative Identity Binding
+    // TEST 10: Ephemeral Typing Authoritative Identity Binding
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       const bobToken = createToken('user-bob-999');
@@ -253,6 +326,66 @@ async function runSecurityTests() {
         setTimeout(() => {
           clientAlice.emit('typing:start', { conversationId: testConvId, userId: 'spoofed-eve-id' });
         }, 50);
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 11: Notification Relay Authoritative Sender Identity Binding
+    // -------------------------------------------------------------
+    await new Promise((resolve) => {
+      const bobToken = createToken('user-bob-999');
+      const clientBob = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: bobToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+
+      clientBob.on('connect', () => {
+        clientBob.on('notification:received', (data) => {
+          if (data.senderId === 'user-alice-123' && data.title === 'Security Alert') {
+            recordPass('Notification relay authoritatively binds senderId to token identity (user-alice-123)');
+          } else {
+            recordFail('Notification relay identity', `Expected senderId user-alice-123, got: ${data.senderId}`);
+          }
+          clientBob.close();
+          resolve();
+        });
+
+        // Alice attempts to send notification claiming to be forged sender
+        setTimeout(() => {
+          clientAlice.emit('notification:send', {
+            recipientId: 'user-bob-999',
+            senderId: 'forged-attacker-identity',
+            title: 'Security Alert',
+            message: 'Testing authoritative sender binding'
+          });
+        }, 50);
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 12: Presence Broadcast Authoritative User ID Binding
+    // -------------------------------------------------------------
+    await new Promise((resolve) => {
+      // Connect third client (Charlie) to observe presence updates
+      const charlieToken = createToken('user-charlie-777');
+      const clientCharlie = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: charlieToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+
+      clientCharlie.on('connect', () => {
+        // Query online presence to verify authoritative IDs
+        clientCharlie.emit('presence:query', (response) => {
+          if (response && Array.isArray(response.onlineUserIds) && response.onlineUserIds.includes('user-alice-123')) {
+            recordPass('Presence query authoritatively reports verified token identities');
+          } else {
+            recordFail('Presence query', `Expected online list to include user-alice-123, got: ${JSON.stringify(response)}`);
+          }
+          clientCharlie.close();
+          resolve();
+        });
       });
     });
 

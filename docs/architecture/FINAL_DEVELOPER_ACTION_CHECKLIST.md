@@ -28,7 +28,8 @@ Before executing a production deployment, the developer must address **3 configu
 | **DONE — VERIFIED** | Next.js App Router 27 Route Pages | `src/app/**/page.tsx` | All 27 application routes mapped, compiling, and verified. |
 | **DONE — VERIFIED** | 100% TypeScript Conversion | `src/**/*.{ts,tsx}` | Exactly 156 TS files (111 `.tsx` + 45 `.ts`). Zero application `.js`/`.jsx` files. |
 | **DONE — VERIFIED** | TypeScript Compiler Hardening | `tsconfig.json` | Configured with `"strict": true` and `"allowJs": false`. `npx tsc --noEmit` exits with 0 errors. |
-| **DONE — VERIFIED** | Next.js Production Build | Root build pipeline | `npm run build` exits with code 0. All 27 routes statically/dynamically generated. |
+| **DONE — VERIFIED** | Next.js Security Patch (v14.2.35) | `package.json` | Upgraded `next` from 14.2.24 to latest 14.2.x patch release (`14.2.35`). `npm run build` exits with code 0. |
+| **DONE — VERIFIED** | Middleware Authorization Independence | Architecture Audit | Confirmed zero routes rely on middleware as authorization check (`middleware.ts` does not exist). |
 | **DONE — VERIFIED** | Search Tablet Layout Parity | `src/index.css` | Verified single-column stacked layout on 768px tablet (100% Canvas pixel similarity). |
 | **DONE — VERIFIED** | Intro Animation Lifecycle | `src/components/common/SincIntro.tsx` | 16.9s welcome on login, 2s flourish on reload, skip button, and session reset verified. |
 | **NOT REQUIRED** | Legacy Vite Baseline | `frontend/` | Preserved untouched for regression baseline; no action required. |
@@ -39,6 +40,7 @@ Before executing a production deployment, the developer must address **3 configu
 | Status | Item Description | Target File / Area | Concrete Action Required |
 |---|---|---|---|
 | **DONE — VERIFIED** | Test Environment Isolation Gate | `tests/integration/testEnvironmentGuard.cjs`, `phase5_phase6_complete_test.cjs` | **Fail-Closed Guard Implemented**: Requires explicit `ALLOW_DATABASE_MUTATING_TESTS=true` and `SINC_TEST_SUPABASE_URL`. Refuses to run against production host (`vctwzlsatqsuinmosnzo.supabase.co`) or default root `.env`. 6/6 unit tests pass. |
+| **YOU MUST CONFIGURE** | Durable Idempotency Migration Deployment (Staging) | `supabase/migrations/20261025_push_idempotency_keys.sql` | **Next Step**: Apply migration to staging Supabase instance when staging database is provisioned. Configures RLS with 0 client policies (server-only access). Keep keys >=7 days. Unapplied locally due to zero production mutation rule. |
 | **YOU MUST CONFIGURE** | Isolated Staging / Local Supabase Target | Supabase CLI or Dedicated Test Project | **Next Step**: To run database-writing tests safely, run `npx supabase start` locally (`http://127.0.0.1:54321`) or configure an isolated test project. Never run against production. |
 | **YOU MUST TEST MANUALLY** | Historical Test Artifact Cleanup | Supabase Project `vctwzlsatqsuinmosnzo` Table Editor | **Next Step**: Inspect the Supabase dashboard using the read-only investigation checklist (window: Oct 23–24, 2026; prefixes: `SINC-CHAT-TEST-20261023-FINAL-*`, `SINC-REPLY-TEST-FINAL-*`). Manually delete confirmed test records after operator sign-off. |
 
@@ -49,7 +51,8 @@ Before executing a production deployment, the developer must address **3 configu
 |---|---|---|---|
 | **DONE — VERIFIED** | Mock Session Fallback Purge | `src/context/AuthContext.tsx` | All synthetic `sinc_mock_session` code removed. Shell redirects unauthenticated users to `/login`. |
 | **DONE — VERIFIED** | Sign-Out Cache & Store Wiping | `src/context/AuthContext.tsx` | `logout()` purges TanStack Query cache, Zustand stores, Socket.IO, and session markers. |
-| **DONE — VERIFIED** | Web Push API Server Token Validation | `src/lib/serverAuth.ts`, `app/api/*` | **Hardened**: Server-side JWT validation implemented. Rejects unauthenticated calls with 401; blocks cross-user registration with 403; authoritatively binds caller ID. 8/8 unit tests pass. |
+| **DONE — VERIFIED** | Web Push API Event Authorization, Freshness, Visibility & Durable Idempotency | `src/lib/serverAuth.ts`, `app/api/*` | **Hardened**: Server-side JWT validation, event freshness window (10m default; >10m suppressed with 200), private-profile visibility checks (`mention`/`comment`/`like`), bidirectional social blocks, and durable Postgres idempotency store (`PostgresPushIdempotencyStore`). Replay bypass strictly closed (authoritative event keys enforced); concurrency lock (409) and duplicate replay prevention (200 replayed) active. 61/61 unit tests pass. |
+| **DONE — VERIFIED** | Supabase Project JWT Signing Mode (`HS256`) | `src/lib/serverAuth.ts`, `backend/socket-gateway/server.js` | **Operator Confirmed HS256**: Maintained strict HMAC-SHA256 verifier with startup assertion (`assertJwtConfiguration`). Explicitly documented: rotating Supabase project to asymmetric keys (`RS256`/`ES256`) will break auth until verifiers are updated to JWKS. |
 | **BLOCKED** | Live Google OAuth Credentials | Google Cloud Console & Supabase Dashboard | **Prerequisite**: Client-side OAuth handler is implemented, but external setup is missing.<br>**Next Step**:<br>1. In Google Cloud Console, create OAuth 2.0 Client credentials.<br>2. Add Authorized Redirect URI: `https://vctwzlsatqsuinmosnzo.supabase.co/auth/v1/callback`.<br>3. In Supabase Dashboard -> Auth -> Providers -> Google, paste Client ID and Secret.<br>4. In Supabase URL Configuration, add your production domain to Redirect URLs. |
 | **YOU MUST TEST MANUALLY** | Live Google OAuth End-to-End Flow | `/login` in staging/production | **Next Step**: Perform a genuine browser sign-in using a real Google account to verify user creation, profile auto-provisioning, and 16.9s welcome animation trigger. |
 
@@ -59,10 +62,11 @@ Before executing a production deployment, the developer must address **3 configu
 | Status | Item Description | Target File / Area | Concrete Action Required |
 |---|---|---|---|
 | **DONE — VERIFIED** | Local Socket.IO Gateway | `backend/socket-gateway/server.js` | Runs on port 3001. Typing indicators, user presence, room joining, and spoof checks verified. |
-| **DONE — VERIFIED** | Client Socket JWT Transmission & Server Verification | `src/components/common/SocketInitializer.tsx`, `server.js` | **Hardened**: Handshake transmits active Supabase session token. Server verifies token, claims, HMAC signature, and enforces room authorization (`user:${id}`). 7/7 unit tests pass. |
+| **DONE — VERIFIED** | Client Socket JWT Transmission & Fail-Closed Verification | `src/components/common/SocketInitializer.tsx`, `server.js` | **Hardened**: Handshake transmits active Supabase session token. Server verifies token, claims, HMAC-SHA256 signature, restricts alg to `HS256`, enforces fail-closed behavior on missing secret, authoritatively binds typing sender, notification relay senderId, and reports verified presence identities. 12/12 unit tests pass. |
 | **YOU MUST CONFIGURE** | Persistent Container Deployment | Cloud Provider (Render / Railway / AWS ECS) | **Architecture Requirement**: Next.js on Vercel cannot host persistent WebSockets.<br>**Next Step**:<br>1. Deploy `backend/socket-gateway/` as a standalone Node.js service.<br>2. Configure domain with SSL/WSS (e.g., `wss://socket.sinc.network`).<br>3. Set `SOCKET_PORT=3001`, `SOCKET_CORS_ORIGIN=https://sinc.network`, and `SUPABASE_JWT_SECRET` in the container environment. |
 | **YOU MUST CONFIGURE** | Production Content Security Policy | `vercel.json` | **Deployment Runbook**: Once the real gateway hostname is provisioned, append `https://<socket-domain> wss://<socket-domain>` to `connect-src` in `vercel.json`. Do not guess placeholder domains in advance. |
 | **YOU MUST CONFIGURE** | Frontend Environment Variable | Hosting Provider Dashboard (Vercel) | **Next Step**: Add `NEXT_PUBLIC_SOCKET_URL=https://<authoritative-socket-domain>` to Vercel environment variables. |
+| **YOU MUST CONFIGURE** | Distributed Idempotency Store Selection | Staging / Production Environment | **Next Step**: Configure `PUSH_IDEMPOTENCY_STORE=postgres` in production/staging environment variables to activate `PostgresPushIdempotencyStore`. |
 
 ---
 
@@ -113,12 +117,12 @@ npm run dev
 ## 5. Final Sign-Off Status
 
 ```
-[MIGRATION CORE]:     ✅ FULLY PASSED & READY FOR STAGING
+[MIGRATION CORE]:     ✅ FULLY PASSED & READY FOR STAGING (Next.js 14.2.35)
 [TYPESCRIPT]:         ✅ 100% STRICT & HARDENED (allowJs: false, 0 errors)
 [VISUAL & RESPONSIVE]:✅ 100% PARITY WITH ORIGINAL VITE SPA (Tablets & Mobile Verified)
-[SOCKET.IO LOCAL]:    ✅ FULLY OPERATIONAL & HARDENED (Token Auth & Room Guard Verified)
+[SOCKET.IO LOCAL]:    ✅ FULLY OPERATIONAL & HARDENED (Token Auth & Room Guard Verified, 12/12 tests)
 [SOCKET.IO PROD]:     ⏳ PENDING CONTAINER DEPLOYMENT & CSP CONFIG
-[WEB PUSH API]:       ✅ SERVER-SIDE TOKEN GATING VERIFIED (401 & 403 Guards Active)
+[WEB PUSH API]:       ✅ SERVER-SIDE TOKEN GATING, FRESHNESS, VISIBILITY & DURABLE IDEMPOTENCY (61/61 tests pass)
 [DATABASE ISOLATION]: ✅ FAIL-CLOSED INTERLOCK ENFORCED (phase5_phase6 Test Blocked)
 [GOOGLE OAUTH]:       ⏳ BLOCKED PENDING GOOGLE CLOUD CREDENTIALS
 ```

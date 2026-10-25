@@ -36,12 +36,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Validate subscription object
+    // 4. Validate subscription object & endpoint
     if (!subscription || typeof subscription !== 'object' || !subscription.endpoint || typeof subscription.endpoint !== 'string') {
       return NextResponse.json({ error: 'Missing or invalid subscription.endpoint' }, { status: 400 });
     }
 
-    const record = registerLocalSubscription(userId, subscription);
+    const endpoint = subscription.endpoint.trim();
+    if (!endpoint.startsWith('https://') || endpoint.length > 1000) {
+      return NextResponse.json(
+        { error: 'Invalid subscription endpoint: Web Push endpoints must be secure HTTPS URLs' },
+        { status: 400 }
+      );
+    }
+
+    const record = registerLocalSubscription(userId, {
+      ...subscription,
+      endpoint
+    });
     return NextResponse.json({ success: true, record });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Registration failure' }, { status: 500 });

@@ -27,7 +27,7 @@ function loadEnv() {
 }
 loadEnv();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 const vapidPublicKey = process.env.VITE_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -94,14 +94,15 @@ async function sendPushNotification({
   message,
   url,
   entityType,
-  entityId
+  entityId,
+  customClient
 }) {
   if (!recipientId) {
     return { success: false, error: 'recipientId is required' };
   }
 
-  // Self-notification suppression
-  if (callerId && callerId === recipientId) {
+  // Self-notification suppression (unless explicit system or test notification)
+  if (callerId && callerId === recipientId && type !== 'system' && type !== 'test') {
     return { success: true, delivered: 0, reason: 'self_notification_suppressed' };
   }
 
@@ -114,9 +115,26 @@ async function sendPushNotification({
   }
   rateLimitCache.set(rateLimitKey, now);
 
-  const supabaseAdmin = (supabaseUrl && supabaseSecretKey)
-    ? createClient(supabaseUrl, supabaseSecretKey)
-    : null;
+  const isTest = process.env.NODE_ENV === 'test' || process.env.SINC_TEST_MODE === 'true';
+  const currentUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const currentSecretKey = process.env.SUPABASE_SECRET_KEY;
+
+  let supabaseAdmin = customClient;
+  if (!supabaseAdmin) {
+    if (currentUrl && currentSecretKey && currentUrl.trim() && currentSecretKey.trim()) {
+      try {
+        supabaseAdmin = createClient(currentUrl.trim(), currentSecretKey.trim());
+      } catch (err) {
+        console.error('[serverPushDispatcher] Error creating Supabase client:', err?.message || 'Unknown error');
+      }
+    }
+  }
+
+  // In non-test environments, missing server credentials or client creation failure must fail closed
+  if (!isTest && !supabaseAdmin) {
+    console.error('[serverPushDispatcher] Push delivery failed: Missing SUPABASE_URL or SUPABASE_SECRET_KEY in server environment');
+    return { success: false, error: 'Server configuration error: Database client credentials missing' };
+  }
 
   // 1. Authenticate caller if token provided
   let authenticatedUser = null;
@@ -143,22 +161,32 @@ async function sendPushNotification({
         .eq('user_id', recipientId)
         .eq('is_active', true);
 
-      if (!dbErr && dbSubs && dbSubs.length > 0) {
+      if (dbErr) {
+        console.error('[serverPushDispatcher] Failed to fetch subscriptions for recipient:', dbErr.message);
+        if (!isTest) {
+          return { success: false, error: 'Database error fetching recipient subscriptions' };
+        }
+      } else if (dbSubs && dbSubs.length > 0) {
         subscriptions = dbSubs;
       }
     } catch (e) {
-      // Fallback to local memory subscriptions
+      console.error('[serverPushDispatcher] Exception querying subscriptions:', e?.message || 'Database error');
+      if (!isTest) {
+        return { success: false, error: 'Database error fetching recipient subscriptions' };
+      }
     }
   }
 
-  // Merge with any active local memory subscriptions
-  const localSubs = getLocalSubscriptions(recipientId);
-  const existingEndpoints = new Set(subscriptions.map((s) => s.endpoint));
-  localSubs.forEach((ls) => {
-    if (!existingEndpoints.has(ls.endpoint)) {
-      subscriptions.push(ls);
-    }
-  });
+  // The in-memory subscription registry may only be used when NODE_ENV === 'test' (or an explicit test flag)
+  if (isTest) {
+    const localSubs = getLocalSubscriptions(recipientId);
+    const existingEndpoints = new Set(subscriptions.map((s) => s.endpoint));
+    localSubs.forEach((ls) => {
+      if (!existingEndpoints.has(ls.endpoint)) {
+        subscriptions.push(ls);
+      }
+    });
+  }
 
   if (subscriptions.length === 0) {
     return { success: true, delivered: 0, message: 'No active subscriptions for recipient' };

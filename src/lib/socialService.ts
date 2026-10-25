@@ -476,31 +476,35 @@ export const respondToFollowRequest = async (
         cleanReqId = cleanReqId.replace('fr-notif-', '');
       }
 
-      let updatedReq = null;
-      if (cleanReqId && !cleanReqId.startsWith('fr-')) {
-        const { data } = await supabase
+      const nowIso = new Date().toISOString();
+      const updatePayload = {
+        status: newStatus,
+        updated_at: nowIso
+      };
+
+      const performUpdate = async (matchColumn: string, matchVal: string) => {
+        const { data, error } = await supabase
           .from('follow_requests')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('id', cleanReqId)
+          .update(updatePayload)
+          .eq(matchColumn, matchVal)
           .eq('following_user_id', currentUserId)
           .select()
           .maybeSingle();
-        if (data) {
-          updatedReq = data;
+
+        if (error) {
+          console.error('[socialService] Failed to update follow request:', error.message);
+          return null;
         }
+        return data;
+      };
+
+      let updatedReq = null;
+      if (cleanReqId && !cleanReqId.startsWith('fr-')) {
+        updatedReq = await performUpdate('id', cleanReqId);
       }
 
       if (!updatedReq && targetUserId) {
-        const { data } = await supabase
-          .from('follow_requests')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('follower_user_id', targetUserId)
-          .eq('following_user_id', currentUserId)
-          .select()
-          .maybeSingle();
-        if (data) {
-          updatedReq = data;
-        }
+        updatedReq = await performUpdate('follower_user_id', targetUserId);
       }
 
       if (!updatedReq) {
