@@ -1,0 +1,80 @@
+[
+  {
+    "view": "search",
+    "viewport": "desktop",
+    "resolution": "1366x768",
+    "viteBytes": 156914,
+    "nextBytes": 156860,
+    "byteRatio": "1.000",
+    "pixelSimilarity": "100%",
+    "diffPixels": 27,
+    "tabletLayoutCheck": "N/A",
+    "vitePath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\vite_orig_search_desktop_1366.png",
+    "nextPath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\next_migr_search_desktop_1366.png"
+  },
+  {
+    "view": "domains",
+    "viewport": "desktop",
+    "resolution": "1366x768",
+    "viteBytes": 137785,
+    "nextBytes": 137692,
+    "byteRatio": "0.999",
+    "pixelSimilarity": "99.95%",
+    "diffPixels": 482,
+    "tabletLayoutCheck": "N/A",
+    "vitePath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\vite_orig_domains_desktop_1366.png",
+    "nextPath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\next_migr_domains_desktop_1366.png"
+  },
+  {
+    "view": "search",
+    "viewport": "tablet",
+    "resolution": "768x1024",
+    "viteBytes": 123759,
+    "nextBytes": 123738,
+    "byteRatio": "1.000",
+    "pixelSimilarity": "100%",
+    "diffPixels": 20,
+    "tabletLayoutCheck": "PASS: Single Column Stacked",
+    "vitePath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\vite_orig_search_tablet_768.png",
+    "nextPath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\next_migr_search_tablet_768.png"
+  },
+  {
+    "view": "domains",
+    "viewport": "tablet",
+    "resolution": "768x1024",
+    "viteBytes": 87053,
+    "nextBytes": 86759,
+    "byteRatio": "0.997",
+    "pixelSimilarity": "99.94%",
+    "diffPixels": 475,
+    "tabletLayoutCheck": "N/A",
+    "vitePath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\vite_orig_domains_tablet_768.png",
+    "nextPath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\next_migr_domains_tablet_768.png"
+  },
+  {
+    "view": "search",
+    "viewport": "mobile",
+    "resolution": "375x812",
+    "viteBytes": 75480,
+    "nextBytes": 75465,
+    "byteRatio": "1.000",
+    "pixelSimilarity": "99.99%",
+    "diffPixels": 20,
+    "tabletLayoutCheck": "N/A",
+    "vitePath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\vite_orig_search_mobile_375.png",
+    "nextPath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\next_migr_search_mobile_375.png"
+  },
+  {
+    "view": "domains",
+    "viewport": "mobile",
+    "resolution": "375x812",
+    "viteBytes": 78245,
+    "nextBytes": 79595,
+    "byteRatio": "1.017",
+    "pixelSimilarity": "99.84%",
+    "diffPixels": 475,
+    "tabletLayoutCheck": "N/A",
+    "vitePath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\vite_orig_domains_mobile_375.png",
+    "nextPath": "C:\\Users\\Karmjit.S.G\\OneDrive\\Desktop\\SINC platform\\reports\\visual_recovery_comparison\\next_migr_domains_mobile_375.png"
+  }
+]

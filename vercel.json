@@ -1,9 +1,5 @@
 {
-  "framework": "vite",
-  "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/((?!assets/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
-  ],
+  "framework": "nextjs",
   "headers": [
     {
       "source": "/(.*)",
@@ -15,7 +11,7 @@
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-Kr3hbyxNhoKW/YbNeCjIxsEwuDHDiM3P9e4LN4Azk+U='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://images.unsplash.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://nominatim.openstreetmap.org; frame-src https://accounts.google.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://images.unsplash.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co ws://localhost:* http://localhost:* https://accounts.google.com https://nominatim.openstreetmap.org; frame-src https://accounts.google.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         }
       ]
     }

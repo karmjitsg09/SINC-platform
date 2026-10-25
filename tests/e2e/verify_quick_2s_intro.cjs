@@ -180,6 +180,7 @@ async function verifyQuick2sIntro() {
       const pageVp = await ctx1.newPage();
       await pageVp.setViewportSize({ width: vp.width, height: vp.height });
       await pageVp.goto('http://localhost:3000/');
+      await pageVp.waitForSelector('.sinc-app-shell');
       
       // Trigger quick mode directly via exported window.playSincIntro
       await pageVp.evaluate(() => {

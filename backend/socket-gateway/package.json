@@ -1,0 +1,12 @@
+{
+  "name": "sinc-socket-gateway",
+  "version": "1.0.0",
+  "description": "SINC Platform — Standalone Realtime Socket.IO Gateway",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5"
+  }
+}

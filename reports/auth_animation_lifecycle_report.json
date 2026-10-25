@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-10-24T12:00:36.100Z",
+  "timestamp": "2026-10-25T05:37:09.092Z",
   "tests": {
     "TEST_1_UNAUTH_VISIT": {
       "title": "Fresh unauthenticated visitor sees official SINC welcome and sign-in",
       "status": "PASS",
       "message": "Unauthenticated login form loaded with official logo; no intro overlay triggered",
-      "timingMs": 1457
+      "timingMs": 1262
     },
     "TEST_2_LOGIN_FULL_WELCOME": {
       "title": "Successful email/password login automatically plays full welcome story",
       "status": "PASS",
       "message": "Full welcome story triggered with Skip button (mode: welcome)",
-      "timingMs": 2403
+      "timingMs": 1390
     },
     "TEST_2_WELCOME_SKIP": {
       "title": "Skip button smoothly dismisses welcome film into application shell",
@@ -30,8 +30,8 @@
     "TEST_4_RELOAD_FINISH": {
       "title": "Short logo animation automatically completes and reveals app",
       "status": "PASS",
-      "timingMs": 2883,
-      "message": "Reload transition completed in 2883ms"
+      "timingMs": 3292,
+      "message": "Reload transition completed in 3292ms"
     },
     "TEST_5_SIGNOUT": {
       "title": "Signing out returns user to unauthenticated sign-in without animations",

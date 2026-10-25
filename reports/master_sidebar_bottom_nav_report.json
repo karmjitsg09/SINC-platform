@@ -116,7 +116,7 @@
         0
       ]
     },
-    "cycleDurationMs": 739
+    "cycleDurationMs": 735
   },
   "stateD_routesAndHistory": {
     "routes": {
@@ -162,7 +162,7 @@
       },
       "settings": {
         "collapsedCheck": {
-          "bottomNavVisible": false,
+          "bottomNavVisible": true,
           "sidebarExpanded": false
         },
         "expandedCheck": {
@@ -614,14 +614,6 @@
   },
   "accessibilityAndMotion": {},
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
-    "Failed to load resource: the server responded with a status of 404 ()",
     "Failed to load resource: the server responded with a status of 404 ()",
     "Failed to load resource: the server responded with a status of 404 ()",
     "Failed to load resource: the server responded with a status of 404 ()",

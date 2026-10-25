@@ -65,6 +65,7 @@ async function runAuthAnimationLifecycleVerification() {
 
     // Wait for the full welcome story dialog with Skip button
     await page.waitForSelector('div[role="dialog"] canvas', { timeout: 8000 });
+    await page.waitForSelector('button:has-text("Skip")', { timeout: 8000 });
     const authToStoryMs = Date.now() - tSubmit;
 
     const welcomeOverlayDetails = await page.evaluate(() => {
@@ -214,7 +215,8 @@ async function runAuthAnimationLifecycleVerification() {
     await page.fill('#email', 'user.a.test@gmail.com');
     await page.fill('#password', 'WrongPassword999!');
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(1000);
+    await page.waitForSelector('.auth-error-message, [role="alert"]', { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(400);
 
     const sawFailedOverlay = await page.evaluate(() => Boolean(document.querySelector('div[role="dialog"] canvas')));
     const sawErrorAlert = await page.evaluate(() => {

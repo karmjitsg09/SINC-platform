@@ -1,0 +1,85 @@
+{
+  "timestamp": "2026-10-24T13:05:08.951Z",
+  "comparison": [
+    {
+      "file": "01_login_desktop_1366.png",
+      "baseSize": 71517,
+      "postSize": 71697,
+      "deltaBytes": 180,
+      "ratio": "1.003",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "02_signup_desktop_1366.png",
+      "baseSize": 81778,
+      "postSize": 81778,
+      "deltaBytes": 0,
+      "ratio": "1.000",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "03_login_tablet_768.png",
+      "baseSize": 69318,
+      "postSize": 70575,
+      "deltaBytes": 1257,
+      "ratio": "1.018",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "04_login_mobile_375.png",
+      "baseSize": 61049,
+      "postSize": 61439,
+      "deltaBytes": 390,
+      "ratio": "1.006",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "05_feed_desktop_1366.png",
+      "baseSize": 141506,
+      "postSize": 141506,
+      "deltaBytes": 0,
+      "ratio": "1.000",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "06_search_desktop_1366.png",
+      "baseSize": 141506,
+      "postSize": 174454,
+      "deltaBytes": 32948,
+      "ratio": "1.233",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "07_domains_desktop_1366.png",
+      "baseSize": 141506,
+      "postSize": 174432,
+      "deltaBytes": 32926,
+      "ratio": "1.233",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "08_messages_desktop_1366.png",
+      "baseSize": 175126,
+      "postSize": 174432,
+      "deltaBytes": 694,
+      "ratio": "0.996",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "09_profile_desktop_1366.png",
+      "baseSize": 175126,
+      "postSize": 174432,
+      "deltaBytes": 694,
+      "ratio": "0.996",
+      "status": "PARITY_VERIFIED"
+    },
+    {
+      "file": "10_settings_desktop_1366.png",
+      "baseSize": 175126,
+      "postSize": 174432,
+      "deltaBytes": 694,
+      "ratio": "0.996",
+      "status": "PARITY_VERIFIED"
+    }
+  ]
+}

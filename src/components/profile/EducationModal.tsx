@@ -1,0 +1,516 @@
+import React, { useState, useEffect } from 'react';
+
+export interface EducationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: any) => Promise<void> | void;
+  initialData?: any;
+}
+
+export default function EducationModal({ isOpen, onClose, onSave, initialData = null }: EducationModalProps) {
+  const [institution, setInstitution] = useState('');
+  const [degree, setDegree] = useState('');
+  const [fieldOfStudy, setFieldOfStudy] = useState('');
+  const [location, setLocation] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isCurrent, setIsCurrent] = useState(false);
+  const [grade, setGrade] = useState('');
+  const [activities, setActivities] = useState('');
+  const [description, setDescription] = useState('');
+  const [skillsInput, setSkillsInput] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setInstitution(initialData.institution || '');
+      setDegree(initialData.degree || '');
+      setFieldOfStudy(initialData.field_of_study || '');
+      setLocation(initialData.location || '');
+      setStartDate(initialData.start_date || '');
+      setEndDate(initialData.end_date || '');
+      setIsCurrent(Boolean(initialData.is_current));
+      setGrade(initialData.grade || '');
+      setActivities(initialData.activities || '');
+      setDescription(initialData.description || '');
+      setSkillsInput(
+        Array.isArray(initialData.skills)
+          ? initialData.skills.join(', ')
+          : (initialData.skills || '')
+      );
+    } else {
+      setInstitution('');
+      setDegree('');
+      setFieldOfStudy('');
+      setLocation('');
+      setStartDate('');
+      setEndDate('');
+      setIsCurrent(false);
+      setGrade('');
+      setActivities('');
+      setDescription('');
+      setSkillsInput('');
+    }
+    setError('');
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!institution.trim()) {
+      setError('Institution / University name is required');
+      return;
+    }
+
+    if (!isCurrent && startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      setError('End date cannot be earlier than start date');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    const parsedSkills = skillsInput
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const payload = {
+      institution: institution.trim(),
+      degree: degree.trim(),
+      field_of_study: fieldOfStudy.trim(),
+      location: location.trim(),
+      start_date: startDate || null,
+      end_date: isCurrent ? null : (endDate || null),
+      is_current: isCurrent,
+      grade: grade.trim(),
+      activities: activities.trim(),
+      description: description.trim(),
+      skills: parsedSkills,
+    };
+
+    try {
+      await onSave(payload);
+      onClose();
+    } catch (err: any) {
+      console.error('Error saving education:', err);
+      setError(err.message || 'Failed to save education');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const previewSkills = skillsInput
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        overflowY: 'auto'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !saving) onClose();
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: '#ffffff',
+          width: '100%',
+          maxWidth: '560px',
+          borderRadius: '20px',
+          border: '1.5px solid #b5d2fd',
+          boxShadow: '0 20px 45px -10px rgba(13, 110, 253, 0.2), 0 0 1px rgba(15, 23, 42, 0.1)',
+          padding: '28px',
+          position: 'relative',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'fadeInModal 0.2s ease-out'
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#1e3860' }}>
+              {initialData ? 'Edit Education' : 'Add Education'}
+            </h2>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+              Add your school, university, degrees, and academic background.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            style={{
+              background: '#f1f5f9',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              cursor: 'pointer',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              transition: 'background 0.2s'
+            }}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {error && (
+          <div style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>⚠️</span> {error}
+          </div>
+        )}
+
+        {/* Scrollable Form */}
+        <form onSubmit={handleSubmit} style={{ overflowY: 'auto', paddingRight: '4px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Institution */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+              Institution / College / University <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Stanford University, UC Berkeley"
+              value={institution}
+              onChange={(e) => setInstitution(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #b5d2fd',
+                fontSize: '14px',
+                outline: 'none',
+                color: '#1e293b',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Degree & Field of Study */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+                Degree / Course
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Bachelor of Science, Master of Science"
+                value={degree}
+                onChange={(e) => setDegree(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #b5d2fd',
+                  fontSize: '14px',
+                  outline: 'none',
+                  color: '#1e293b',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+                Field of Study
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Computer Science, AI, Data"
+                value={fieldOfStudy}
+                onChange={(e) => setFieldOfStudy(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #b5d2fd',
+                  fontSize: '14px',
+                  outline: 'none',
+                  color: '#1e293b',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Location & Grade / CGPA */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+                Location
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Stanford, CA"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #b5d2fd',
+                  fontSize: '14px',
+                  outline: 'none',
+                  color: '#1e293b',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+                Grade / CGPA <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 3.9 / 4.0 or First Class"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #b5d2fd',
+                  fontSize: '14px',
+                  outline: 'none',
+                  color: '#1e293b',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Currently Studying Checkbox */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 0' }}>
+            <input
+              type="checkbox"
+              id="is_current_edu"
+              checked={isCurrent}
+              onChange={(e) => setIsCurrent(e.target.checked)}
+              style={{
+                width: '18px',
+                height: '18px',
+                accentColor: '#0d6efd',
+                cursor: 'pointer'
+              }}
+            />
+            <label htmlFor="is_current_edu" style={{ fontSize: '13.5px', fontWeight: '600', color: '#1e3860', cursor: 'pointer' }}>
+              I am currently studying here
+            </label>
+          </div>
+
+          {/* Dates */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #b5d2fd',
+                  fontSize: '14px',
+                  outline: 'none',
+                  color: '#1e293b',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+                End Date (or Expected)
+              </label>
+              <input
+                type="date"
+                disabled={isCurrent}
+                value={isCurrent ? '' : endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #b5d2fd',
+                  fontSize: '14px',
+                  outline: 'none',
+                  color: '#1e293b',
+                  backgroundColor: isCurrent ? '#f1f5f9' : '#ffffff',
+                  cursor: isCurrent ? 'not-allowed' : 'default',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Activities / Societies */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+              Activities & Societies <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. ACM Student Chapter President, Robotics Club, Debate Team"
+              value={activities}
+              onChange={(e) => setActivities(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #b5d2fd',
+                fontSize: '14px',
+                outline: 'none',
+                color: '#1e293b',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+              Description & Honors <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>(optional)</span>
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Describe major coursework, honors, thesis, or academic projects..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #b5d2fd',
+                fontSize: '14px',
+                outline: 'none',
+                resize: 'vertical',
+                color: '#1e293b',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Skills / Technologies */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1e3860', marginBottom: '6px' }}>
+              Skills & Technologies Learned <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>(comma separated)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Algorithms, Data Structures, Python, C++, Distributed Systems"
+              value={skillsInput}
+              onChange={(e) => setSkillsInput(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #b5d2fd',
+                fontSize: '14px',
+                outline: 'none',
+                color: '#1e293b',
+                boxSizing: 'border-box'
+              }}
+            />
+            {previewSkills.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                {previewSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      background: '#eff6ff',
+                      color: '#0d6efd',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      border: '1px solid #bfdbfe'
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#475569',
+                fontSize: '13.5px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                padding: '9px 22px',
+                borderRadius: '10px',
+                border: 'none',
+                backgroundColor: '#0d6efd',
+                color: '#ffffff',
+                fontSize: '13.5px',
+                fontWeight: '700',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+                boxShadow: '0 4px 12px rgba(13, 110, 253, 0.25)'
+              }}
+            >
+              {saving ? 'Saving...' : (initialData ? 'Update Education' : 'Add Education')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

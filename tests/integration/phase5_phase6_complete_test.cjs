@@ -1,10 +1,21 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const { assertIsolatedTestEnvironment } = require('./testEnvironmentGuard.cjs');
 
 async function runEndToEndTests() {
   console.log('================================================================');
   console.log('SINC PLATFORM — PHASE 5 & PHASE 6 END-TO-END VERIFICATION');
   console.log('================================================================');
+
+  // Enforce fail-closed database test environment isolation
+  try {
+    const envInfo = assertIsolatedTestEnvironment();
+    console.log(`[TEST_ISOLATION_VERIFIED]: Test target approved: ${envInfo.hostname} (local: ${envInfo.isLocal})`);
+  } catch (guardErr) {
+    console.error('\n' + guardErr.message + '\n');
+    console.error('[SAFETY_ABORT]: Refusing to execute database-writing test against unconfirmed environment.');
+    process.exit(1);
+  }
 
   const browser = await chromium.launch({ headless: true });
   const results = {

@@ -1,0 +1,267 @@
+{
+  "routes": [
+    {
+      "path": "/login",
+      "description": "Login Page",
+      "isProtected": false,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/signup",
+      "description": "Sign Up Page",
+      "isProtected": false,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/forgot-password",
+      "description": "Forgot Password Page",
+      "isProtected": false,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/",
+      "description": "Home Feed",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/search",
+      "description": "Search & Explore Page",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/domains",
+      "description": "Domains List",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/domains/tech",
+      "description": "Tech Domain Channels",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/domains/tech/chat/general",
+      "description": "Domain Channel Chat",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/messages",
+      "description": "Direct Messages List",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/messages/conv-test-123",
+      "description": "Conversation Detail View",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/notifications",
+      "description": "Notifications Page",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/post/test-post-456",
+      "description": "Dedicated Post View",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/saved",
+      "description": "Saved Posts View",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/settings",
+      "description": "Settings Page",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile",
+      "description": "User Profile Home",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/user-789",
+      "description": "Target Profile View",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/details",
+      "description": "Profile Details Page",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/menu",
+      "description": "Profile Navigation Menu",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/projects",
+      "description": "Profile Projects",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/experience",
+      "description": "Profile Experience",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/education",
+      "description": "Profile Education",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/certifications",
+      "description": "Profile Certifications",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/achievements",
+      "description": "Profile Achievements",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/item-updates",
+      "description": "Profile Item Updates",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/create-post",
+      "description": "Profile Create Post",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    },
+    {
+      "path": "/profile/saved-posts",
+      "description": "Profile Saved Posts",
+      "isProtected": true,
+      "directNavPass": true,
+      "refreshPass": true,
+      "contentSpecific": true,
+      "noAnimationReplay": true,
+      "status": "PASS"
+    }
+  ],
+  "historyPass": true,
+  "totalTested": 26,
+  "passed": 26
+}

@@ -13,12 +13,12 @@
     "TEST_2_QUICK_NO_SKIP": {
       "name": "Quick 2-second intro plays without Skip button in new tab",
       "pass": true,
-      "details": "Overlay visible in 1002ms, Skip button absent as expected"
+      "details": "Overlay visible in 984ms, Skip button absent as expected"
     },
     "TEST_2_QUICK_FINISH": {
       "name": "Quick animation finishes and reveals page automatically",
       "pass": true,
-      "details": "Total duration from page open to fade out: 3380ms (~2s)"
+      "details": "Total duration from page open to fade out: 2838ms (~2s)"
     },
     "TEST_3_RELOAD_SHORT_INTRO": {
       "name": "Reloading authenticated tab plays short 2s animation (no Skip)",

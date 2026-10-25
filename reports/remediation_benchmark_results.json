@@ -1,24 +1,24 @@
 {
-  "timestamp": "2026-10-24T11:21:49.818Z",
+  "timestamp": "2026-10-24T20:12:25.464Z",
   "bundleSize": {},
   "feed": {
-    "firstVisibleMs": 4436,
-    "settledMs": 6436,
+    "firstVisibleMs": 3912,
+    "settledMs": 5919,
     "initialPostsRendered": 15,
-    "totalNetworkRequests": 47,
-    "supabaseRestRequests": 36,
+    "totalNetworkRequests": 39,
+    "supabaseRestRequests": 28,
     "interactionQueriesFired": 4,
     "postMediaRequestsFired": 0,
     "queryBreakdown": {
-      "profiles": 9,
+      "profiles": 7,
       "user_private_details": 2,
-      "conversation_members": 6,
-      "updates": 2,
-      "posts": 2,
+      "conversation_members": 4,
+      "updates": 1,
+      "posts": 1,
       "notifications": 2,
-      "conversations": 3,
       "follow_requests": 3,
-      "messages": 3,
+      "conversations": 2,
+      "messages": 2,
       "post_likes": 1,
       "post_comments": 1,
       "post_saves": 1,
@@ -26,13 +26,13 @@
     }
   },
   "instantPostOpening": {
-    "timeToUsableContentMs": 12296,
+    "timeToUsableContentMs": 12788,
     "targetMs": 150,
     "metTarget": false,
     "blockingSpinnerFlashed": false
   },
   "directPostOpening": {
-    "loadDurationMs": 824,
+    "loadDurationMs": 202,
     "directLinkSucceeded": true
   },
   "pagination": {
