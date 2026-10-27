@@ -468,14 +468,21 @@ export function MainAppContent() {
     );
   }
 
-  // 4. Logo animation playing (POST_LOGIN_LOGO or AUTHENTICATED_ENTRY_LOGO): Keep static logo screen while animation overlay runs
+  // 4. LOGO_ANIMATION state (POST_LOGIN_LOGO or AUTHENTICATED_ENTRY_LOGO)
+  // Mutually exclusive: display ONLY the animated logo overlay. The static SincLogo is completely unmounted.
   if (animState === 'POST_LOGIN_LOGO' || animState === 'AUTHENTICATED_ENTRY_LOGO') {
     return (
-      <div className="app-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-app, #080E18)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <SincLogo size={72} alt="SINC Logo" priority={true} />
-        </div>
-      </div>
+      <div
+        className="app-shell"
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        aria-hidden="true"
+      />
     );
   }
 
