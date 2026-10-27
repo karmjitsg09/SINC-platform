@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import ProfileCertifications from '../components/profile/ProfileCertifications';
 import CertificationModal from '../components/profile/CertificationModal';
 import ProfileItemPostModal from '../components/profile/ProfileItemPostModal';
@@ -20,6 +21,7 @@ export interface CertificationsPageProps {
 
 export default function CertificationsPage({ onBack, onViewAllUpdates }: CertificationsPageProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [certifications, setCertifications] = useState<CertificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +70,17 @@ export default function CertificationsPage({ onBack, onViewAllUpdates }: Certifi
       if (editingCertification?.id) {
         const updated = await updateCertification(currentUser.id, editingCertification.id, certificationData);
         setCertifications((prev) => prev.map((c) => (c.id === editingCertification.id ? { ...c, ...updated } : c)));
+        toast.success('Certification updated successfully.');
       } else {
         const created = await createCertification(currentUser.id, certificationData);
         setCertifications((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+        toast.success('Certification added successfully.');
       }
       setShowCertificationModal(false);
       setEditingCertification(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[CertificationsPage] Save certification error:', err);
-      alert('Failed to save certification.');
+      toast.error(err?.message || 'Failed to save certification.');
     }
   };
 
@@ -85,9 +89,10 @@ export default function CertificationsPage({ onBack, onViewAllUpdates }: Certifi
     try {
       await deleteCertification(currentUser.id, certificationId);
       setCertifications((prev) => prev.filter((c) => c.id !== certificationId));
-    } catch (err) {
+      toast.success('Certification deleted successfully.');
+    } catch (err: any) {
       console.error('[CertificationsPage] Delete certification error:', err);
-      alert('Failed to delete certification.');
+      toast.error(err?.message || 'Failed to delete certification.');
     }
   };
 

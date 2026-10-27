@@ -11,14 +11,44 @@
  * Supabase Postgres database-level message persistence.
  */
 
+try {
+  const path = require('path');
+  require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
+  require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+} catch (_) {}
+
 const http = require('http');
 const crypto = require('crypto');
 const { Server } = require('socket.io');
+const { createRemoteJWKSet, jwtVerify } = require('jose');
 
 const PORT = process.env.SOCKET_PORT || 3001;
 const ALLOWED_ORIGIN = process.env.SOCKET_CORS_ORIGIN || '*';
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || null;
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+let cachedGatewayJWKS = null;
+let cachedGatewayJWKSUrl = null;
+let customGatewayJwksOverride = null;
+
+function setCustomJwksOverride(jwks) {
+  customGatewayJwksOverride = jwks;
+}
+
+function getGatewayRemoteJWKSet(jwksUrl) {
+  if (customGatewayJwksOverride) {
+    return customGatewayJwksOverride;
+  }
+  if (cachedGatewayJWKS && cachedGatewayJWKSUrl === jwksUrl) {
+    return cachedGatewayJWKS;
+  }
+  cachedGatewayJWKS = createRemoteJWKSet(new URL(jwksUrl), {
+    cooldownDuration: 30000,
+    cacheMaxAge: 600000
+  });
+  cachedGatewayJWKSUrl = jwksUrl;
+  return cachedGatewayJWKS;
+}
 
 const server = http.createServer((req, res) => {
   if (req.url === '/health' || req.url === '/') {
@@ -45,17 +75,13 @@ const onlineUsers = new Map();
 
 /**
  * Validates and decodes a Supabase JWT token.
+ * Supports asymmetric ES256 (via remote JWKS) and symmetric HS256 (when secret configured).
  *
  * @param {string} token - Raw JWT string
- * @returns {{ valid: boolean, payload?: object, error?: string }}
+ * @param {object} [options] - Optional custom verifier options (jwks, jwtSecret, supabaseUrl)
+ * @returns {Promise<{ valid: boolean, payload?: object, error?: string }>}
  */
-function verifySupabaseToken(token) {
-  // 1. Mandatory verification configuration — fails closed if secret is missing in any environment
-  const secret = process.env.SUPABASE_JWT_SECRET;
-  if (!secret || typeof secret !== 'string' || secret.trim() === '') {
-    return { valid: false, error: 'Server configuration error: SUPABASE_JWT_SECRET required' };
-  }
-
+async function verifySupabaseToken(token, options = {}) {
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Missing access token in handshake auth' };
   }
@@ -66,7 +92,7 @@ function verifySupabaseToken(token) {
     return { valid: false, error: 'Malformed token structure (expected header.payload.signature)' };
   }
 
-  // 2. Decode & validate header
+  // 1. Decode & validate header
   let header;
   try {
     header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
@@ -78,40 +104,82 @@ function verifySupabaseToken(token) {
     return { valid: false, error: 'Invalid token header structure' };
   }
 
-  // Enforce supported signing algorithm — only HS256 is supported for symmetric HMAC
-  if (!header.alg || header.alg !== 'HS256') {
-    return { valid: false, error: `Unsupported signing algorithm "${header.alg || 'none'}". Expected HS256.` };
+  if (!header.alg || header.alg.toLowerCase() === 'none') {
+    return { valid: false, error: 'Algorithm "none" is not permitted' };
+  }
+
+  const alg = String(header.alg).toUpperCase();
+  if (alg !== 'ES256' && alg !== 'HS256') {
+    return { valid: false, error: `Unsupported signing algorithm "${header.alg}". Expected ES256 or HS256.` };
   }
 
   if (!parts[2]) {
     return { valid: false, error: 'Missing token signature' };
   }
 
-  // 3. Cryptographic signature verification (mandatory HMAC-SHA256)
-  try {
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(`${parts[0]}.${parts[1]}`)
-      .digest('base64url');
-
-    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
-    const actualBuf = Buffer.from(parts[2], 'utf8');
-
-    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
-      return { valid: false, error: 'Invalid token signature' };
-    }
-  } catch (sigErr) {
-    return { valid: false, error: 'Cryptographic signature verification failed' };
-  }
-
-  // 4. Decode & validate payload claims
   let payload;
-  try {
-    payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-  } catch (parseErr) {
-    return { valid: false, error: 'Failed to decode token payload JSON' };
+
+  if (alg === 'HS256') {
+    const secret = options.jwtSecret || process.env.SUPABASE_JWT_SECRET;
+    if (!secret || typeof secret !== 'string' || secret.trim() === '') {
+      return { valid: false, error: 'Server configuration error: SUPABASE_JWT_SECRET required' };
+    }
+
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(`${parts[0]}.${parts[1]}`)
+        .digest('base64url');
+
+      const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+      const actualBuf = Buffer.from(parts[2], 'utf8');
+
+      if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+        return { valid: false, error: 'Invalid token signature' };
+      }
+
+      payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    } catch (sigErr) {
+      return { valid: false, error: 'Cryptographic signature verification failed' };
+    }
+  } else if (alg === 'ES256') {
+    const supabaseUrl =
+      options.supabaseUrl ||
+      process.env.SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL;
+
+    let keySource = options.jwks;
+    if (!keySource) {
+      if (!supabaseUrl || typeof supabaseUrl !== 'string' || supabaseUrl.trim() === '') {
+        return { valid: false, error: 'Server configuration error: SUPABASE_URL required for JWKS verification' };
+      }
+      const jwksUrl = `${supabaseUrl.replace(/\/+$/, '')}/auth/v1/.well-known/jwks.json`;
+      keySource = getGatewayRemoteJWKSet(jwksUrl);
+    }
+
+    try {
+      const verifyOpts = {
+        algorithms: ['ES256']
+      };
+      if (!customGatewayJwksOverride && !options.jwks && supabaseUrl) {
+        verifyOpts.issuer = `${supabaseUrl.replace(/\/+$/, '')}/auth/v1`;
+      } else if (options.supabaseUrl) {
+        verifyOpts.issuer = `${options.supabaseUrl.replace(/\/+$/, '')}/auth/v1`;
+      }
+
+      const verified = await jwtVerify(clean, keySource, verifyOpts);
+      payload = verified.payload;
+    } catch (err) {
+      const errMsg = err?.message || 'Verification failed';
+      if (errMsg.toLowerCase().includes('expired') || err.code === 'ERR_JWT_EXPIRED') {
+        return { valid: false, error: 'Expired authentication token' };
+      }
+      return { valid: false, error: `Invalid token signature (${errMsg})` };
+    }
   }
 
+  // 2. Decode & validate payload claims
   if (!payload || typeof payload !== 'object') {
     return { valid: false, error: 'Invalid token payload structure' };
   }
@@ -141,7 +209,7 @@ function verifySupabaseToken(token) {
 }
 
 // Connection Authentication Middleware
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
   const clientUserId = socket.handshake.auth?.userId;
 
@@ -150,7 +218,7 @@ io.use((socket, next) => {
     return next(new Error('Authentication failed: Missing access token in handshake auth'));
   }
 
-  const result = verifySupabaseToken(token);
+  const result = await verifySupabaseToken(token);
   if (!result.valid || !result.payload) {
     return next(new Error(`Authentication failed: ${result.error || 'Token verification failed'}`));
   }
@@ -275,17 +343,17 @@ io.on('connection', (socket) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`[sinc-socket-gateway] Realtime Socket.IO Gateway listening on port ${PORT}`);
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const secret = process.env.SUPABASE_JWT_SECRET;
-    if (!secret) {
-      console.warn('[sinc-socket-gateway] WARNING: SUPABASE_JWT_SECRET is not configured. Handshakes will fail closed.');
-    } else {
-      console.log(
-        '[sinc-socket-gateway] Confirmed JWT signing mode: HS256 (Symmetric HMAC-SHA256). ' +
-        'CRITICAL NOTICE: Rotating the Supabase project to asymmetric signing keys (RS256/ES256) ' +
-        'will break socket gateway authentication until JWKS verification is implemented.'
-      );
+    if (url) {
+      console.log(`[sinc-socket-gateway] JWKS verification active (ES256) via ${url}/auth/v1/.well-known/jwks.json`);
+    }
+    if (secret) {
+      console.log('[sinc-socket-gateway] HS256 symmetric verification fallback enabled.');
+    } else if (!url) {
+      console.warn('[sinc-socket-gateway] WARNING: Neither SUPABASE_URL nor SUPABASE_JWT_SECRET configured. Handshakes will fail closed.');
     }
   });
 }
 
-module.exports = { server, io, verifySupabaseToken };
+module.exports = { server, io, verifySupabaseToken, setCustomJwksOverride };

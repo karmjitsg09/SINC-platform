@@ -66,7 +66,7 @@ export async function getCertificationsByUserId(userId: string | null | undefine
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
-        .from('certifications')
+        .from('profile_certifications')
         .select('*')
         .eq('user_id', userId)
         .order('issue_date', { ascending: false });
@@ -116,29 +116,25 @@ export async function createCertification(arg1: any, arg2?: any): Promise<any> {
     created_at: new Date().toISOString()
   };
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('certifications')
-        .insert([newEntry])
-        .select()
-        .single();
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-      if (!error && data) {
-        const list = getLocalCertifications(userId);
-        saveLocalCertifications(userId, [data, ...list]);
-        notifyCertificationListeners();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase create certification exception:', err);
-    }
+  const { data, error } = await supabase
+    .from('profile_certifications')
+    .insert([newEntry])
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[CertificationService] Supabase create certification error:', error?.message);
+    throw new Error(error?.message || 'Failed to create certification in database.');
   }
 
   const list = getLocalCertifications(userId);
-  saveLocalCertifications(userId, [newEntry, ...list]);
+  saveLocalCertifications(userId, [data, ...list.filter(c => c.id !== data.id)]);
   notifyCertificationListeners();
-  return newEntry;
+  return data;
 }
 
 export type { CertificationItem };
@@ -162,64 +158,34 @@ export async function updateCertification(arg1: any, arg2: any, arg3?: any): Pro
           : updateData?.skills)
   };
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('certifications')
-        .update(cleanedData)
-        .eq('id', certificationId)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const userId = data.user_id || passedUserId;
-        if (userId) {
-          const list = getLocalCertifications(userId);
-          const updatedList = list.map((c) => (c.id === certificationId ? data : c));
-          saveLocalCertifications(userId, updatedList);
-        }
-        notifyCertificationListeners();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase update certification exception:', err);
-    }
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  // Local fallback
-  let affectedUserId: string | null = passedUserId || null;
-  if (affectedUserId) {
-    const list = getLocalCertifications(affectedUserId);
-    const idx = list.findIndex((c: any) => c.id === certificationId);
-    if (idx !== -1) {
-      list[idx] = { ...list[idx], ...cleanedData, updated_at: new Date().toISOString() };
-      saveLocalCertifications(affectedUserId, list);
-      notifyCertificationListeners();
-      return list[idx];
-    }
+  let query = supabase
+    .from('profile_certifications')
+    .update(cleanedData)
+    .eq('id', certificationId);
+
+  if (passedUserId) {
+    query = query.eq('user_id', passedUserId);
   }
 
-  if (typeof window !== 'undefined') {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(CERTIFICATIONS_CACHE_PREFIX)) {
-        try {
-          const list = JSON.parse(localStorage.getItem(key) || '[]');
-          const idx = list.findIndex((c: any) => c.id === certificationId);
-          if (idx !== -1) {
-            affectedUserId = key.replace(CERTIFICATIONS_CACHE_PREFIX, '');
-            list[idx] = { ...list[idx], ...cleanedData, updated_at: new Date().toISOString() };
-            saveLocalCertifications(affectedUserId, list);
-            notifyCertificationListeners();
-            return list[idx];
-          }
-        } catch (e) {}
-      }
-    }
+  const { data, error } = await query.select().single();
+
+  if (error || !data) {
+    console.error('[CertificationService] Supabase update certification error:', error?.message);
+    throw new Error(error?.message || 'Failed to update certification in database.');
   }
 
+  const userId = data.user_id || passedUserId;
+  if (userId) {
+    const list = getLocalCertifications(userId);
+    const updatedList = list.map((c) => (c.id === certificationId ? data : c));
+    saveLocalCertifications(userId, updatedList);
+  }
   notifyCertificationListeners();
-  return { id: certificationId, ...cleanedData };
+  return data;
 }
 
 /**
@@ -229,21 +195,26 @@ export async function deleteCertification(arg1: string, arg2?: string): Promise<
   const certificationId = arg2 ? arg2 : arg1;
   const userId = arg2 ? arg1 : undefined;
 
-  if (!certificationId) return false;
+  if (!certificationId) throw new Error('Certification ID is required');
 
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from('certifications')
-        .delete()
-        .eq('id', certificationId);
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-      if (error) {
-        console.warn('Supabase delete certification error:', error);
-      }
-    } catch (err) {
-      console.warn('Supabase delete certification exception:', err);
-    }
+  let query = supabase
+    .from('profile_certifications')
+    .delete()
+    .eq('id', certificationId);
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    console.error('[CertificationService] Supabase delete certification error:', error.message);
+    throw new Error(error.message || 'Failed to delete certification from database.');
   }
 
   if (userId) {
@@ -265,3 +236,9 @@ export async function deleteCertification(arg1: string, arg2?: string): Promise<
   notifyCertificationListeners();
   return true;
 }
+
+export const clearCertificationCache = (userId?: string): void => {
+  if (userId && typeof window !== 'undefined') {
+    localStorage.removeItem(`${CERTIFICATIONS_CACHE_PREFIX}${userId}`);
+  }
+};

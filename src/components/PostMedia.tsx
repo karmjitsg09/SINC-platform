@@ -33,7 +33,12 @@ export function resolveMediaUrl(url?: string | null): string {
   }
   // Supabase storage object path (e.g. "posts/userId/postId/photo.jpg" or "post-media/posts/...")
   const cleanPath = trimmed.replace(/^\/?(post-media\/)?/, '');
-  return `https://vctwzlsatqsuinmosnzo.supabase.co/storage/v1/object/public/post-media/${cleanPath}`;
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!baseUrl) {
+    console.error('[PostMedia] Configuration Error: NEXT_PUBLIC_SUPABASE_URL is not defined.');
+    return '';
+  }
+  return `${baseUrl}/storage/v1/object/public/post-media/${cleanPath}`;
 }
 
 export default function PostMedia({

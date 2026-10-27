@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import AuthInput from '../AuthInput';
+import { useToast } from '../../context/ToastContext';
 
 export interface ProjectModalProps {
   project?: any;
@@ -12,6 +13,7 @@ export default function ProjectModal({
   onSave,
   onClose
 }: ProjectModalProps) {
+  const toast = useToast();
   const isEditing = Boolean(project?.id);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,7 +39,8 @@ export default function ProjectModal({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Please select an image smaller than 5MB');
+        toast.warning('Please select an image smaller than 5MB');
+        setError('Please select an image smaller than 5MB');
         return;
       }
       const reader = new FileReader();

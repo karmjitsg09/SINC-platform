@@ -87,22 +87,26 @@ export const getUserProjects = async (userId: string): Promise<Project[]> => {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
-        .from('projects')
+        .from('profile_projects')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        saveLocalProjects(userId, data);
-        return data;
+        const formatted: Project[] = data.map((d: any) => ({
+          ...d,
+          technologies: Array.isArray(d.skills) ? d.skills : (d.technologies || []),
+          skills: Array.isArray(d.skills) ? d.skills : []
+        }));
+        saveLocalProjects(userId, formatted);
+        return formatted;
       }
     } catch (err: any) {
-      // Table may not yet be provisioned; fallback to local storage
       console.warn('[ProjectService] Supabase query note:', err?.message);
     }
   }
 
-  // Fallback to local storage
+  // Fallback to local storage read cache
   return getLocalProjects(userId);
 };
 
@@ -114,10 +118,9 @@ export const createProject = async (userId: string, projectData: ProjectInput): 
     throw new Error('Title and authenticated User ID are required.');
   }
 
-  const newId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `proj_${Date.now()}`;
-  const now = new Date().toISOString();
+  const newId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined;
 
-  // Normalize technologies array
+  // Normalize technologies array into skills array for profile_projects schema
   let techArray: string[] = [];
   if (Array.isArray(projectData.technologies)) {
     techArray = projectData.technologies.map((t) => (typeof t === 'string' ? t.trim() : String(t))).filter(Boolean);
@@ -125,48 +128,42 @@ export const createProject = async (userId: string, projectData: ProjectInput): 
     techArray = projectData.technologies.split(',').map((t) => t.trim()).filter(Boolean);
   }
 
-  const projectRecord: Project = {
-    id: newId,
+  const dbRecord: Record<string, any> = {
     user_id: userId,
     title: projectData.title.trim(),
-    description: projectData.description?.trim() || '',
-    image_url: projectData.image_url || projectData.imageUrl || null,
+    description: projectData.description?.trim() || null,
     project_url: projectData.project_url || projectData.projectUrl || null,
-    technologies: techArray,
-    start_date: projectData.start_date || projectData.startDate || null,
-    end_date: projectData.is_current || projectData.isCurrent ? null : (projectData.end_date || projectData.endDate || null),
-    is_current: Boolean(projectData.is_current ?? projectData.isCurrent ?? false),
-    created_at: now,
-    updated_at: now
+    skills: techArray
   };
+  if (newId) dbRecord.id = newId;
 
   // Try Supabase insert
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert(projectRecord)
-        .select()
-        .single();
-
-      if (!error && data) {
-        // Sync local cache
-        const currentLocal = getLocalProjects(userId);
-        saveLocalProjects(userId, [data, ...currentLocal.filter((p) => p.id !== data.id)]);
-        notifyProjectListeners();
-        return data;
-      }
-    } catch (err: any) {
-      console.warn('[ProjectService] Supabase insert note:', err?.message);
-    }
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  // Fallback local update
+  const { data, error } = await supabase
+    .from('profile_projects')
+    .insert([dbRecord])
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[ProjectService] Supabase insert error:', error?.message);
+    throw new Error(error?.message || 'Failed to create project in database.');
+  }
+
+  const result: Project = {
+    ...data,
+    technologies: Array.isArray(data.skills) ? data.skills : techArray,
+    skills: Array.isArray(data.skills) ? data.skills : techArray
+  };
+
+  // Update local read cache only on successful database write
   const currentLocal = getLocalProjects(userId);
-  const updatedList = [projectRecord, ...currentLocal.filter((p) => p.id !== projectRecord.id)];
-  saveLocalProjects(userId, updatedList);
+  saveLocalProjects(userId, [result, ...currentLocal.filter((p) => p.id !== result.id)]);
   notifyProjectListeners();
-  return projectRecord;
+  return result;
 };
 
 /**
@@ -181,8 +178,6 @@ export const updateProject = async (
     throw new Error('User ID and Project ID are required.');
   }
 
-  const now = new Date().toISOString();
-
   let techArray: string[] | undefined = undefined;
   if (updates.technologies !== undefined) {
     if (Array.isArray(updates.technologies)) {
@@ -192,61 +187,42 @@ export const updateProject = async (
     }
   }
 
-  const payload: Record<string, any> = {
-    updated_at: now
+  const dbPayload: Record<string, any> = {};
+
+  if (updates.title !== undefined) dbPayload.title = updates.title.trim();
+  if (updates.description !== undefined) dbPayload.description = updates.description.trim() || null;
+  if (updates.project_url !== undefined) dbPayload.project_url = updates.project_url || null;
+  if (updates.projectUrl !== undefined) dbPayload.project_url = updates.projectUrl || null;
+  if (techArray !== undefined) dbPayload.skills = techArray;
+
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
+
+  const { data, error } = await supabase
+    .from('profile_projects')
+    .update(dbPayload)
+    .eq('id', projectId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[ProjectService] Supabase update error:', error?.message);
+    throw new Error(error?.message || 'Failed to update project in database.');
+  }
+
+  const result: Project = {
+    ...data,
+    technologies: Array.isArray(data.skills) ? data.skills : (techArray || []),
+    skills: Array.isArray(data.skills) ? data.skills : (techArray || [])
   };
 
-  if (updates.title !== undefined) payload.title = updates.title.trim();
-  if (updates.description !== undefined) payload.description = updates.description.trim();
-  if (updates.image_url !== undefined) payload.image_url = updates.image_url;
-  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
-  if (updates.project_url !== undefined) payload.project_url = updates.project_url;
-  if (updates.projectUrl !== undefined) payload.project_url = updates.projectUrl;
-  if (techArray !== undefined) payload.technologies = techArray;
-  if (updates.start_date !== undefined) payload.start_date = updates.start_date;
-  if (updates.startDate !== undefined) payload.start_date = updates.startDate;
-  if (updates.end_date !== undefined) payload.end_date = updates.end_date;
-  if (updates.endDate !== undefined) payload.end_date = updates.endDate;
-  if (updates.is_current !== undefined) payload.is_current = Boolean(updates.is_current);
-  if (updates.isCurrent !== undefined) payload.is_current = Boolean(updates.isCurrent);
-
-  if (payload.is_current) {
-    payload.end_date = null;
-  }
-
-  // Try Supabase update
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .update(payload)
-        .eq('id', projectId)
-        .eq('user_id', userId)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const currentLocal = getLocalProjects(userId);
-        saveLocalProjects(userId, currentLocal.map((p) => (p.id === projectId ? { ...p, ...data } : p)));
-        notifyProjectListeners();
-        return data;
-      }
-    } catch (err: any) {
-      console.warn('[ProjectService] Supabase update note:', err?.message);
-    }
-  }
-
-  // Fallback local update
+  // Update local read cache only on successful database write
   const currentLocal = getLocalProjects(userId);
-  const updatedList = currentLocal.map((p) => {
-    if (p.id === projectId) {
-      return { ...p, ...payload };
-    }
-    return p;
-  });
-  saveLocalProjects(userId, updatedList);
+  saveLocalProjects(userId, currentLocal.map((p) => (p.id === projectId ? result : p)));
   notifyProjectListeners();
-  return updatedList.find((p) => p.id === projectId);
+  return result;
 };
 
 /**
@@ -257,28 +233,29 @@ export const deleteProject = async (userId: string, projectId: string): Promise<
     throw new Error('User ID and Project ID are required.');
   }
 
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId)
-        .eq('user_id', userId);
-
-      if (!error) {
-        const currentLocal = getLocalProjects(userId);
-        saveLocalProjects(userId, currentLocal.filter((p) => p.id !== projectId));
-        notifyProjectListeners();
-        return true;
-      }
-    } catch (err: any) {
-      console.warn('[ProjectService] Supabase delete note:', err?.message);
-    }
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  // Fallback local update
+  const { error } = await supabase
+    .from('profile_projects')
+    .delete()
+    .eq('id', projectId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[ProjectService] Supabase delete error:', error.message);
+    throw new Error(error.message || 'Failed to delete project from database.');
+  }
+
   const currentLocal = getLocalProjects(userId);
   saveLocalProjects(userId, currentLocal.filter((p) => p.id !== projectId));
   notifyProjectListeners();
   return true;
+};
+
+export const clearProjectCache = (userId?: string): void => {
+  if (userId && typeof window !== 'undefined') {
+    localStorage.removeItem(getStorageKey(userId));
+  }
 };

@@ -153,32 +153,28 @@ export async function createUpdate({
     updated_at: now
   };
 
-  // 1. Save to local storage cache immediately
-  const existing = getLocalUpdates(itemType, itemId);
-  saveLocalUpdates(itemType, itemId, [newRecord, ...existing]);
-
-  // 2. Insert into Supabase if configured
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('profile_item_updates')
-        .insert([newRecord])
-        .select('*')
-        .single();
-
-      if (!error && data) {
-        const updatedList = getLocalUpdates(itemType, itemId).map((u) => (u.id === newId ? data : u));
-        saveLocalUpdates(itemType, itemId, updatedList);
-        notifyListeners({ type: 'create', update: data });
-        return data;
-      }
-    } catch (err: any) {
-      console.warn('[ProfileItemUpdateService] Supabase createUpdate notice:', err?.message);
-    }
+  // 1. Insert into Supabase (Source of Truth)
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  notifyListeners({ type: 'create', update: newRecord });
-  return newRecord;
+  const { data, error } = await supabase
+    .from('profile_item_updates')
+    .insert([newRecord])
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    console.error('[ProfileItemUpdateService] Supabase createUpdate error:', error?.message);
+    throw new Error(error?.message || 'Failed to create item update in database.');
+  }
+
+  // 2. Update local read cache only on successful database persist
+  const existing = getLocalUpdates(itemType, itemId);
+  saveLocalUpdates(itemType, itemId, [data, ...existing.filter(u => u.id !== data.id)]);
+
+  notifyListeners({ type: 'create', update: data });
+  return data;
 }
 
 /**
@@ -196,67 +192,39 @@ export async function updateUpdate(
   const now = new Date().toISOString();
   const validStatuses = ['Planned', 'In Progress', 'Completed', 'Updated'];
 
-  let updatedRecord: ProfileItemUpdate | null = null;
   const { itemType, itemId } = updateData;
 
-  // 1. Update in local storage
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
+
+  const payload: Record<string, any> = {
+    updated_at: now
+  };
+  if (updateData.title !== undefined) payload.title = updateData.title.trim();
+  if (updateData.content !== undefined) payload.content = updateData.content.trim();
+  if (updateData.imageUrl !== undefined) payload.image_url = updateData.imageUrl;
+  if (updateData.status && validStatuses.includes(updateData.status)) payload.status = updateData.status;
+
+  const { data, error } = await supabase
+    .from('profile_item_updates')
+    .update(payload)
+    .eq('id', updateId)
+    .eq('user_id', userId)
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    console.error('[ProfileItemUpdateService] Supabase updateUpdate error:', error?.message);
+    throw new Error(error?.message || 'Failed to update item update in database.');
+  }
+
   if (itemType && itemId) {
-    const existing = getLocalUpdates(itemType, itemId);
-    const target = existing.find((u) => u.id === updateId);
-    if (target) {
-      if (target.user_id !== userId) {
-        throw new Error('Unauthorized: You can only edit your own updates.');
-      }
-      updatedRecord = {
-        ...target,
-        title: updateData.title !== undefined ? updateData.title.trim() : target.title,
-        content: updateData.content !== undefined ? updateData.content.trim() : target.content,
-        image_url: updateData.imageUrl !== undefined ? updateData.imageUrl : target.image_url,
-        status: (updateData.status && validStatuses.includes(updateData.status)) ? updateData.status : target.status,
-        updated_at: now
-      };
-      const newList = existing.map((u) => (u.id === updateId ? (updatedRecord as ProfileItemUpdate) : u));
-      saveLocalUpdates(itemType, itemId, newList);
-    }
+    const freshList = getLocalUpdates(itemType, itemId).map((u) => (u.id === updateId ? data : u));
+    saveLocalUpdates(itemType, itemId, freshList);
   }
-
-  // 2. Update in Supabase
-  if (isSupabaseConfigured) {
-    try {
-      const payload: Record<string, any> = {
-        updated_at: now
-      };
-      if (updateData.title !== undefined) payload.title = updateData.title.trim();
-      if (updateData.content !== undefined) payload.content = updateData.content.trim();
-      if (updateData.imageUrl !== undefined) payload.image_url = updateData.imageUrl;
-      if (updateData.status && validStatuses.includes(updateData.status)) payload.status = updateData.status;
-
-      const { data, error } = await supabase
-        .from('profile_item_updates')
-        .update(payload)
-        .eq('id', updateId)
-        .eq('user_id', userId)
-        .select('*')
-        .single();
-
-      if (!error && data) {
-        if (itemType && itemId) {
-          const freshList = getLocalUpdates(itemType, itemId).map((u) => (u.id === updateId ? data : u));
-          saveLocalUpdates(itemType, itemId, freshList);
-        }
-        notifyListeners({ type: 'update', update: data });
-        return data;
-      }
-    } catch (err: any) {
-      console.warn('[ProfileItemUpdateService] Supabase updateUpdate notice:', err?.message);
-    }
-  }
-
-  if (updatedRecord) {
-    notifyListeners({ type: 'update', update: updatedRecord });
-    return updatedRecord;
-  }
-  throw new Error('Update not found or unauthorized.');
+  notifyListeners({ type: 'update', update: data });
+  return data;
 }
 
 /**
@@ -272,32 +240,26 @@ export async function deleteUpdate(
     throw new Error('Update ID and User ID are required.');
   }
 
-  // 1. Remove from local storage
-  if (itemType && itemId) {
-    const existing = getLocalUpdates(itemType, itemId);
-    const target = existing.find((u) => u.id === updateId);
-    if (target && target.user_id !== userId) {
-      throw new Error('Unauthorized: You can only delete your own updates.');
-    }
-    const filtered = existing.filter((u) => u.id !== updateId);
-    saveLocalUpdates(itemType, itemId, filtered);
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  // 2. Remove from Supabase
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from('profile_item_updates')
-        .delete()
-        .eq('id', updateId)
-        .eq('user_id', userId);
+  const { error } = await supabase
+    .from('profile_item_updates')
+    .delete()
+    .eq('id', updateId)
+    .eq('user_id', userId);
 
-      if (error) {
-        console.warn('[ProfileItemUpdateService] Supabase deleteUpdate notice:', error.message);
-      }
-    } catch (err: any) {
-      console.warn('[ProfileItemUpdateService] Supabase deleteUpdate exception:', err?.message);
-    }
+  if (error) {
+    console.error('[ProfileItemUpdateService] Supabase deleteUpdate error:', error.message);
+    throw new Error(error.message || 'Failed to delete item update from database.');
+  }
+
+  // Remove from local cache only after successful database deletion
+  if (itemType && itemId) {
+    const existing = getLocalUpdates(itemType, itemId);
+    const filtered = existing.filter((u) => u.id !== updateId);
+    saveLocalUpdates(itemType, itemId, filtered);
   }
 
   notifyListeners({ type: 'delete', updateId });

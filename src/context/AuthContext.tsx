@@ -7,6 +7,7 @@ import { resetSincIntroSession } from '../lib/sinc-intro';
 import { queryClient } from '../lib/queryClient';
 import { useNavigationStore } from '../stores/useNavigationStore';
 import { disconnectSocket } from '../lib/socketService';
+import { clearAllUserLocalCache } from '../lib/cacheCleanup';
 import type { AuthEvent, AuthEventType, UserProfile } from '../types';
 
 export interface AuthContextType {
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authRoute, setAuthRoute] = useState<string>(getInitialAuthRoute);
-  const [loadingSession, setLoadingSession] = useState<boolean>(hasLikelyStoredSession);
+  const [loadingSession, setLoadingSession] = useState<boolean>(true);
   const [oauthError, setOauthError] = useState<string>('');
   const [authEvent, setAuthEventState] = useState<AuthEvent | null>(null);
 
@@ -95,14 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Listen to popstate when unauthenticated to sync login / signup routes
   useEffect(() => {
-    const handlePopState = () => {
+    const syncRouteFromPath = () => {
       const path = window.location.pathname.toLowerCase();
       if (path === '/signup') setAuthRoute('signup');
       else if (path === '/forgot-password') setAuthRoute('forgot-password');
       else if (path === '/login') setAuthRoute('login');
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    syncRouteFromPath();
+    window.addEventListener('popstate', syncRouteFromPath);
+    return () => window.removeEventListener('popstate', syncRouteFromPath);
   }, []);
 
   // Check URL parameters for OAuth errors on initial page load
@@ -189,6 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: userAvatar,
             skills: dbProfile.skills || [],
             domains: dbProfile.domains || [],
+            is_private: Boolean(dbProfile.is_private),
+            isPrivate: Boolean(dbProfile.is_private),
+            privacy_settings: privateDetails?.privacy_settings || null,
             onboarding_completed: Boolean(dbProfile.onboarding_completed),
             profile_setup_completed_steps: dbProfile.profile_setup_completed_steps || [],
             isNewUser: false
@@ -206,15 +211,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return profileData;
         }
 
-        // New user initialization
-        const nameParts = rawGoogleName.trim().split(/\s+/);
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
+        // New user initialization with standard core schema fields
         const uniqueUsername = `${emailUsername || 'user'}_${authUser.id.substring(0, 4)}`;
 
         let newRecord: any = null;
         try {
-          const { data: createdWithOnboarding, error: createError } = await supabase
+          const { data: createdBase } = await supabase
             .from('profiles')
             .upsert(
               [
@@ -226,43 +228,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   avatar_url: rawGoogleAvatar,
                   bio: '',
                   skills: [],
-                  domains: [],
-                  first_name: firstName,
-                  last_name: lastName,
-                  onboarding_completed: false,
-                  profile_setup_completed_steps: []
+                  domains: []
                 }
               ],
-              { onConflict: 'id' }
+              { onConflict: 'id', ignoreDuplicates: true }
             )
             .select()
-            .single();
+            .maybeSingle();
 
-          if (!createError && createdWithOnboarding) {
-            newRecord = createdWithOnboarding;
-          } else if (createError) {
-            const { data: createdBase } = await supabase
-              .from('profiles')
-              .upsert(
-                [
-                  {
-                    id: authUser.id,
-                    name: rawGoogleName,
-                    username: uniqueUsername,
-                    role: 'Member',
-                    avatar_url: rawGoogleAvatar,
-                    bio: '',
-                    skills: [],
-                    domains: []
-                  }
-                ],
-                { onConflict: 'id' }
-              )
-              .select()
-              .single();
-
-            if (createdBase) newRecord = createdBase;
-          }
+          if (createdBase) newRecord = createdBase;
         } catch (insertErr) {
           console.warn('[Profile Init Exception]:', insertErr);
         }
@@ -313,10 +287,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize and listen to Auth state changes
   useEffect(() => {
     let isMounted = true;
+    let safetyTimeoutId: NodeJS.Timeout | null = null;
+
+    // Safety safeguard: Never keep the app waiting longer than 3.5 seconds for initial session check
+    safetyTimeoutId = setTimeout(() => {
+      if (isMounted) {
+        setLoadingSession(false);
+      }
+    }, 3500);
 
     async function initAuth() {
       if (isSupabaseConfigured) {
         try {
+          // Handle PKCE OAuth exchange if code is present in URL
+          if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
+            const code = new URLSearchParams(window.location.search).get('code');
+            if (code) {
+              try {
+                await supabase.auth.exchangeCodeForSession(code);
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+              } catch (codeErr) {
+                console.warn('[Supabase OAuth Code Exchange Notice]:', codeErr);
+              }
+            }
+          }
+
           const { data: { session }, error } = await supabase.auth.getSession();
 
           if (error) {
@@ -328,8 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               const pendingOAuth = sessionStorage.getItem('sinc_pending_oauth');
               const hasOAuthHash = window.location.hash.includes('access_token=') || window.location.hash.includes('refresh_token=');
-              const hasOAuthCode = window.location.search.includes('code=');
-              if (pendingOAuth === '1' || hasOAuthHash || hasOAuthCode) {
+              if (pendingOAuth === '1' || hasOAuthHash) {
                 isOAuthReturn = true;
                 sessionStorage.removeItem('sinc_pending_oauth');
               }
@@ -347,6 +342,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
       if (isMounted) {
         setLoadingSession(false);
       }
@@ -357,42 +353,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseConfigured) {
       const {
         data: { subscription }
-      } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      } = supabase.auth.onAuthStateChange((event: string, session: any) => {
         if (!isMounted) return;
 
-        if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-          let isOAuth = false;
-          try {
-            if (sessionStorage.getItem('sinc_pending_oauth') === '1') {
-              isOAuth = true;
-              sessionStorage.removeItem('sinc_pending_oauth');
-            }
-          } catch (_) {}
+        // Defer asynchronous database calls to a non-blocking macrotask
+        // to prevent deadlocking supabase-js internal auth state transitions
+        setTimeout(async () => {
+          if (!isMounted) return;
 
-          const profile = await fetchUserProfile(session.user);
-          if (isMounted && profile) {
-            setUser(profile);
-            if (!authEventRef.current) {
-              setAuthEvent(isOAuth ? 'login' : (event === 'SIGNED_IN' ? 'login' : 'session_restored'));
+          if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+            let isOAuth = false;
+            try {
+              if (sessionStorage.getItem('sinc_pending_oauth') === '1') {
+                isOAuth = true;
+                sessionStorage.removeItem('sinc_pending_oauth');
+              }
+            } catch (_) {}
+
+            try {
+              const profile = await fetchUserProfile(session.user);
+              if (isMounted) {
+                if (profile) {
+                  setUser(profile);
+                } else {
+                  // Fallback profile if database row not ready
+                  const fallbackProfile: UserProfile = {
+                    id: session.user.id,
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                    username: session.user.email?.split('@')[0] || 'user',
+                    email: session.user.email,
+                    role: 'Member',
+                    bio: '',
+                    avatarUrl: session.user.user_metadata?.avatar_url || null,
+                    avatar_url: session.user.user_metadata?.avatar_url || null,
+                    skills: [],
+                    domains: [],
+                    onboarding_completed: true,
+                    profile_setup_completed_steps: [],
+                    isNewUser: false
+                  };
+                  setUser(fallbackProfile);
+                }
+                if (!authEventRef.current) {
+                  setAuthEvent(isOAuth ? 'login' : (event === 'SIGNED_IN' ? 'login' : 'session_restored'));
+                }
+                setIsAuthenticated(true);
+                setLoadingSession(false);
+              }
+            } catch (err) {
+              console.warn('[AuthContext] Deferred profile fetch error:', err);
+              if (isMounted) {
+                setLoadingSession(false);
+              }
             }
-            setIsAuthenticated(true);
-            setLoadingSession(false);
+          } else if (event === 'SIGNED_OUT' || !session) {
+            if (isMounted) {
+              setUser(null);
+              setIsAuthenticated(false);
+              setAuthEvent(null);
+              setLoadingSession(false);
+            }
           }
-        } else if (event === 'SIGNED_OUT' || !session) {
-          if (isMounted) {
-            setUser(null);
-            setIsAuthenticated(false);
-            setAuthEvent(null);
-            setLoadingSession(false);
-          }
-        }
+        }, 0);
       });
 
       return () => {
         isMounted = false;
+        if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
         subscription?.unsubscribe();
       };
     }
+
+    return () => {
+      isMounted = false;
+      if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
+    };
   }, []);
 
   const signInWithGoogle = async () => {
@@ -410,6 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
       const redirectUrl = getOAuthRedirectUrl();
 
+      // Standard Supabase OAuth browser redirect
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -422,12 +458,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        let friendly = error.message;
-        if (error.message?.includes('provider is not enabled') || error.message?.includes('Unsupported provider')) {
-          friendly = 'Google Sign-In is not enabled yet in your Supabase project dashboard.';
-        }
-        setOauthError(friendly);
-        return { success: false, error: friendly };
+        setOauthError(error.message);
+        return { success: false, error: error.message };
       }
 
       return { success: true, data };
@@ -503,19 +535,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user && data.session) {
-        try {
-          await supabase.from('profiles').upsert([
-            {
-              id: data.user.id,
-              name: trimmedName,
-              username: username,
-              role: 'Member'
-            }
-          ]);
-        } catch (pe) {
-          console.warn('Profile insertion notice:', pe);
-        }
-
+        // Trigger handle_new_user (migration 004) is the authoritative single creator
+        // of public.profiles and public.user_private_details.
         const profile = await fetchUserProfile(data.user);
         setUser(profile ? { ...profile, isNewUser: true, onboarding_completed: false } : null);
         setAuthEvent('login');
@@ -567,16 +588,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (sanitized.bio) dbUpdates.bio = sanitized.bio;
         if (sanitized.skills) dbUpdates.skills = sanitized.skills;
         if (sanitized.domains) dbUpdates.domains = sanitized.domains;
+        if (sanitized.is_private !== undefined) dbUpdates.is_private = sanitized.is_private;
+        if (sanitized.isPrivate !== undefined) dbUpdates.is_private = sanitized.isPrivate;
         if (sanitized.onboarding_completed !== undefined) {
           dbUpdates.onboarding_completed = sanitized.onboarding_completed;
         }
 
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update(dbUpdates)
           .eq('id', user.id);
-      } catch (e) {
-        console.warn('Update profile notice:', e);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      } catch (e: any) {
+        console.error('Update profile error:', e);
+        throw e;
       }
     }
 
@@ -588,6 +616,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async (): Promise<void> => {
+    // 0. Purge all user cached entities from localStorage so the next user on this device never sees them
+    try {
+      clearAllUserLocalCache(user?.id);
+    } catch (_) {}
+
     // 1. Reset animation session state
     resetSincIntroSession();
 

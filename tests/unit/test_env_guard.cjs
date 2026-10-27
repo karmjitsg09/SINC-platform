@@ -96,6 +96,36 @@ try {
     }
   });
 
+  // Staging Database URL Guard Tests
+  const { assertStagingDatabaseUrl } = require('../integration/testEnvironmentGuard.cjs');
+
+  runTest('assertStagingDatabaseUrl: Rejects when STAGING_DATABASE_URL is missing', () => {
+    let thrown = false;
+    try {
+      assertStagingDatabaseUrl('');
+    } catch (e) {
+      if (e.message.includes('missing or empty')) thrown = true;
+    }
+    if (!thrown) throw new Error('Expected guard to throw for missing staging URL');
+  });
+
+  runTest('assertStagingDatabaseUrl: Rejects when URL contains production project ref (vctwzlsatqsuinmosnzo)', () => {
+    let thrown = false;
+    try {
+      assertStagingDatabaseUrl('postgresql://postgres.vctwzlsatqsuinmosnzo:pass@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres');
+    } catch (e) {
+      if (e.message.includes('production project ref')) thrown = true;
+    }
+    if (!thrown) throw new Error('Expected guard to throw for production project ref');
+  });
+
+  runTest('assertStagingDatabaseUrl: Accepts valid independent staging database URL', () => {
+    const res = assertStagingDatabaseUrl('postgresql://postgres.bqmylyedpjeutxhcvmrf:sinc-staging1@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres');
+    if (res.isProduction || !res.host.includes('aws-0-ap-southeast-2.pooler.supabase.com')) {
+      throw new Error(`Unexpected result: ${JSON.stringify(res)}`);
+    }
+  });
+
 } finally {
   // Restore original env
   if (origOptIn) process.env.ALLOW_DATABASE_MUTATING_TESTS = origOptIn;
@@ -110,3 +140,4 @@ try {
 
 console.log(`\nResults: ${passed} / ${total} tests passed.`);
 if (passed !== total) process.exit(1);
+

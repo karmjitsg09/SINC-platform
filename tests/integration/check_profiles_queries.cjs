@@ -17,5 +17,5 @@ function walk(dir) {
   }
 }
 
-const targetDir = fs.existsSync('./frontend/src') ? './frontend/src' : './src';
+const targetDir = './src';
 walk(targetDir);

@@ -1,0 +1,449 @@
+// SINC Backend — Prisma Schema
+// Target Schema: public ONLY (auth and storage schemas are strictly excluded)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["public"]
+}
+
+model Profile {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String
+  username           String    @unique
+  role               String?
+  bio                String?
+  avatarUrl          String?   @map("avatar_url")
+  skills             String[]  @default([])
+  domains            String[]  @default([])
+  isVerified         Boolean   @default(false) @map("is_verified")
+  verificationStatus String    @default("none") @map("verification_status")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  privateDetails     UserPrivateDetail?
+  posts              Post[]
+  postLikes          PostLike[]
+  postComments       PostComment[]
+  postSaves          PostSave[]
+  postShares         PostShare[]
+  updates            Update[]
+  updateViews        UpdateView[]
+  sentFollows        FollowRequest[]        @relation("FollowRequester")
+  receivedFollows    FollowRequest[]        @relation("FollowTarget")
+  blockedUsers       BlockedUser[]          @relation("Blocker")
+  blockedByUsers     BlockedUser[]          @relation("Blocked")
+  conversationMembers ConversationMember[]
+  sentMessages       Message[]
+  receivedNotifications Notification[]      @relation("NotificationRecipient")
+  actedNotifications Notification[]         @relation("NotificationActor")
+  pushSubscriptions  PushSubscription[]
+  profileProjects    ProfileProject[]
+  profileExperience  ProfileExperience[]
+  profileEducation   ProfileEducation[]
+  profileCertifications ProfileCertification[]
+  profileAchievements ProfileAchievement[]
+  profileItemUpdates ProfileItemUpdate[]
+  userDomains        UserDomain[]
+  domainMessages     DomainMessage[]
+
+  @@map("profiles")
+  @@schema("public")
+}
+
+model UserPrivateDetail {
+  userId       String   @id @map("user_id") @db.Uuid
+  email        String?
+  phone        String?
+  locationData Json?    @map("location_data")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_private_details")
+  @@schema("public")
+}
+
+model ProfileProject {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String
+  description String?
+  role        String?
+  skills      String[] @default([])
+  projectUrl  String?  @map("project_url")
+  repoUrl     String?  @map("repo_url")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_projects")
+  @@schema("public")
+}
+
+model ProfileExperience {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  company     String
+  role        String
+  location    String?
+  startDate   String?  @map("start_date")
+  endDate     String?  @map("end_date")
+  isCurrent   Boolean  @default(false) @map("is_current")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_experience")
+  @@schema("public")
+}
+
+model ProfileEducation {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  institution  String
+  degree       String?
+  fieldOfStudy String?  @map("field_of_study")
+  startYear    String?  @map("start_year")
+  endYear      String?  @map("end_year")
+  grade        String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_education")
+  @@schema("public")
+}
+
+model ProfileCertification {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  name          String
+  issuer        String
+  issueDate     String?  @map("issue_date")
+  expiryDate    String?  @map("expiry_date")
+  credentialId  String?  @map("credential_id")
+  credentialUrl String?  @map("credential_url")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile       Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_certifications")
+  @@schema("public")
+}
+
+model ProfileAchievement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String
+  description String?
+  date        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_achievements")
+  @@schema("public")
+}
+
+model ProfileItemUpdate {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  itemType  String   @map("item_type")
+  itemId    String   @map("item_id")
+  changes   Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_item_updates")
+  @@schema("public")
+}
+
+model UserDomain {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  domainId  String   @map("domain_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, domainId])
+  @@map("user_domains")
+  @@schema("public")
+}
+
+model FollowRequest {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requesterId String    @map("requester_id") @db.Uuid
+  targetId    String    @map("target_id") @db.Uuid
+  status      String    @default("pending")
+  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  requester   Profile   @relation("FollowRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  target      Profile   @relation("FollowTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, targetId])
+  @@map("follow_requests")
+  @@schema("public")
+}
+
+model BlockedUser {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  blockedUserId String   @map("blocked_user_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user          Profile  @relation("Blocker", fields: [userId], references: [id], onDelete: Cascade)
+  blockedUser   Profile  @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blockedUserId])
+  @@map("blocked_users")
+  @@schema("public")
+}
+
+model Post {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  content       String
+  domain        String?       @default("all")
+  channel       String?
+  imageUrl      String?       @map("image_url")
+  likesCount    Int           @default(0) @map("likes_count")
+  commentsCount Int           @default(0) @map("comments_count")
+  sharesCount   Int           @default(0) @map("shares_count")
+  isPrivate     Boolean       @default(false) @map("is_private")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author        Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media         PostMedia[]
+  likes         PostLike[]
+  comments      PostComment[]
+  saves         PostSave[]
+  shares        PostShare[]
+
+  @@map("posts")
+  @@schema("public")
+}
+
+model PostMedia {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  mediaUrl  String   @map("media_url")
+  mediaType String?  @default("image") @map("media_type")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_media")
+  @@schema("public")
+}
+
+model PostLike {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+  @@schema("public")
+}
+
+model PostComment {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId          String        @map("post_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  content         String
+  parentCommentId String?       @map("parent_comment_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentComment   PostComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         PostComment[] @relation("CommentReplies")
+
+  @@map("post_comments")
+  @@schema("public")
+}
+
+model PostSave {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_saves")
+  @@schema("public")
+}
+
+model PostShare {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("post_shares")
+  @@schema("public")
+}
+
+model Update {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  categoryId String?      @default("tech") @map("category_id")
+  content    String?
+  mediaUrl   String?      @map("media_url")
+  mediaType  String?      @default("none") @map("media_type")
+  expiresAt  DateTime     @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  author     Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views      UpdateView[]
+
+  @@map("updates")
+  @@schema("public")
+}
+
+model UpdateView {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  updateId String   @map("update_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  viewedAt DateTime @default(now()) @map("viewed_at") @db.Timestamptz(6)
+
+  update   Update   @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  viewer   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([updateId, userId])
+  @@map("update_views")
+  @@schema("public")
+}
+
+model Conversation {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type          String?              @default("direct")
+  title         String?
+  lastMessageId String?              @map("last_message_id") @db.Uuid
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lastMessage   Message?             @relation("LastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  members       ConversationMember[]
+  messages      Message[]            @relation("ConversationMessages")
+
+  @@map("conversations")
+  @@schema("public")
+}
+
+model ConversationMember {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  role           String?      @default("member")
+  joinedAt       DateTime     @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+  @@schema("public")
+}
+
+model Message {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String         @map("conversation_id") @db.Uuid
+  senderId       String         @map("sender_id") @db.Uuid
+  content        String
+  messageType    String?        @default("text") @map("message_type")
+  isRead         Boolean        @default(false) @map("is_read")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation   Conversation   @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         Profile        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  lastMessageFor Conversation[] @relation("LastMessage")
+
+  @@map("messages")
+  @@schema("public")
+}
+
+model DomainMessage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  domainId  String   @map("domain_id")
+  channelId String   @map("channel_id")
+  userId    String   @map("user_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sender    Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("domain_messages")
+  @@schema("public")
+}
+
+model Notification {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientId String   @map("recipient_id") @db.Uuid
+  actorId     String   @map("actor_id") @db.Uuid
+  type        String
+  title       String?
+  message     String?
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id")
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  recipient   Profile  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       Profile  @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@schema("public")
+}
+
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+  @@schema("public")
+}
+
+model PushIdempotencyKey {
+  idempotencyKey String   @id @map("idempotency_key")
+  state          String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@map("push_idempotency_keys")
+  @@schema("public")
+}

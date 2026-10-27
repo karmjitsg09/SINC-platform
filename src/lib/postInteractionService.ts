@@ -198,10 +198,12 @@ export const likePost = async (
         .maybeSingle();
 
       if (existingLike) {
-        await supabase.from('post_likes').delete().eq('id', existingLike.id);
+        const { error: delErr } = await supabase.from('post_likes').delete().eq('id', existingLike.id);
+        if (delErr) throw delErr;
         likedState = false;
       } else {
-        await supabase.from('post_likes').insert([{ post_id: postId, user_id: userId }]);
+        const { error: insErr } = await supabase.from('post_likes').insert([{ post_id: postId, user_id: userId }]);
+        if (insErr) throw insErr;
         likedState = true;
 
         if (authorId && authorId !== userId) {
@@ -218,6 +220,7 @@ export const likePost = async (
       }
     } catch (e) {
       console.error('[PostInteractionService] likePost error:', e);
+      throw e;
     }
   }
 
@@ -315,6 +318,7 @@ export const addComment = async (
 
       if (error) {
         console.error('[PostInteractionService] addComment error:', error);
+        throw error;
       } else if (data) {
         createdComment = {
           id: data.id,
@@ -345,6 +349,7 @@ export const addComment = async (
       }
     } catch (e) {
       console.error('[PostInteractionService] addComment exception:', e);
+      throw e;
     }
   }
 
@@ -443,14 +448,17 @@ export const toggleSavePost = async (
         .maybeSingle();
 
       if (existingSave) {
-        await supabase.from('post_saves').delete().eq('id', existingSave.id);
+        const { error: delErr } = await supabase.from('post_saves').delete().eq('id', existingSave.id);
+        if (delErr) throw delErr;
         savedState = false;
       } else {
-        await supabase.from('post_saves').insert([{ post_id: postId, user_id: userId }]);
+        const { error: insErr } = await supabase.from('post_saves').insert([{ post_id: postId, user_id: userId }]);
+        if (insErr) throw insErr;
         savedState = true;
       }
     } catch (e) {
       console.error('[PostInteractionService] toggleSavePost error:', e);
+      throw e;
     }
   }
 

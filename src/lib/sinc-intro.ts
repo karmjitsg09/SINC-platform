@@ -679,6 +679,10 @@ async function run(options: SincIntroOptions): Promise<PlayIntroResult> {
   const quick = mode === "quick";
   store("session", o.sessionKey, "1");
 
+  if (typeof document !== 'undefined') {
+    document.querySelectorAll('.sinc-intro-overlay').forEach((el) => el.remove());
+  }
+
   const root = document.createElement("div");
   root.setAttribute("role", "dialog");
   root.setAttribute("aria-label", "SINC — Society for Innovation, Network & Collaboration");
@@ -695,16 +699,16 @@ async function run(options: SincIntroOptions): Promise<PlayIntroResult> {
   canvas.setAttribute("aria-hidden", "true");
   Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", display: "block" });
   root.appendChild(canvas);
-  const prevOverflow = document.documentElement.style.overflow;
-  document.documentElement.style.overflow = "hidden";
-  (document.body || document.documentElement).appendChild(root);
+  const prevOverflow = typeof document !== 'undefined' ? document.documentElement.style.overflow : '';
 
   const close = (result: PlayIntroResult) => new Promise<PlayIntroResult>((resolve) => {
     root.style.opacity = "0";
     root.style.pointerEvents = "none";
     setTimeout(() => {
       root.remove();
-      document.documentElement.style.overflow = prevOverflow;
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.overflow = prevOverflow;
+      }
       resolve(result);
       o.onDone?.(result);
     }, fadeMs + 10);
@@ -714,12 +718,20 @@ async function run(options: SincIntroOptions): Promise<PlayIntroResult> {
   try {
     const loaded = await Promise.all([
       withTimeout(Promise.all([1, 2, 3, 4, 5, 6].map((i) => loadImage(`${o.assetsBase}sinc-piece-${i}.${o.ext}`))),
-        quick ? 2500 : 6000),
-      loadFonts(o, quick ? 700 : 2500),
+        quick ? 1800 : 5000),
+      loadFonts(o, quick ? 500 : 2000),
     ]);
     images = loaded[0];
   } catch (_) { images = null; }
-  if (!images || images.length !== 6) return close("skipped");
+  if (!images || images.length !== 6) {
+    return Promise.resolve("skipped");
+  }
+
+  // Only append overlay to document once assets are fully loaded and verified
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.overflow = "hidden";
+    (document.body || document.documentElement).appendChild(root);
+  }
   if (mode === "welcome") store("local", o.welcomeKey, "1");
 
   const renderer = createSincIntroRenderer(images, { mode, fontFamily: o.fontFamily, background: o.background, makeCanvas: o.makeCanvas });
@@ -755,9 +767,11 @@ async function run(options: SincIntroOptions): Promise<PlayIntroResult> {
 
   return new Promise<PlayIntroResult>((resolve) => {
     let done = false, raf = 0, startAt: number | null = null, result: PlayIntroResult = "played";
+    const maxSafetyTimer = setTimeout(() => finish(), (renderer.duration + 1.5) * 1000);
     const finish = () => {
       if (done) return;
       done = true;
+      clearTimeout(maxSafetyTimer);
       cancelAnimationFrame(raf);
       ro?.disconnect();
       window.removeEventListener("resize", fit);

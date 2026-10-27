@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getPostInsights, subscribeToPostInteractions } from '../lib/postInteractionService';
 import { useAuth } from '../context/AuthContext';
-import { deletePost } from '../lib/postService';
+import { deletePost, updatePost } from '../lib/postService';
+import { useToast } from '../context/ToastContext';
+import { FEED_CATEGORIES } from '../data/mockData';
 
 function formatTimeAgo(isoString?: string | null): string {
   if (!isoString) return 'Just now';
@@ -33,6 +35,7 @@ export interface PostInsightsModalProps {
   onClose?: () => void;
   onNavigateToProfile?: (user: any) => void;
   onPostDeleted?: (postId: string) => void;
+  onPostUpdated?: (updatedPost: any) => void;
 }
 
 export default function PostInsightsModal({
@@ -41,9 +44,11 @@ export default function PostInsightsModal({
   ownerId,
   onClose,
   onNavigateToProfile,
-  onPostDeleted
+  onPostDeleted,
+  onPostUpdated
 }: PostInsightsModalProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const effectivePostId = postId || post?.id;
   const postOwnerId = post?.user_id || post?.author_id || ownerId;
   const isOwner = Boolean(
@@ -73,6 +78,14 @@ export default function PostInsightsModal({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  // Edit states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editContent, setEditContent] = useState(post?.content || '');
+  const [editDomain, setEditDomain] = useState(post?.domain || post?.domain_id || 'tech');
+  const [editIsPrivate, setEditIsPrivate] = useState(Boolean(post?.is_private));
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState('');
 
   const loadData = useCallback(async (isMountedRef: { current: boolean }) => {
     if (!effectivePostId || !ownerId) return;
@@ -138,6 +151,40 @@ export default function PostInsightsModal({
       setDeleteError('Unable to delete post. Please try again.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!effectivePostId || !currentUser?.id || isUpdating) return;
+    if (!editContent.trim()) {
+      setUpdateError('Post content cannot be empty.');
+      return;
+    }
+
+    setIsUpdating(true);
+    setUpdateError('');
+
+    try {
+      const updated = await updatePost(effectivePostId, currentUser.id, {
+        content: editContent,
+        domain: editDomain,
+        is_private: editIsPrivate
+      });
+      setShowEditModal(false);
+      toast.success('Post updated successfully!');
+      if (onPostUpdated) {
+        onPostUpdated(updated);
+      }
+      if (onClose) {
+        onClose();
+      }
+    } catch (err: any) {
+      console.error('[PostInsightsModal] Failed to update post:', err);
+      const msg = err?.message || 'Unable to update post. Please try again.';
+      setUpdateError(msg);
+      toast.error(msg);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -692,41 +739,82 @@ export default function PostInsightsModal({
               </div>
             )}
 
-            <button
-              type="button"
-              id="delete-post-btn"
-              onClick={() => {
-                setDeleteError('');
-                setShowConfirmDelete(true);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                width: '100%',
-                padding: '11px 16px',
-                borderRadius: '12px',
-                backgroundColor: '#fff1f2',
-                border: '1.5px solid #fecdd3',
-                color: '#e11d48',
-                fontSize: '13.5px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#ffe4e6';
-                e.currentTarget.style.borderColor = '#fda4af';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#fff1f2';
-                e.currentTarget.style.borderColor = '#fecdd3';
-              }}
-            >
-              <span style={{ fontSize: '15px' }}>🗑</span>
-              <span>Delete Post</span>
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                id="edit-post-btn"
+                onClick={() => {
+                  setEditContent(post?.content || '');
+                  setEditDomain(post?.domain || post?.domain_id || 'tech');
+                  setEditIsPrivate(Boolean(post?.is_private));
+                  setUpdateError('');
+                  setShowEditModal(true);
+                }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '11px 16px',
+                  borderRadius: '12px',
+                  backgroundColor: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  color: '#1d4ed8',
+                  fontSize: '13.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#dbeafe';
+                  e.currentTarget.style.borderColor = '#93c5fd';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#eff6ff';
+                  e.currentTarget.style.borderColor = '#bfdbfe';
+                }}
+              >
+                <span style={{ fontSize: '15px' }}>✏️</span>
+                <span>Edit Post</span>
+              </button>
+
+              <button
+                type="button"
+                id="delete-post-btn"
+                onClick={() => {
+                  setDeleteError('');
+                  setShowConfirmDelete(true);
+                }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '11px 16px',
+                  borderRadius: '12px',
+                  backgroundColor: '#fff1f2',
+                  border: '1.5px solid #fecdd3',
+                  color: '#e11d48',
+                  fontSize: '13.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffe4e6';
+                  e.currentTarget.style.borderColor = '#fda4af';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#fff1f2';
+                  e.currentTarget.style.borderColor = '#fecdd3';
+                }}
+              >
+                <span style={{ fontSize: '15px' }}>🗑</span>
+                <span>Delete Post</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -881,6 +969,185 @@ export default function PostInsightsModal({
                 }}
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT POST MODAL OVERLAY */}
+      {showEditModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isUpdating) setShowEditModal(false);
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '480px',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: '#1e293b' }}>
+                Edit Post
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                disabled={isUpdating}
+                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {updateError && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '10px',
+                  color: '#dc2626',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}
+              >
+                {updateError}
+              </div>
+            )}
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
+                Domain / Topic
+              </label>
+              <select
+                value={editDomain}
+                onChange={(e) => setEditDomain(e.target.value)}
+                disabled={isUpdating}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  fontSize: '13px',
+                  color: '#1e293b',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {FEED_CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
+                Content
+              </label>
+              <textarea
+                rows={4}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                disabled={isUpdating}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '13.5px',
+                  color: '#1e293b',
+                  outline: 'none',
+                  resize: 'vertical',
+                  lineHeight: '1.45'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                  Visibility: {editIsPrivate ? 'Private' : 'Public'}
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  {editIsPrivate ? 'Only approved followers can view' : 'Visible to all members'}
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={editIsPrivate}
+                onChange={(e) => setEditIsPrivate(e.target.checked)}
+                disabled={isUpdating}
+                style={{ width: '17px', height: '17px', accentColor: '#3b82f6', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                disabled={isUpdating}
+                style={{
+                  flex: 1,
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: isUpdating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="save-edit-post-btn"
+                onClick={handleEditSave}
+                disabled={isUpdating}
+                style={{
+                  flex: 1,
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: isUpdating ? '#93c5fd' : '#2563eb',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: isUpdating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isUpdating ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>

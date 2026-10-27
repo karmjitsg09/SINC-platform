@@ -88,7 +88,7 @@ export async function getExperiencesByUserId(userId: string): Promise<Experience
 
   try {
     const { data, error } = await supabase
-      .from('experience')
+      .from('profile_experience')
       .select('*')
       .eq('user_id', userId)
       .order('is_current', { ascending: false })
@@ -136,41 +136,32 @@ export async function createExperience(userId: string, experienceData: Experienc
     updated_at: new Date().toISOString(),
   };
 
-  // 1. Optimistically store in local fallback
+  // Insert into Supabase (Source of Truth)
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
+
+  const { data, error } = await supabase
+    .from('profile_experience')
+    .insert([newEntry])
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[ExperienceService] Supabase experience insert error:', error?.message);
+    throw new Error(error?.message || 'Failed to create experience in database.');
+  }
+
+  // Update local read cache only on successful database write
   const currentList = getLocalExperiences(userId);
-  const updatedList = sortExperiences([newEntry, ...currentList]);
+  const updatedList = sortExperiences([data, ...currentList.filter(e => e.id !== data.id)]);
   saveLocalExperiences(userId, updatedList);
 
-  // 2. Try inserting into Supabase
-  try {
-    const { data, error } = await supabase
-      .from('experience')
-      .insert([newEntry])
-      .select()
-      .single();
-
-    if (!error && data) {
-      const finalIndex = updatedList.findIndex(e => e.id === newEntry.id);
-      if (finalIndex !== -1) {
-        updatedList[finalIndex] = data;
-        saveLocalExperiences(userId, updatedList);
-      }
-      return data;
-    }
-
-    if (error) {
-      console.warn('Supabase experience insert notice:', error.message || error);
-    }
-  } catch (err) {
-    console.warn('Failed to insert into Supabase experience table, using optimistic entry:', err);
-  }
-
-  // Dispatch custom window event for instant multi-component reactivity
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('sync_experience_updated', { detail: { userId, experience: newEntry } }));
+    window.dispatchEvent(new CustomEvent('sync_experience_updated', { detail: { userId, experience: data } }));
   }
 
-  return newEntry;
+  return data;
 }
 
 /**
@@ -208,48 +199,32 @@ export async function updateExperience(userId: string, experienceId: string, upd
     updated_at: new Date().toISOString(),
   };
 
-  const updatedEntry: Experience = {
-    ...existing,
-    ...cleanUpdates,
-    id: experienceId,
-    user_id: userId,
-  };
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-  // 1. Optimistically update local
-  const newList = sortExperiences(currentList.map(e => (e.id === experienceId ? updatedEntry : e)));
+  const { data, error } = await supabase
+    .from('profile_experience')
+    .update(cleanUpdates)
+    .eq('id', experienceId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[ExperienceService] Supabase experience update error:', error?.message);
+    throw new Error(error?.message || 'Failed to update experience in database.');
+  }
+
+  // Update local read cache only on successful database write
+  const newList = sortExperiences(currentList.map(e => (e.id === experienceId ? data : e)));
   saveLocalExperiences(userId, newList);
 
-  // 2. Try updating in Supabase
-  try {
-    const { data, error } = await supabase
-      .from('experience')
-      .update(cleanUpdates)
-      .eq('id', experienceId)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (!error && data) {
-      const idx = newList.findIndex(e => e.id === experienceId);
-      if (idx !== -1) {
-        newList[idx] = data;
-        saveLocalExperiences(userId, newList);
-      }
-      return data;
-    }
-
-    if (error) {
-      console.warn('Supabase experience update notice:', error.message || error);
-    }
-  } catch (err) {
-    console.warn('Failed to update in Supabase experience table:', err);
-  }
-
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('sync_experience_updated', { detail: { userId, experience: updatedEntry } }));
+    window.dispatchEvent(new CustomEvent('sync_experience_updated', { detail: { userId, experience: data } }));
   }
 
-  return updatedEntry;
+  return data;
 }
 
 /**
@@ -258,25 +233,25 @@ export async function updateExperience(userId: string, experienceId: string, upd
 export async function deleteExperience(userId: string, experienceId: string): Promise<boolean> {
   if (!userId || !experienceId) throw new Error('User ID and Experience ID are required');
 
-  // 1. Optimistically update local
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
+
+  const { error } = await supabase
+    .from('profile_experience')
+    .delete()
+    .eq('id', experienceId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[ExperienceService] Supabase experience delete error:', error.message);
+    throw new Error(error.message || 'Failed to delete experience from database.');
+  }
+
+  // Update local read cache only on successful database deletion
   const currentList = getLocalExperiences(userId);
   const updatedList = currentList.filter(e => e.id !== experienceId);
   saveLocalExperiences(userId, updatedList);
-
-  // 2. Try deleting in Supabase
-  try {
-    const { error } = await supabase
-      .from('experience')
-      .delete()
-      .eq('id', experienceId)
-      .eq('user_id', userId);
-
-    if (error) {
-      console.warn('Supabase experience delete notice:', error.message || error);
-    }
-  } catch (err) {
-    console.warn('Failed to delete experience from Supabase:', err);
-  }
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('sync_experience_updated', { detail: { userId, deletedId: experienceId } }));
@@ -284,6 +259,12 @@ export async function deleteExperience(userId: string, experienceId: string): Pr
 
   return true;
 }
+
+export const clearExperienceCache = (userId?: string): void => {
+  if (userId && typeof window !== 'undefined') {
+    localStorage.removeItem(`${EXPERIENCE_CACHE_PREFIX}${userId}`);
+  }
+};
 
 /**
  * Listen for experience updates

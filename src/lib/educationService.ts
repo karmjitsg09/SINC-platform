@@ -72,7 +72,7 @@ export async function getEducationByUserId(userId: string | null | undefined): P
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
-        .from('education')
+        .from('profile_education')
         .select('*')
         .eq('user_id', userId)
         .order('start_date', { ascending: false });
@@ -123,29 +123,25 @@ export async function createEducation(arg1: any, arg2?: any): Promise<any> {
     created_at: new Date().toISOString()
   };
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('education')
-        .insert([newEntry])
-        .select()
-        .single();
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-      if (!error && data) {
-        const list = getLocalEducation(userId);
-        saveLocalEducation(userId, [data, ...list]);
-        notifyEducationListeners();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase create education exception:', err);
-    }
+  const { data, error } = await supabase
+    .from('profile_education')
+    .insert([newEntry])
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[EducationService] Supabase create education error:', error?.message);
+    throw new Error(error?.message || 'Failed to create education in database.');
   }
 
   const list = getLocalEducation(userId);
-  saveLocalEducation(userId, [newEntry, ...list]);
+  saveLocalEducation(userId, [data, ...list.filter(e => e.id !== data.id)]);
   notifyEducationListeners();
-  return newEntry;
+  return data;
 }
 
 export type { EducationItem };
@@ -169,64 +165,34 @@ export async function updateEducation(arg1: any, arg2: any, arg3?: any): Promise
           : updateData?.skills)
   };
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('education')
-        .update(cleanedData)
-        .eq('id', educationId)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const userId = data.user_id || passedUserId;
-        if (userId) {
-          const list = getLocalEducation(userId);
-          const updatedList = list.map((e) => (e.id === educationId ? data : e));
-          saveLocalEducation(userId, updatedList);
-        }
-        notifyEducationListeners();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase update education exception:', err);
-    }
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  // Local fallback
-  let affectedUserId: string | null = passedUserId || null;
-  if (affectedUserId) {
-    const list = getLocalEducation(affectedUserId);
-    const idx = list.findIndex((e: any) => e.id === educationId);
-    if (idx !== -1) {
-      list[idx] = { ...list[idx], ...cleanedData, updated_at: new Date().toISOString() };
-      saveLocalEducation(affectedUserId, list);
-      notifyEducationListeners();
-      return list[idx];
-    }
+  let query = supabase
+    .from('profile_education')
+    .update(cleanedData)
+    .eq('id', educationId);
+
+  if (passedUserId) {
+    query = query.eq('user_id', passedUserId);
   }
 
-  if (typeof window !== 'undefined') {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(EDUCATION_CACHE_PREFIX)) {
-        try {
-          const list = JSON.parse(localStorage.getItem(key) || '[]');
-          const idx = list.findIndex((e: any) => e.id === educationId);
-          if (idx !== -1) {
-            affectedUserId = key.replace(EDUCATION_CACHE_PREFIX, '');
-            list[idx] = { ...list[idx], ...cleanedData, updated_at: new Date().toISOString() };
-            saveLocalEducation(affectedUserId, list);
-            notifyEducationListeners();
-            return list[idx];
-          }
-        } catch (e) {}
-      }
-    }
+  const { data, error } = await query.select().single();
+
+  if (error || !data) {
+    console.error('[EducationService] Supabase update education error:', error?.message);
+    throw new Error(error?.message || 'Failed to update education in database.');
   }
 
+  const userId = data.user_id || passedUserId;
+  if (userId) {
+    const list = getLocalEducation(userId);
+    const updatedList = list.map((e) => (e.id === educationId ? data : e));
+    saveLocalEducation(userId, updatedList);
+  }
   notifyEducationListeners();
-  return { id: educationId, ...cleanedData };
+  return data;
 }
 
 /**
@@ -236,21 +202,26 @@ export async function deleteEducation(arg1: string, arg2?: string): Promise<bool
   const educationId = arg2 ? arg2 : arg1;
   const userId = arg2 ? arg1 : undefined;
 
-  if (!educationId) return false;
+  if (!educationId) throw new Error('Education ID is required');
 
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from('education')
-        .delete()
-        .eq('id', educationId);
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-      if (error) {
-        console.warn('Supabase delete education error:', error);
-      }
-    } catch (err) {
-      console.warn('Supabase delete education exception:', err);
-    }
+  let query = supabase
+    .from('profile_education')
+    .delete()
+    .eq('id', educationId);
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    console.error('[EducationService] Supabase delete education error:', error.message);
+    throw new Error(error.message || 'Failed to delete education from database.');
   }
 
   if (userId) {
@@ -272,3 +243,9 @@ export async function deleteEducation(arg1: string, arg2?: string): Promise<bool
   notifyEducationListeners();
   return true;
 }
+
+export const clearEducationCache = (userId?: string): void => {
+  if (userId && typeof window !== 'undefined') {
+    localStorage.removeItem(`${EDUCATION_CACHE_PREFIX}${userId}`);
+  }
+};

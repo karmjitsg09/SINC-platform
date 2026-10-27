@@ -38,6 +38,9 @@ export interface UserProfile {
   domains?: string[] | null;
   headline?: string | null;
   is_verified?: boolean;
+  is_private?: boolean;
+  isPrivate?: boolean;
+  privacy_settings?: any;
   onboarding_completed?: boolean;
   profile_setup_completed_steps?: number[];
   isNewUser?: boolean;

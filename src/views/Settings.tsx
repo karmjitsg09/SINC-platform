@@ -36,6 +36,9 @@ import {
   subscribeToPushState,
   dispatchServerPushNotification
 } from '../lib/pushNotificationService';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface SettingsProps {
   currentUser?: any;
@@ -70,6 +73,8 @@ export default function Settings({
   onToggleLeftSidebar
 }: SettingsProps) {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { updateProfile: updateAuthProfile } = useAuth();
+  const toast = useToast();
   const [activeSection, setActiveSection] = useState('appearance');
 
   // Privacy state
@@ -114,10 +119,15 @@ export default function Settings({
   useEffect(() => {
     if (currentProfile?.privacy_settings) {
       setPrivacySettings({
-        profile_visibility: currentProfile.privacy_settings.profile_visibility || 'everyone',
+        profile_visibility: currentProfile.privacy_settings.profile_visibility || (currentProfile?.is_private ? 'followers' : 'everyone'),
         dob_visibility: currentProfile.privacy_settings.dob_visibility || 'followers',
         location_visibility: currentProfile.privacy_settings.location_visibility || 'followers'
       });
+    } else if (currentProfile?.is_private !== undefined) {
+      setPrivacySettings((prev) => ({
+        ...prev,
+        profile_visibility: currentProfile.is_private ? 'followers' : 'everyone'
+      }));
     }
   }, [currentProfile]);
 
@@ -148,17 +158,20 @@ export default function Settings({
       const res = await unblockUser(currentUser.id, targetUserId);
       if (res.success) {
         setBlockedList((prev) => prev.filter((u) => u.id !== targetUserId));
+        toast.success('User unblocked successfully.');
       } else {
-        alert(res.error || 'Failed to unblock user');
+        toast.error(res.error || 'Failed to unblock user');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Settings] handleUnblock error:', e);
+      toast.error(e?.message || 'Failed to unblock user');
     } finally {
       setUnblockingId(null);
     }
   };
 
   const handleSavePrivacy = async (updated: Partial<typeof privacySettings>) => {
+    const prevSettings = { ...privacySettings };
     const nextSettings = { ...privacySettings, ...updated };
     setPrivacySettings(nextSettings);
     if (!currentUser?.id) return;
@@ -166,23 +179,38 @@ export default function Settings({
     setSavingPrivacy(true);
     setPrivacySavedMsg(false);
     try {
-      const res = await upsertUserPrivateDetails(currentUser.id, {
+      const isPrivateAccount = nextSettings.profile_visibility === 'followers' || nextSettings.profile_visibility === 'private';
+
+      // 1. Persist private settings into user_private_details
+      const privPromise = upsertUserPrivateDetails(currentUser.id, {
         privacy_settings: nextSettings
       });
-      if (res.success) {
-        if (res.serverSaved !== false && !res.pendingMigration) {
-          setPrivacySavedMsg('Saved to server!');
-        } else {
-          setPrivacySavedMsg('Saved locally (server migration pending)');
-        }
-        setTimeout(() => setPrivacySavedMsg(false), 3500);
-      } else {
-        console.error('[Settings] Failed to save privacy settings:', res.error);
-        alert(res.error || 'Failed to save privacy settings');
+
+      // 2. Persist account-level is_private flag on public.profiles
+      const profilePromise = isSupabaseConfigured
+        ? supabase.from('profiles').update({ is_private: isPrivateAccount }).eq('id', currentUser.id)
+        : Promise.resolve({ error: null });
+
+      const [resPriv, resProfile] = await Promise.all([privPromise, profilePromise]);
+
+      if (resProfile?.error) {
+        throw new Error(resProfile.error.message);
       }
-    } catch (e) {
+      if (!resPriv.success && !resPriv.pendingMigration) {
+        throw new Error(resPriv.error || 'Failed to update private settings');
+      }
+
+      if (updateAuthProfile) {
+        updateAuthProfile({ is_private: isPrivateAccount, privacy_settings: nextSettings });
+      }
+
+      setPrivacySavedMsg('Saved to server!');
+      toast.success('Privacy settings saved successfully.');
+      setTimeout(() => setPrivacySavedMsg(false), 3500);
+    } catch (e: any) {
       console.error('[Settings] handleSavePrivacy error:', e);
-      alert('Error saving privacy settings');
+      setPrivacySettings(prevSettings);
+      toast.error(e?.message || 'Failed to save privacy settings');
     } finally {
       setSavingPrivacy(false);
     }
@@ -223,7 +251,7 @@ export default function Settings({
 
   const handleTogglePush = async () => {
     if (!currentUser?.id) {
-      alert('Please log in to manage push notifications.');
+      toast.warning('Please log in to manage push notifications.');
       return;
     }
     setIsTogglingPush(true);

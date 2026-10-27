@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getProfileStats, calculateAge, getUserPrivateDetails } from '../lib/profileService';
 import { getFollowStatus, sendFollowRequest } from '../lib/socialService';
@@ -60,6 +61,7 @@ export default function ProfileDetails({
   onOpenConversation
 }: ProfileDetailsProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
 
   const isSelf = !targetUser || (currentUser?.id && targetUser.id === currentUser.id);
   const activeUserId = targetUser?.id || currentUser?.id;
@@ -236,7 +238,7 @@ export default function ProfileDetails({
       const conv = await getOrCreateDirectConversation(currentUser.id, activeUserId);
       setLoadingAction(false);
       if (conv?.error) {
-        alert(conv.error);
+        toast.error(conv.error);
         return;
       }
       if (conv && onOpenConversation) {
@@ -245,7 +247,7 @@ export default function ProfileDetails({
     } catch (err) {
       setLoadingAction(false);
       console.error('[ProfileDetails] Start chat error:', err);
-      alert('Unable to open direct message. Please try again.');
+      toast.error('Unable to open direct message. Please try again.');
     }
   };
 

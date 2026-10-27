@@ -8,6 +8,7 @@ import DomainShortcutRail from './components/DomainShortcutRail';
 import BottomNav from './components/BottomNav';
 import SincLogo from './components/common/SincLogo';
 import SincIntro from './components/common/SincIntro';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 import Feed from './views/Feed';
 import DomainList from './views/DomainList';
@@ -77,6 +78,7 @@ import { checkIsDomainMember } from './lib/domainUtils';
 import { getOrCreateDirectConversation, markConversationAsRead } from './messaging/services/conversationService';
 import { domains, users, FEED_CATEGORIES } from './data/mockData';
 import { parseRoute, pushRoute, replaceRoute } from './lib/routeUtils';
+import { useToast } from './context/ToastContext';
 
 function isUuid(str: string): boolean {
   if (typeof str !== 'string') return false;
@@ -85,6 +87,7 @@ function isUuid(str: string): boolean {
 
 export function MainAppContent() {
   const { user, isAuthenticated, authRoute, loadingSession, logout, updateProfile: updateAuthProfile } = useAuth();
+  const toast = useToast();
   const currentUserId = isAuthenticated ? user?.id : null;
   const { conversations: rawConversations, hasUnreadMessages, unreadTotal: unreadMessagesCount } = useConversations(currentUserId);
   const { unreadCount: unreadNotificationsCount } = useNotifications(currentUserId);
@@ -101,6 +104,21 @@ export function MainAppContent() {
 
   const [activeTab, setActiveTab] = useState(initialRoute.tab || 'home');
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
+  const [startupTimedOut, setStartupTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!loadingSession) {
+      setStartupTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (loadingSession) {
+        setStartupTimedOut(true);
+      }
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [loadingSession]);
+
   const [activeDomainId, setActiveDomainId] = useState(initialRoute.activeDomainId || 'tech');
 
   // Domain sub-navigation state
@@ -332,9 +350,75 @@ export function MainAppContent() {
     }
   }, [isAuthenticated, user?.isNewUser, user?.onboarding_completed]);
 
-  // Neutral initialization placeholder while active session is verified
+  // Neutral initialization screen until client mount and session check completes
   if (loadingSession) {
-    return <div className="sinc-session-restoring" aria-hidden="true" />;
+    if (startupTimedOut) {
+      return (
+        <div className="app-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-app, #080E18)', padding: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', maxWidth: '420px', textAlign: 'center' }}>
+            <SincLogo size={72} alt="SINC Logo" priority={true} />
+            <div style={{ color: '#f8fafc', fontSize: '18px', fontWeight: 600 }}>Connection taking longer than expected</div>
+            <div style={{ color: '#94a3b8', fontSize: '14px', lineHeight: 1.5 }}>
+              Initialization timed out. You can retry connecting or proceed directly to sign in.
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button
+                type="button"
+                id="startup-retry-btn"
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                id="startup-login-btn"
+                onClick={() => {
+                  try {
+                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                      const key = localStorage.key(i);
+                      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                        localStorage.removeItem(key);
+                      }
+                    }
+                  } catch (_) {}
+                  window.location.href = '/login';
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  color: '#e2e8f0',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  cursor: 'pointer'
+                }}
+              >
+                Go to Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="app-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-app, #080E18)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <SincLogo size={72} alt="SINC Logo" priority={true} />
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -582,7 +666,7 @@ export function MainAppContent() {
     }
 
     if (convOrUser.error) {
-      alert(convOrUser.error);
+      toast.error(convOrUser.error);
       return;
     }
 
@@ -624,12 +708,12 @@ export function MainAppContent() {
           return;
         } else if (resolved?.error) {
           console.error('[CHAT NAV DEBUG] conversation error:', resolved.error);
-          alert(resolved.error);
+          toast.error(resolved.error);
         }
       } catch (err) {
         console.error('[CHAT NAV DEBUG] conversation exception:', err);
         setIsResolvingConversation(false);
-        alert('Failed to open conversation. Please try again.');
+        toast.error('Failed to open conversation. Please try again.');
       }
     }
   };
@@ -1114,7 +1198,9 @@ export function MainAppContent() {
             }}
           >
             <Suspense fallback={<PageLoadingFallback />}>
-              {renderScreen()}
+              <ErrorBoundary sectionName={activeTab}>
+                {renderScreen()}
+              </ErrorBoundary>
             </Suspense>
           </div>
 
@@ -1153,10 +1239,5 @@ function AuthenticatedIntroWatcher() {
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AuthenticatedIntroWatcher />
-      <MainAppContent />
-    </AuthProvider>
-  );
+  return <MainAppContent />;
 }

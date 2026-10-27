@@ -4,8 +4,10 @@ import '../index.css';
 import QueryProvider from '@/providers/QueryProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { ToastProvider } from '@/context/ToastContext';
 import AuthenticatedIntroWatcher from '@/components/common/AuthenticatedIntroWatcher';
 import SocketInitializer from '@/components/common/SocketInitializer';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'SINC — Society for Innovation, Network & Collaboration',
@@ -39,15 +41,19 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        <QueryProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              <AuthenticatedIntroWatcher />
-              <SocketInitializer />
-              {children}
-            </ThemeProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <ErrorBoundary>
+          <QueryProvider>
+            <AuthProvider>
+              <ThemeProvider>
+                <ToastProvider>
+                  <AuthenticatedIntroWatcher />
+                  <SocketInitializer />
+                  {children}
+                </ToastProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

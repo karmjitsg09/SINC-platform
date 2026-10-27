@@ -58,6 +58,7 @@ export default function CreatePost({
   const [codeSnippet, setCodeSnippet] = useState('');
   const [codeLanguage, setCodeLanguage] = useState('javascript');
   const [linkUrl, setLinkUrl] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
 
   // Upload progress & submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -221,6 +222,7 @@ export default function CreatePost({
         mediaUrl: mediaType === 'link' ? linkUrl : null,
         codeSnippet: mediaType === 'code' ? codeSnippet : null,
         codeLanguage: mediaType === 'code' ? codeLanguage : null,
+        is_private: isPrivate,
         onProgress: (percent: number, text: string) => {
           setUploadProgress({ active: true, percent, text });
         }
@@ -406,6 +408,27 @@ export default function CreatePost({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Post Visibility Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: '600', color: '#1e293b' }}>
+                Post Visibility: {isPrivate ? 'Private (Followers Only)' : 'Public (Everyone)'}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                {isPrivate ? 'Only approved followers can see this post in their feed and profile.' : 'Visible to all members of SINC across domain feeds.'}
+              </div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                disabled={isSubmitting}
+                style={{ width: '18px', height: '18px', accentColor: '#3b82f6', cursor: 'pointer' }}
+              />
+            </label>
           </div>
 
           {/* Description / Summary Field */}

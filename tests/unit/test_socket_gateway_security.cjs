@@ -1,22 +1,31 @@
 /**
  * SINC Platform — Isolated Socket.IO Gateway Security & Authentication Tests
  *
- * Tests:
- * 1. Missing token -> connection rejected with "Missing access token" error.
- * 2. Malformed token -> connection rejected.
- * 3. Expired token -> connection rejected with "Expired authentication token" error.
- * 4. Identity spoofing -> client-supplied userId differing from token `sub` rejected.
- * 5. Invalid signature -> rejected when SUPABASE_JWT_SECRET is configured.
- * 6. Valid signed token -> connects successfully and binds verified socket.userId.
- * 7. Room join security -> unauthorized join to another user's room rejected.
- * 8. Ephemeral typing authorization -> sender userId in broadcast is authoritatively bound to socket.userId.
- *
- * Completely isolated: Runs on local test port (3099), makes 0 remote network calls.
+ * Comprehensive audit suite verifying:
+ * 1. Missing verification configuration fail-closed behavior
+ * 2. Missing token handshake rejection
+ * 3. Malformed token structure rejection
+ * 4. Asymmetric token: Expired ES256 token rejected
+ * 5. Asymmetric token: Forged ES256 signature rejected
+ * 6. Asymmetric token: Untrusted key (not in JWKS) rejected
+ * 7. Symmetric token: Expired HS256 token rejected
+ * 8. Symmetric token: Forged HS256 signature rejected
+ * 9. Unsupported algorithm (alg: none) rejected
+ * 10. Identity spoofing (client-supplied userId != token sub) rejected
+ * 11. Valid asymmetric ES256 token connects successfully and authoritatively binds userId
+ * 12. Valid symmetric HS256 token connects successfully when secret configured
+ * 13. Room join protection: Cannot join another user's personal room
+ * 14. Ephemeral typing authorization: authoritatively bound to verified token identity
+ * 15. Notification relay: authoritatively bound to verified token identity
+ * 16. Presence query: authoritatively reports verified token identities
+ * 17. Real Supabase Staging Login Token: Connects to socket gateway with real ES256 JWKS verification
  */
 
 const http = require('http');
 const crypto = require('crypto');
 const { io: Client } = require('socket.io-client');
+const { generateKeyPair, SignJWT, exportJWK, createLocalJWKSet } = require('jose');
+const { createClient } = require('@supabase/supabase-js');
 
 const TEST_SECRET = 'sinc_test_jwt_secret_do_not_use_in_prod_1234567890';
 const TEST_PORT = 3099;
@@ -25,9 +34,9 @@ const TEST_PORT = 3099;
 process.env.SOCKET_PORT = String(TEST_PORT);
 process.env.SUPABASE_JWT_SECRET = TEST_SECRET;
 
-const { server, io, verifySupabaseToken } = require('../../backend/socket-gateway/server.js');
+const { server, io, verifySupabaseToken, setCustomJwksOverride } = require('../../backend/socket-gateway/server.js');
 
-function createToken(sub, expiresInSec = 3600, customClaims = {}) {
+function createSymmetricToken(sub, expiresInSec = 3600, customClaims = {}) {
   const header = { alg: 'HS256', typ: 'JWT' };
   const payload = {
     sub,
@@ -47,6 +56,30 @@ async function runSecurityTests() {
   console.log('================================================================');
   console.log('SINC — SOCKET.IO GATEWAY SECURITY & AUTHENTICATION AUDIT SUITE');
   console.log('================================================================\n');
+
+  // Setup local EC key pair and local JWKS for fast offline asymmetric testing
+  const { publicKey, privateKey } = await generateKeyPair('ES256');
+  const testJwk = await exportJWK(publicKey);
+  testJwk.kid = 'test-es256-local-kid';
+  const localJwks = createLocalJWKSet({ keys: [testJwk] });
+  setCustomJwksOverride(localJwks);
+
+  // Generate an untrusted key pair (not in JWKS)
+  const untrustedKeys = await generateKeyPair('ES256');
+
+  async function createAsymmetricToken(sub, expiresInSec = 3600, customClaims = {}, signingKey = privateKey, kid = 'test-es256-local-kid') {
+    return new SignJWT({
+      sub,
+      aud: 'authenticated',
+      role: 'authenticated',
+      ...customClaims
+    })
+      .setProtectedHeader({ alg: 'ES256', kid })
+      .setIssuedAt()
+      .setIssuer('https://bqmylyedpjeutxhcvmrf.supabase.co/auth/v1')
+      .setExpirationTime(Math.floor(Date.now() / 1000) + expiresInSec)
+      .sign(signingKey);
+  }
 
   // Start test server
   await new Promise((resolve) => server.listen(TEST_PORT, resolve));
@@ -73,8 +106,8 @@ async function runSecurityTests() {
     {
       const originalSecret = process.env.SUPABASE_JWT_SECRET;
       delete process.env.SUPABASE_JWT_SECRET;
-      const validToken = createToken('user-alice-123');
-      const noSecretResult = verifySupabaseToken(validToken);
+      const validToken = createSymmetricToken('user-alice-123');
+      const noSecretResult = await verifySupabaseToken(validToken);
       process.env.SUPABASE_JWT_SECRET = originalSecret;
 
       if (!noSecretResult.valid && noSecretResult.error.includes('SUPABASE_JWT_SECRET required')) {
@@ -135,10 +168,93 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 4: Expired Token Rejection
+    // TEST 4: Asymmetric Expired Token Rejection
+    // -------------------------------------------------------------
+    await new Promise(async (resolve) => {
+      const expiredToken = await createAsymmetricToken('user-alice-123', -60);
+      const client = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: expiredToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      client.on('connect_error', (err) => {
+        if (err.message.includes('Expired authentication token') || err.message.includes('expired')) {
+          recordPass('Expired asymmetric token (ES256) is rejected');
+        } else {
+          recordFail('Expired asymmetric token', `Unexpected error: ${err.message}`);
+        }
+        client.close();
+        resolve();
+      });
+      client.on('connect', () => {
+        recordFail('Expired asymmetric token', 'Expected connection to be rejected');
+        client.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 5: Asymmetric Forged Signature Rejection
+    // -------------------------------------------------------------
+    await new Promise(async (resolve) => {
+      const validToken = await createAsymmetricToken('user-alice-123', 3600);
+      const parts = validToken.split('.');
+      // Tamper signature
+      const forgedSig = 'invalidSignatureStringHereForTestingES256FailedVerification12345';
+      const forgedToken = `${parts[0]}.${parts[1]}.${forgedSig}`;
+
+      const client = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: forgedToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      client.on('connect_error', (err) => {
+        if (err.message.includes('Invalid token signature') || err.message.includes('signature')) {
+          recordPass('Forged asymmetric cryptographic signature is rejected');
+        } else {
+          recordFail('Forged asymmetric signature', `Unexpected error: ${err.message}`);
+        }
+        client.close();
+        resolve();
+      });
+      client.on('connect', () => {
+        recordFail('Forged asymmetric signature', 'Expected forged token to be rejected');
+        client.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 6: Untrusted Asymmetric Key Rejection (Not in JWKS)
+    // -------------------------------------------------------------
+    await new Promise(async (resolve) => {
+      const untrustedToken = await createAsymmetricToken('user-attacker-123', 3600, {}, untrustedKeys.privateKey, 'untrusted-kid');
+      const client = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: untrustedToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      client.on('connect_error', (err) => {
+        if (err.message.includes('Invalid token signature') || err.message.includes('verification failed') || err.message.includes('JWKS')) {
+          recordPass('Asymmetric token from untrusted key (not in JWKS) is rejected');
+        } else {
+          recordFail('Untrusted key rejection', `Unexpected error: ${err.message}`);
+        }
+        client.close();
+        resolve();
+      });
+      client.on('connect', () => {
+        recordFail('Untrusted key rejection', 'Expected untrusted key to be rejected');
+        client.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 7: Symmetric Expired Token Rejection (HS256)
     // -------------------------------------------------------------
     await new Promise((resolve) => {
-      const expiredToken = createToken('user-alice-123', -60); // expired 60 seconds ago
+      const expiredToken = createSymmetricToken('user-alice-123', -60);
       const client = Client(`http://localhost:${TEST_PORT}`, {
         auth: { token: expiredToken },
         transports: ['websocket'],
@@ -146,29 +262,29 @@ async function runSecurityTests() {
       });
       client.on('connect_error', (err) => {
         if (err.message.includes('Expired authentication token')) {
-          recordPass('Expired token is rejected');
+          recordPass('Expired symmetric token (HS256) is rejected');
         } else {
-          recordFail('Expired token', `Unexpected error message: ${err.message}`);
+          recordFail('Expired symmetric token', `Unexpected error message: ${err.message}`);
         }
         client.close();
         resolve();
       });
       client.on('connect', () => {
-        recordFail('Expired token', 'Expected connection to be rejected');
+        recordFail('Expired symmetric token', 'Expected connection to be rejected');
         client.close();
         resolve();
       });
     });
 
     // -------------------------------------------------------------
-    // TEST 5: Invalid Cryptographic Signature Rejection
+    // TEST 8: Symmetric Invalid Signature Rejection (HS256)
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       const header = { alg: 'HS256', typ: 'JWT' };
       const payload = { sub: 'user-forger-666', exp: Math.floor(Date.now() / 1000) + 3600, aud: 'authenticated', role: 'authenticated' };
       const hB64 = Buffer.from(JSON.stringify(header)).toString('base64url');
       const pB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-      const forgedSig = crypto.createHmac('sha256', 'wrong_signing_key').update(`${hB64}.${pB64}`).digest('base64url');
+      const forgedSig = crypto.createHmac('sha256', 'wrong_key').update(`${hB64}.${pB64}`).digest('base64url');
       const forgedToken = `${hB64}.${pB64}.${forgedSig}`;
 
       const client = Client(`http://localhost:${TEST_PORT}`, {
@@ -178,22 +294,22 @@ async function runSecurityTests() {
       });
       client.on('connect_error', (err) => {
         if (err.message.includes('Invalid token signature')) {
-          recordPass('Forged cryptographic signature is rejected');
+          recordPass('Forged symmetric cryptographic signature is rejected');
         } else {
-          recordFail('Forged signature', `Unexpected error: ${err.message}`);
+          recordFail('Forged symmetric signature', `Unexpected error: ${err.message}`);
         }
         client.close();
         resolve();
       });
       client.on('connect', () => {
-        recordFail('Forged signature', 'Expected forged token to be rejected');
+        recordFail('Forged symmetric signature', 'Expected connection to be rejected');
         client.close();
         resolve();
       });
     });
 
     // -------------------------------------------------------------
-    // TEST 6: Unsupported Signing Algorithm Rejection (alg: none / RS256)
+    // TEST 9: Unsupported Signing Algorithm Rejection (alg: none)
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       const noneHeader = { alg: 'none', typ: 'JWT' };
@@ -208,7 +324,7 @@ async function runSecurityTests() {
         reconnection: false
       });
       client.on('connect_error', (err) => {
-        if (err.message.includes('Unsupported signing algorithm')) {
+        if (err.message.includes('Algorithm "none" is not permitted') || err.message.includes('Unsupported signing algorithm')) {
           recordPass('Unsupported signing algorithm (alg: none) is rejected');
         } else {
           recordFail('Unsupported algorithm', `Unexpected error: ${err.message}`);
@@ -224,10 +340,10 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 7: Identity Spoofing Rejection (Token sub != Client userId)
+    // TEST 10: Identity Spoofing Rejection (Token sub != Client userId)
     // -------------------------------------------------------------
-    await new Promise((resolve) => {
-      const validAliceToken = createToken('user-alice-123');
+    await new Promise(async (resolve) => {
+      const validAliceToken = await createAsymmetricToken('user-alice-123');
       const client = Client(`http://localhost:${TEST_PORT}`, {
         auth: {
           token: validAliceToken,
@@ -253,28 +369,50 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 8: Valid Token Connection & Personal Room Binding
+    // TEST 11: Valid Asymmetric ES256 Token Connects Successfully
     // -------------------------------------------------------------
     let clientAlice;
-    await new Promise((resolve) => {
-      const aliceToken = createToken('user-alice-123');
+    await new Promise(async (resolve) => {
+      const aliceToken = await createAsymmetricToken('user-alice-123');
       clientAlice = Client(`http://localhost:${TEST_PORT}`, {
         auth: { token: aliceToken },
         transports: ['websocket'],
         reconnection: false
       });
       clientAlice.on('connect', () => {
-        recordPass('Valid signed token connects successfully');
+        recordPass('Valid asymmetric token (ES256) connects successfully');
         resolve();
       });
       clientAlice.on('connect_error', (err) => {
-        recordFail('Valid token connection', err.message);
+        recordFail('Valid asymmetric token connection', err.message);
         resolve();
       });
     });
 
     // -------------------------------------------------------------
-    // TEST 9: Unauthorized Personal Room Join Protection
+    // TEST 12: Valid Symmetric HS256 Token Connects Successfully
+    // -------------------------------------------------------------
+    await new Promise((resolve) => {
+      const bobToken = createSymmetricToken('user-bob-symmetric-999');
+      const clientBobSym = Client(`http://localhost:${TEST_PORT}`, {
+        auth: { token: bobToken },
+        transports: ['websocket'],
+        reconnection: false
+      });
+      clientBobSym.on('connect', () => {
+        recordPass('Valid symmetric token (HS256 fallback) connects successfully');
+        clientBobSym.close();
+        resolve();
+      });
+      clientBobSym.on('connect_error', (err) => {
+        recordFail('Valid symmetric token connection', err.message);
+        clientBobSym.close();
+        resolve();
+      });
+    });
+
+    // -------------------------------------------------------------
+    // TEST 13: Unauthorized Personal Room Join Protection
     // -------------------------------------------------------------
     await new Promise((resolve) => {
       if (!clientAlice || !clientAlice.connected) {
@@ -289,15 +427,14 @@ async function runSecurityTests() {
         }
         resolve();
       });
-      // Alice attempts to eavesdrop on Bob's personal room
       clientAlice.emit('user:join', { userId: 'user-bob-999' });
     });
 
     // -------------------------------------------------------------
-    // TEST 10: Ephemeral Typing Authoritative Identity Binding
+    // TEST 14: Ephemeral Typing Authoritative Identity Binding
     // -------------------------------------------------------------
-    await new Promise((resolve) => {
-      const bobToken = createToken('user-bob-999');
+    await new Promise(async (resolve) => {
+      const bobToken = await createAsymmetricToken('user-bob-999');
       const clientBob = Client(`http://localhost:${TEST_PORT}`, {
         auth: { token: bobToken },
         transports: ['websocket'],
@@ -306,13 +443,10 @@ async function runSecurityTests() {
 
       clientBob.on('connect', () => {
         const testConvId = 'conv-test-security-room-777';
-        // Both join the conversation room
         clientAlice.emit('conversation:join', { conversationId: testConvId });
         clientBob.emit('conversation:join', { conversationId: testConvId });
 
-        // Bob listens for typing events
         clientBob.on('typing:status', (event) => {
-          // Verify that even if Alice tried to claim userId is 'eve', the server stamped Alice's true ID
           if (event.userId === 'user-alice-123' && event.isTyping === true) {
             recordPass('Typing event authoritatively binds sender to token identity (user-alice-123)');
           } else {
@@ -322,7 +456,6 @@ async function runSecurityTests() {
           resolve();
         });
 
-        // Alice emits typing, attempting to spoof payload
         setTimeout(() => {
           clientAlice.emit('typing:start', { conversationId: testConvId, userId: 'spoofed-eve-id' });
         }, 50);
@@ -330,10 +463,10 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 11: Notification Relay Authoritative Sender Identity Binding
+    // TEST 15: Notification Relay Authoritative Sender Identity Binding
     // -------------------------------------------------------------
-    await new Promise((resolve) => {
-      const bobToken = createToken('user-bob-999');
+    await new Promise(async (resolve) => {
+      const bobToken = await createAsymmetricToken('user-bob-999');
       const clientBob = Client(`http://localhost:${TEST_PORT}`, {
         auth: { token: bobToken },
         transports: ['websocket'],
@@ -351,7 +484,6 @@ async function runSecurityTests() {
           resolve();
         });
 
-        // Alice attempts to send notification claiming to be forged sender
         setTimeout(() => {
           clientAlice.emit('notification:send', {
             recipientId: 'user-bob-999',
@@ -364,11 +496,10 @@ async function runSecurityTests() {
     });
 
     // -------------------------------------------------------------
-    // TEST 12: Presence Broadcast Authoritative User ID Binding
+    // TEST 16: Presence Broadcast Authoritative User ID Binding
     // -------------------------------------------------------------
-    await new Promise((resolve) => {
-      // Connect third client (Charlie) to observe presence updates
-      const charlieToken = createToken('user-charlie-777');
+    await new Promise(async (resolve) => {
+      const charlieToken = await createAsymmetricToken('user-charlie-777');
       const clientCharlie = Client(`http://localhost:${TEST_PORT}`, {
         auth: { token: charlieToken },
         transports: ['websocket'],
@@ -376,7 +507,6 @@ async function runSecurityTests() {
       });
 
       clientCharlie.on('connect', () => {
-        // Query online presence to verify authoritative IDs
         clientCharlie.emit('presence:query', (response) => {
           if (response && Array.isArray(response.onlineUserIds) && response.onlineUserIds.includes('user-alice-123')) {
             recordPass('Presence query authoritatively reports verified token identities');
@@ -391,7 +521,53 @@ async function runSecurityTests() {
 
     if (clientAlice) clientAlice.close();
 
+    // -------------------------------------------------------------
+    // TEST 17: Live Supabase Staging Login Token Integration Test
+    // -------------------------------------------------------------
+    try {
+      // Temporarily remove local JWKS override so the gateway connects to live Staging JWKS
+      setCustomJwksOverride(null);
+      const stagingUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://bqmylyedpjeutxhcvmrf.supabase.co';
+      const stagingAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (stagingAnonKey) {
+        const sb = createClient(stagingUrl, stagingAnonKey);
+        const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
+          email: 'operator.verifier@example.com',
+          password: 'Password123!'
+        });
+
+        if (!authErr && authData?.session) {
+          const liveToken = authData.session.access_token;
+          const liveUserId = authData.user.id;
+
+          await new Promise((resolve) => {
+            const liveClient = Client(`http://localhost:${TEST_PORT}`, {
+              auth: { token: liveToken, userId: liveUserId },
+              transports: ['websocket'],
+              reconnection: false
+            });
+            liveClient.on('connect', () => {
+              recordPass('Live Staging Login token connects and verifies against live Supabase JWKS (ES256)');
+              liveClient.close();
+              resolve();
+            });
+            liveClient.on('connect_error', (err) => {
+              recordFail('Live Staging Login token', err.message);
+              liveClient.close();
+              resolve();
+            });
+          });
+        } else {
+          console.log('[SKIP] Test 17: Live staging user credentials not active in this test run; skipped live staging handshake.');
+        }
+      }
+    } catch (liveErr) {
+      console.warn('[TEST 17 NOTE] Staging live check note:', liveErr.message);
+    }
+
   } finally {
+    setCustomJwksOverride(null);
     await new Promise((resolve) => server.close(resolve));
     console.log(`\n[TEARDOWN] Test gateway shut down cleanly.`);
   }

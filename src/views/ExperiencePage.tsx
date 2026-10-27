@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import ProfileExperience from '../components/profile/ProfileExperience';
 import ExperienceModal from '../components/profile/ExperienceModal';
 import ProfileItemPostModal from '../components/profile/ProfileItemPostModal';
@@ -20,6 +21,7 @@ export interface ExperiencePageProps {
 
 export default function ExperiencePage({ onBack, onViewAllUpdates }: ExperiencePageProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +70,17 @@ export default function ExperiencePage({ onBack, onViewAllUpdates }: ExperienceP
       if (editingExperience?.id) {
         const updated = await updateExperience(currentUser.id, editingExperience.id, experienceData);
         setExperiences((prev) => prev.map((e) => (e.id === editingExperience.id ? { ...e, ...updated } : e)));
+        toast.success('Experience updated successfully.');
       } else {
         const created = await createExperience(currentUser.id, experienceData);
         setExperiences((prev) => [created, ...prev.filter((e) => e.id !== created.id)]);
+        toast.success('Experience created successfully.');
       }
       setShowExperienceModal(false);
       setEditingExperience(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ExperiencePage] Save experience error:', err);
-      alert('Failed to save experience.');
+      toast.error(err?.message || 'Failed to save experience.');
     }
   };
 
@@ -85,9 +89,10 @@ export default function ExperiencePage({ onBack, onViewAllUpdates }: ExperienceP
     try {
       await deleteExperience(currentUser.id, experienceId);
       setExperiences((prev) => prev.filter((e) => e.id !== experienceId));
-    } catch (err) {
+      toast.success('Experience deleted successfully.');
+    } catch (err: any) {
       console.error('[ExperiencePage] Delete experience error:', err);
-      alert('Failed to delete experience.');
+      toast.error(err?.message || 'Failed to delete experience.');
     }
   };
 

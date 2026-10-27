@@ -454,7 +454,7 @@ export const createNotification = async ({
         }
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notifications')
         .insert([
           {
@@ -467,19 +467,9 @@ export const createNotification = async ({
             entity_id: String(entityId),
             is_read: false
           }
-        ])
-        .select()
-        .single();
+        ]);
 
-      if (data) {
-        const fullNotif = {
-          ...data,
-          actor,
-          followRequestStatus: type === 'follow_request' ? 'pending' : null
-        };
-        localNotifications.unshift(fullNotif);
-        notifyNotificationStateChange();
-
+      if (!error) {
         // Dispatch Web Push notification to recipient
         const notifTitle = title || (type === 'follow_request' ? 'Follow Request' : type === 'follow_accepted' ? 'Follow Accepted' : 'Notification');
         const notifUrl = entityType === 'conversation' ? `/messages/${entityId}` : '/notifications';
@@ -493,7 +483,7 @@ export const createNotification = async ({
           entityId: String(entityId)
         }).catch(() => {});
 
-        return { success: true, notification: fullNotif };
+        return { success: true };
       }
     } catch (e) {
       console.warn('[NotificationService] Supabase createNotification exception:', e);

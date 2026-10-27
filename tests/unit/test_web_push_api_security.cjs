@@ -42,6 +42,7 @@
  */
 
 const crypto = require('crypto');
+const { generateKeyPair, SignJWT, exportJWK, createLocalJWKSet } = require('jose');
 
 const TEST_SECRET = 'sinc_push_test_secret_1234567890_abcdef_isolated';
 process.env.SUPABASE_JWT_SECRET = TEST_SECRET;
@@ -284,6 +285,14 @@ async function runPushSecurityTests() {
   }
 
   // -------------------------------------------------------------
+  // Setup Local EC Key Pair & Local JWKS for Asymmetric Tests
+  // -------------------------------------------------------------
+  const { publicKey: testEcPublic, privateKey: testEcPrivate } = await generateKeyPair('ES256');
+  const testEcJwk = await exportJWK(testEcPublic);
+  testEcJwk.kid = 'test-es256-webpush-kid';
+  const localWebPushJwks = createLocalJWKSet({ keys: [testEcJwk] });
+
+  // -------------------------------------------------------------
   // TEST 1: Missing Server Configuration (Fail-Closed)
   // -------------------------------------------------------------
   {
@@ -297,7 +306,7 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     process.env.SUPABASE_JWT_SECRET = originalSecret;
 
     if (!auth.authenticated && auth.status === 500 && auth.error.includes('SUPABASE_JWT_SECRET required')) {
@@ -316,7 +325,7 @@ async function runPushSecurityTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: 'alice', subscription: { endpoint: 'https://push.example.com/123' } })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated && auth.status === 401 && auth.error.includes('Missing Authorization header')) {
       recordPass('Missing Authorization header returns 401 Unauthorized');
     } else {
@@ -336,7 +345,7 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated && auth.status === 401 && auth.error.includes('Bearer token format required')) {
       recordPass('Non-Bearer Authorization header returns 401 Unauthorized');
     } else {
@@ -356,7 +365,7 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated && auth.status === 401 && auth.error.includes('Malformed JWT token structure')) {
       recordPass('Malformed JWT structure returns 401 Unauthorized');
     } else {
@@ -377,7 +386,7 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated && auth.status === 401 && auth.error.includes('expired')) {
       recordPass('Expired session token returns 401 Unauthorized');
     } else {
@@ -398,8 +407,8 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
-    if (!auth.authenticated && auth.status === 401 && auth.error.includes('Unsupported signing algorithm')) {
+    const auth = await verifyServerAuth(req);
+    if (!auth.authenticated && auth.status === 401 && (auth.error.includes('Unsupported signing algorithm') || auth.error.includes('Algorithm "none" is not permitted'))) {
       recordPass('Unsupported signing algorithm (alg: none) returns 401 Unauthorized');
     } else {
       recordFail('alg: none token', `Expected 401 unsupported alg, got: ${JSON.stringify(auth)}`);
@@ -419,7 +428,7 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated && auth.status === 401 && auth.error.includes('Unsupported signing algorithm')) {
       recordPass('Unsupported signing algorithm (alg: RS256) returns 401 Unauthorized');
     } else {
@@ -440,11 +449,61 @@ async function runPushSecurityTests() {
       },
       body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
     });
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated && auth.status === 401 && auth.error.includes('Invalid token signature')) {
       recordPass('Invalid cryptographic signature returns 401 Unauthorized');
     } else {
       recordFail('Forged signature', `Expected 401 invalid signature, got: ${JSON.stringify(auth)}`);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // TEST 8B: Asymmetric Token (ES256 via JWKS) Verification
+  // -------------------------------------------------------------
+  {
+    const esToken = await new SignJWT({ sub: 'user-alice-123', aud: 'authenticated', role: 'authenticated' })
+      .setProtectedHeader({ alg: 'ES256', kid: 'test-es256-webpush-kid' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(testEcPrivate);
+    const req = new Request('http://localhost:3000/api/send-web-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${esToken}`
+      },
+      body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
+    });
+    const auth = await verifyServerAuth(req, { jwks: localWebPushJwks });
+    if (auth.authenticated && auth.userId === 'user-alice-123') {
+      recordPass('Valid asymmetric token (ES256 via JWKS) authenticates successfully');
+    } else {
+      recordFail('Asymmetric token authentication', `Expected authenticated true, got: ${JSON.stringify(auth)}`);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // TEST 8C: Asymmetric Expired Token (ES256) Rejection
+  // -------------------------------------------------------------
+  {
+    const esExpired = await new SignJWT({ sub: 'user-alice-123', aud: 'authenticated', role: 'authenticated' })
+      .setProtectedHeader({ alg: 'ES256', kid: 'test-es256-webpush-kid' })
+      .setIssuedAt()
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 60)
+      .sign(testEcPrivate);
+    const req = new Request('http://localhost:3000/api/send-web-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${esExpired}`
+      },
+      body: JSON.stringify({ recipientId: 'user-bob-999', message: 'Hello' })
+    });
+    const auth = await verifyServerAuth(req, { jwks: localWebPushJwks });
+    if (!auth.authenticated && auth.status === 401 && auth.error.includes('expired')) {
+      recordPass('Expired asymmetric token (ES256) returns 401 Unauthorized');
+    } else {
+      recordFail('Expired asymmetric token', `Expected 401 expired error, got: ${JSON.stringify(auth)}`);
     }
   }
 

@@ -13,6 +13,7 @@ import {
 } from '../lib/postInteractionService';
 import InAppShareModal from './InAppShareModal';
 import PostLikersModal from './PostLikersModal';
+import { useToast } from '../context/ToastContext';
 
 function formatTimeAgo(isoString?: string | null): string {
   if (!isoString) return 'Just now';
@@ -40,6 +41,7 @@ export default function PostCardInteractions({
   disableIndividualFetch = false
 }: PostCardInteractionsProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
 
   const [likeCount, setLikeCount] = useState<number>(initialSummary?.likeCount ?? post?.likes_count ?? 0);
   const [commentCount, setCommentCount] = useState<number>(initialSummary?.commentCount ?? post?.comments_count ?? 0);
@@ -95,7 +97,7 @@ export default function PostCardInteractions({
   const handleLike = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!currentUser?.id) {
-      alert('Please sign in to like posts.');
+      toast.warning('Please sign in to like posts.');
       return;
     }
     if (isLiking) return;
@@ -116,6 +118,7 @@ export default function PostCardInteractions({
       console.error('[PostCardInteractions] Like error:', err);
       setIsLiked(prevLiked);
       setLikeCount(prevCount);
+      toast.error('Unable to update like. Please try again.');
     } finally {
       setIsLiking(false);
     }
@@ -146,7 +149,7 @@ export default function PostCardInteractions({
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser?.id) {
-      alert('Please sign in to comment.');
+      toast.warning('Please sign in to comment.');
       return;
     }
     if (!commentText.trim() || isSubmittingComment) return;
@@ -164,6 +167,7 @@ export default function PostCardInteractions({
     } catch (err) {
       console.error('[PostCardInteractions] Comment error:', err);
       setCommentText(textToSubmit);
+      toast.error('Unable to post comment. Please try again.');
     } finally {
       setIsSubmittingComment(false);
     }
@@ -178,16 +182,19 @@ export default function PostCardInteractions({
       if (ok) {
         setComments((prev) => prev.filter((c) => c.id !== commentId));
         setCommentCount((prev) => Math.max(0, prev - 1));
+      } else {
+        toast.error('Unable to delete comment.');
       }
     } catch (err) {
       console.error('[PostCardInteractions] Delete comment error:', err);
+      toast.error('Unable to delete comment. Please try again.');
     }
   };
 
   // 5. SHARE HANDLER (OPENS IN-APP SHARE SELECTION MODAL)
   const handleOpenShare = () => {
     if (!currentUser?.id) {
-      alert('Please sign in to share posts.');
+      toast.warning('Please sign in to share posts.');
       return;
     }
     setShowShareModal(true);
@@ -196,7 +203,7 @@ export default function PostCardInteractions({
   // 6. SAVE / UNSAVE HANDLER
   const handleSave = async () => {
     if (!currentUser?.id) {
-      alert('Please sign in to save posts.');
+      toast.warning('Please sign in to save posts.');
       return;
     }
     if (isSaving) return;
@@ -220,6 +227,7 @@ export default function PostCardInteractions({
       console.error('[PostCardInteractions] Save error:', err);
       setIsSaved(prevSaved);
       setSaveCount(prevCount);
+      toast.error('Unable to update save. Please try again.');
     } finally {
       setIsSaving(false);
     }

@@ -1,0 +1,26 @@
+version: '3.8'
+
+# SINC Local Infrastructure Services
+# Note: PostgreSQL (with GoTrue Auth, auth.users, auth.uid(), and Supabase roles)
+# is run via the Supabase CLI local stack: `npx supabase start`
+# Redis is maintained here in Docker Compose for rate limiting, Socket.IO adapter, and BullMQ queues.
+
+services:
+  sinc-redis:
+    image: redis:7-alpine
+    container_name: sinc-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--loglevel", "warning"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - sinc_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sinc_redis_data:
+

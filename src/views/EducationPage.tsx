@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import ProfileEducation from '../components/profile/ProfileEducation';
 import EducationModal from '../components/profile/EducationModal';
 import ProfileItemPostModal from '../components/profile/ProfileItemPostModal';
@@ -20,6 +21,7 @@ export interface EducationPageProps {
 
 export default function EducationPage({ onBack, onViewAllUpdates }: EducationPageProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [educationList, setEducationList] = useState<EducationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +70,17 @@ export default function EducationPage({ onBack, onViewAllUpdates }: EducationPag
       if (editingEducation?.id) {
         const updated = await updateEducation(currentUser.id, editingEducation.id, educationData);
         setEducationList((prev) => prev.map((e) => (e.id === editingEducation.id ? { ...e, ...updated } : e)));
+        toast.success('Education updated successfully.');
       } else {
         const created = await createEducation(currentUser.id, educationData);
         setEducationList((prev) => [created, ...prev.filter((e) => e.id !== created.id)]);
+        toast.success('Education added successfully.');
       }
       setShowEducationModal(false);
       setEditingEducation(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[EducationPage] Save education error:', err);
-      alert('Failed to save education.');
+      toast.error(err?.message || 'Failed to save education.');
     }
   };
 
@@ -85,9 +89,10 @@ export default function EducationPage({ onBack, onViewAllUpdates }: EducationPag
     try {
       await deleteEducation(currentUser.id, educationId);
       setEducationList((prev) => prev.filter((e) => e.id !== educationId));
-    } catch (err) {
+      toast.success('Education deleted successfully.');
+    } catch (err: any) {
       console.error('[EducationPage] Delete education error:', err);
-      alert('Failed to delete education.');
+      toast.error(err?.message || 'Failed to delete education.');
     }
   };
 

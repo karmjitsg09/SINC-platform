@@ -600,6 +600,45 @@ export const respondToFollowRequest = async (
   return { success: true, status: newStatus };
 };
 
+export const removeFollow = async (
+  currentUserId: string,
+  targetUserId: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!currentUserId || !targetUserId) {
+    return { success: false, error: 'Invalid user IDs' };
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from('follow_requests')
+        .delete()
+        .or(
+          `and(follower_user_id.eq.${currentUserId},following_user_id.eq.${targetUserId}),and(follower_user_id.eq.${targetUserId},following_user_id.eq.${currentUserId})`
+        );
+
+      if (error) {
+        console.error('[socialService] removeFollow error:', error);
+        return { success: false, error: error.message };
+      }
+
+      notifyListeners();
+      return { success: true };
+    } catch (e: any) {
+      console.error('[socialService] removeFollow exception:', e);
+      return { success: false, error: e?.message || 'Failed to remove follow relationship' };
+    }
+  }
+
+  localFollowRequests = localFollowRequests.filter(
+    (r) =>
+      !(r.follower_user_id === currentUserId && r.following_user_id === targetUserId) &&
+      !(r.follower_user_id === targetUserId && r.following_user_id === currentUserId)
+  );
+  notifyListeners();
+  return { success: true };
+};
+
 // ==========================================
 // CONVERSATIONS & CHAT SERVICE
 // ==========================================

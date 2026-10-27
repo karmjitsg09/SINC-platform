@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { getFollowStatus, sendFollowRequest, respondToFollowRequest, subscribeToLocalState } from '../lib/socialService';
+import { getFollowStatus, sendFollowRequest, respondToFollowRequest, removeFollow, subscribeToLocalState } from '../lib/socialService';
 import { rejectAndBlockUser, unblockUser, subscribeToBlockState } from '../lib/blockService';
 import RejectFollowRequestModal from '../components/RejectFollowRequestModal';
 import { createPost as createPostService, getPostsByAuthor, subscribeToPostState, FormattedPost } from '../lib/postService';
@@ -64,6 +65,7 @@ export default function Profile({
   onOpenProfileDetails
 }: ProfileProps) {
   const { user: currentUser, updateProfile: updateAuthProfile } = useAuth();
+  const toast = useToast();
 
   const isSelf = Boolean(!targetUser || (currentUser?.id && targetUser.id === currentUser.id));
   const activeUserId = isSelf ? currentUser?.id : targetUser?.id;
@@ -218,6 +220,8 @@ export default function Profile({
             gender: isSelf ? (privateDetails?.gender || savedWizardMeta.gender || null) : null,
             gender_custom: isSelf ? (privateDetails?.gender_custom || savedWizardMeta.gender_custom || null) : null,
             privacy_settings: isSelf ? (privateDetails?.privacy_settings || savedWizardMeta.privacy_settings || {}) : {},
+            is_private: Boolean(dbProfile.is_private),
+            isPrivate: Boolean(dbProfile.is_private),
             locationData: savedLocationData,
             ...(isSelf ? savedWizardMeta : {})
           };
@@ -352,6 +356,22 @@ export default function Profile({
     if (!currentUser?.id || !activeUserId || loadingAction) return;
     setLoadingAction(true);
     try {
+      // If currently following or requested, clicking unfollows / cancels request
+      if (followInfo.status === 'accepted' || followInfo.status === 'pending_sent') {
+        const res = await removeFollow(currentUser.id, activeUserId);
+        if (res && res.success) {
+          const wasAccepted = followInfo.status === 'accepted';
+          setFollowInfo({ status: 'none', request: null });
+          if (wasAccepted) {
+            setStats((prev) => ({ ...prev, followersCount: Math.max(0, prev.followersCount - 1) }));
+          }
+          toast.success(wasAccepted ? 'Unfollowed successfully.' : 'Follow request cancelled.');
+        } else {
+          toast.error(res?.error || 'Failed to remove follow.');
+        }
+        return;
+      }
+
       const res = await sendFollowRequest(currentUser.id, activeUserId);
       if (res && res.success) {
         setFollowInfo((prev: any) => ({
@@ -359,13 +379,14 @@ export default function Profile({
           status: res.status === 'accepted' ? 'accepted' : 'pending_sent',
           request: res.request || prev.request
         }));
+        toast.success(res.status === 'accepted' ? 'Following user!' : 'Follow request sent!');
       } else {
         console.error('[Profile] Follow request failed:', res?.error);
-        alert(res?.error || 'Failed to send follow request.');
+        toast.error(res?.error || 'Failed to send follow request.');
       }
     } catch (err) {
       console.error('[Profile] Follow exception:', err);
-      alert('An error occurred while sending follow request.');
+      toast.error('An error occurred while sending follow request.');
     } finally {
       setLoadingAction(false);
     }
@@ -379,12 +400,14 @@ export default function Profile({
       if (res && res.success) {
         setFollowInfo((prev: any) => ({ ...prev, status: 'accepted' }));
         setStats((prev) => ({ ...prev, followersCount: prev.followersCount + 1 }));
+        toast.success('Follow request accepted.');
       } else {
         console.error('[Profile] Accept follow request failed:', res?.error);
-        alert(res?.error || 'Failed to accept follow request.');
+        toast.error(res?.error || 'Failed to accept follow request.');
       }
     } catch (err) {
       console.error('[Profile] Accept exception:', err);
+      toast.error('Failed to accept follow request.');
     } finally {
       setLoadingAction(false);
     }
@@ -402,12 +425,14 @@ export default function Profile({
       const res = await respondToFollowRequest(followInfo.request?.id, currentUser.id, activeUserId, 'rejected');
       if (res && res.success) {
         setFollowInfo({ status: 'none', request: null });
+        toast.info('Follow request declined.');
       } else {
         console.error('[Profile] Reject follow request failed:', res?.error);
-        alert(res?.error || 'Failed to reject follow request.');
+        toast.error(res?.error || 'Failed to reject follow request.');
       }
     } catch (err) {
       console.error('[Profile] Reject exception:', err);
+      toast.error('Failed to decline follow request.');
     } finally {
       setLoadingAction(false);
     }
@@ -420,12 +445,14 @@ export default function Profile({
       const res = await rejectAndBlockUser(activeUserId, followInfo.request?.id, currentUser.id);
       if (res && res.success) {
         setFollowInfo({ status: 'blocked_by_me', isBlocked: true, blockedByMe: true, request: null });
+        toast.success('User blocked.');
       } else {
         console.error('[Profile] Reject & block failed:', res?.error);
-        alert(res?.error || 'Failed to block user.');
+        toast.error(res?.error || 'Failed to block user.');
       }
     } catch (err) {
       console.error('[Profile] Reject and block exception:', err);
+      toast.error('Failed to block user.');
     } finally {
       setLoadingAction(false);
     }
@@ -438,11 +465,13 @@ export default function Profile({
       const res = await unblockUser(currentUser.id, activeUserId);
       if (res && res.success) {
         setFollowInfo({ status: 'none', request: null });
+        toast.success('User unblocked.');
       } else {
-        alert(res?.error || 'Failed to unblock user.');
+        toast.error(res?.error || 'Failed to unblock user.');
       }
     } catch (err) {
       console.error('[Profile] Unblock exception:', err);
+      toast.error('Failed to unblock user.');
     } finally {
       setLoadingAction(false);
     }
@@ -455,14 +484,14 @@ export default function Profile({
       const conversation = await getOrCreateDirectConversation(currentUser.id, activeUserId, profileData);
       setLoadingAction(false);
       if (conversation?.error) {
-        alert(conversation.error);
+        toast.error(conversation.error);
         return;
       }
       onOpenConversation(conversation);
     } catch (err) {
       setLoadingAction(false);
       console.error('[Profile] Start chat error:', err);
-      alert('Unable to open direct message. Please try again.');
+      toast.error('Unable to open direct message. Please try again.');
     }
   };
 
@@ -470,25 +499,32 @@ export default function Profile({
   const handleSaveProfile = async (updates: any) => {
     if (!currentUser?.id) return;
 
-    // Cache wizard metadata
     try {
-      localStorage.setItem(`sync_profile_wizard_${currentUser.id}`, JSON.stringify(updates));
-      if (updates.locationData || updates.location) {
-        localStorage.setItem(`sync_profile_location_${currentUser.id}`, JSON.stringify(updates.locationData || { displayLocation: updates.location }));
+      await updateBasicProfile(currentUser.id, updates);
+      if (updateAuthProfile) {
+        updateAuthProfile(updates);
       }
-    } catch (e) {}
+      setProfileData((prev: any) => ({
+        ...prev,
+        ...updates,
+        avatar_url: updates.avatarUrl || updates.avatar_url || prev?.avatar_url
+      }));
 
-    await updateBasicProfile(currentUser.id, updates);
-    if (updateAuthProfile) {
-      updateAuthProfile(updates);
+      // Cache wizard metadata only after successful database save
+      try {
+        localStorage.setItem(`sync_profile_wizard_${currentUser.id}`, JSON.stringify(updates));
+        if (updates.locationData || updates.location) {
+          localStorage.setItem(`sync_profile_location_${currentUser.id}`, JSON.stringify(updates.locationData || { displayLocation: updates.location }));
+        }
+      } catch (e) {}
+
+      setIsWizardOpen(false);
+      setShowEditModal(false);
+      toast.success('Profile updated successfully.');
+    } catch (err: any) {
+      console.error('[Profile] Save profile error:', err);
+      toast.error(err?.message || 'Failed to update profile.');
     }
-    setProfileData((prev: any) => ({
-      ...prev,
-      ...updates,
-      avatar_url: updates.avatarUrl || updates.avatar_url || prev?.avatar_url
-    }));
-    setIsWizardOpen(false);
-    setShowEditModal(false);
   };
 
   // Profile Completion Evaluation (Real sections check)
@@ -575,11 +611,12 @@ export default function Profile({
       if (newPost) {
         setUserPosts((prev) => [newPost, ...prev]);
         setStats((prev) => ({ ...prev, postsCount: prev.postsCount + 1 }));
+        toast.success('Post published successfully.');
       }
     } catch (err: any) {
       console.error('[Profile] Publish post error:', err);
       setIsPublishingPost(false);
-      alert(err.message || 'Failed to publish post.');
+      toast.error(err.message || 'Failed to publish post.');
     }
   };
 

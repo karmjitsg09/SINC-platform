@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import ProfileProjects from '../components/profile/ProfileProjects';
 import ProjectModal from '../components/profile/ProjectModal';
 import ProfileItemPostModal from '../components/profile/ProfileItemPostModal';
@@ -20,6 +21,7 @@ export interface ProjectsPageProps {
 
 export default function ProjectsPage({ onBack, onViewAllUpdates }: ProjectsPageProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +70,17 @@ export default function ProjectsPage({ onBack, onViewAllUpdates }: ProjectsPageP
       if (projectId) {
         const updated = await updateProject(currentUser.id, projectId, projectData);
         setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, ...updated } : p)));
+        toast.success('Project updated successfully.');
       } else {
         const created = await createProject(currentUser.id, projectData);
         setProjects((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
+        toast.success('Project created successfully.');
       }
       setShowProjectModal(false);
       setEditingProject(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ProjectsPage] Save project error:', err);
-      alert('Failed to save project.');
+      toast.error(err?.message || 'Failed to save project.');
     }
   };
 
@@ -85,9 +89,10 @@ export default function ProjectsPage({ onBack, onViewAllUpdates }: ProjectsPageP
     try {
       await deleteProject(currentUser.id, projectId);
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
-    } catch (err) {
+      toast.success('Project deleted successfully.');
+    } catch (err: any) {
       console.error('[ProjectsPage] Delete project error:', err);
-      alert('Failed to delete project.');
+      toast.error(err?.message || 'Failed to delete project.');
     }
   };
 

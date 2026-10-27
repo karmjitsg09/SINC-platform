@@ -257,103 +257,121 @@ export const saveProfileSections = async (userId: string, sectionsData: Partial<
     achievements: sectionsData.achievements || []
   };
 
-  // 1. Immediately update persistent localStorage cache
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
+
+  // 1. Persist to Supabase dedicated tables (Source of Truth)
+  try {
+    // Clear and re-insert projects
+    if (payload.projects) {
+      const { error: delErr } = await supabase.from('profile_projects').delete().eq('user_id', userId);
+      if (delErr) throw new Error(delErr.message);
+
+      if (payload.projects.length > 0) {
+        const insertData = payload.projects.map((p: any) => ({
+          user_id: userId,
+          title: p.title || p.name || 'Untitled Project',
+          description: p.description || '',
+          technologies: Array.isArray(p.technologies) ? p.technologies : (p.technologies ? p.technologies.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
+          project_url: p.project_url || p.projectUrl || null,
+          github_url: p.github_url || p.githubUrl || null,
+          start_date: p.start_date || p.startDate || null,
+          end_date: p.end_date || p.endDate || null,
+          is_current: Boolean(p.is_current ?? p.isCurrent ?? false)
+        }));
+        const { error: insErr } = await supabase.from('profile_projects').insert(insertData);
+        if (insErr) throw new Error(insErr.message);
+      }
+    }
+
+    // Clear and re-insert experience
+    if (payload.experience) {
+      const { error: delErr } = await supabase.from('profile_experience').delete().eq('user_id', userId);
+      if (delErr) throw new Error(delErr.message);
+
+      if (payload.experience.length > 0) {
+        const insertData = payload.experience.map((e: any) => ({
+          user_id: userId,
+          organization: e.organization || e.company || '',
+          role: e.role || '',
+          description: e.description || '',
+          start_date: e.start_date || e.startDate || null,
+          end_date: e.end_date || e.endDate || null,
+          is_current: Boolean(e.is_current ?? e.isCurrent ?? false)
+        }));
+        const { error: insErr } = await supabase.from('profile_experience').insert(insertData);
+        if (insErr) throw new Error(insErr.message);
+      }
+    }
+
+    // Clear and re-insert education
+    if (payload.education) {
+      const { error: delErr } = await supabase.from('profile_education').delete().eq('user_id', userId);
+      if (delErr) throw new Error(delErr.message);
+
+      if (payload.education.length > 0) {
+        const insertData = payload.education.map((e: any) => ({
+          user_id: userId,
+          institution: e.institution || e.school || '',
+          degree: e.degree || '',
+          field_of_study: e.field_of_study || e.fieldOfStudy || null,
+          start_date: e.start_date || e.startDate || null,
+          end_date: e.end_date || e.endDate || null,
+          is_current: Boolean(e.is_current ?? e.isCurrent ?? false)
+        }));
+        const { error: insErr } = await supabase.from('profile_education').insert(insertData);
+        if (insErr) throw new Error(insErr.message);
+      }
+    }
+
+    // Clear and re-insert certifications
+    if (payload.certifications) {
+      const { error: delErr } = await supabase.from('profile_certifications').delete().eq('user_id', userId);
+      if (delErr) throw new Error(delErr.message);
+
+      if (payload.certifications.length > 0) {
+        const insertData = payload.certifications.map((c: any) => ({
+          user_id: userId,
+          name: c.name || c.title || '',
+          issuer: c.issuer || c.organization || '',
+          issue_date: c.issue_date || c.issueDate || null,
+          credential_id: c.credential_id || c.credentialId || null,
+          credential_url: c.credential_url || c.credentialUrl || null
+        }));
+        const { error: insErr } = await supabase.from('profile_certifications').insert(insertData);
+        if (insErr) throw new Error(insErr.message);
+      }
+    }
+
+    // Clear and re-insert achievements
+    if (payload.achievements) {
+      const { error: delErr } = await supabase.from('profile_achievements').delete().eq('user_id', userId);
+      if (delErr) throw new Error(delErr.message);
+
+      if (payload.achievements.length > 0) {
+        const insertData = payload.achievements.map((a: any) => ({
+          user_id: userId,
+          title: a.title || '',
+          organization: a.organization || null,
+          date: a.date || null,
+          description: a.description || '',
+          proof_url: a.proof_url || a.proofUrl || null
+        }));
+        const { error: insErr } = await supabase.from('profile_achievements').insert(insertData);
+        if (insErr) throw new Error(insErr.message);
+      }
+    }
+  } catch (dbErr: any) {
+    console.error('[ProfileService] Database table persistence error:', dbErr?.message);
+    throw new Error(dbErr?.message || 'Failed to save profile sections to database.');
+  }
+
+  // 2. Update persistent localStorage read cache only after database success
   try {
     localStorage.setItem(getStorageKey(userId), JSON.stringify(payload));
   } catch (e) {
     console.warn('[ProfileService] Local storage save error:', e);
-  }
-
-  // 2. Persist to Supabase dedicated tables if available
-  if (isSupabaseConfigured) {
-    try {
-      // Clear and re-insert projects
-      if (payload.projects) {
-        await supabase.from('profile_projects').delete().eq('user_id', userId);
-        if (payload.projects.length > 0) {
-          const insertData = payload.projects.map((p: any) => ({
-            user_id: userId,
-            title: p.title || p.name || 'Untitled Project',
-            description: p.description || '',
-            technologies: Array.isArray(p.technologies) ? p.technologies : (p.technologies ? p.technologies.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
-            project_url: p.project_url || p.projectUrl || null,
-            github_url: p.github_url || p.githubUrl || null,
-            start_date: p.start_date || p.startDate || null,
-            end_date: p.end_date || p.endDate || null,
-            is_current: Boolean(p.is_current ?? p.isCurrent ?? false)
-          }));
-          await supabase.from('profile_projects').insert(insertData);
-        }
-      }
-
-      // Clear and re-insert experience
-      if (payload.experience) {
-        await supabase.from('profile_experience').delete().eq('user_id', userId);
-        if (payload.experience.length > 0) {
-          const insertData = payload.experience.map((e: any) => ({
-            user_id: userId,
-            organization: e.organization || e.company || '',
-            role: e.role || '',
-            description: e.description || '',
-            start_date: e.start_date || e.startDate || null,
-            end_date: e.end_date || e.endDate || null,
-            is_current: Boolean(e.is_current ?? e.isCurrent ?? false)
-          }));
-          await supabase.from('profile_experience').insert(insertData);
-        }
-      }
-
-      // Clear and re-insert education
-      if (payload.education) {
-        await supabase.from('profile_education').delete().eq('user_id', userId);
-        if (payload.education.length > 0) {
-          const insertData = payload.education.map((e: any) => ({
-            user_id: userId,
-            institution: e.institution || e.school || '',
-            degree: e.degree || '',
-            field_of_study: e.field_of_study || e.fieldOfStudy || null,
-            start_date: e.start_date || e.startDate || null,
-            end_date: e.end_date || e.endDate || null,
-            is_current: Boolean(e.is_current ?? e.isCurrent ?? false)
-          }));
-          await supabase.from('profile_education').insert(insertData);
-        }
-      }
-
-      // Clear and re-insert certifications
-      if (payload.certifications) {
-        await supabase.from('profile_certifications').delete().eq('user_id', userId);
-        if (payload.certifications.length > 0) {
-          const insertData = payload.certifications.map((c: any) => ({
-            user_id: userId,
-            name: c.name || c.title || '',
-            issuer: c.issuer || c.organization || '',
-            issue_date: c.issue_date || c.issueDate || null,
-            credential_id: c.credential_id || c.credentialId || null,
-            credential_url: c.credential_url || c.credentialUrl || null
-          }));
-          await supabase.from('profile_certifications').insert(insertData);
-        }
-      }
-
-      // Clear and re-insert achievements
-      if (payload.achievements) {
-        await supabase.from('profile_achievements').delete().eq('user_id', userId);
-        if (payload.achievements.length > 0) {
-          const insertData = payload.achievements.map((a: any) => ({
-            user_id: userId,
-            title: a.title || '',
-            organization: a.organization || null,
-            date: a.date || null,
-            description: a.description || '',
-            proof_url: a.proof_url || a.proofUrl || null
-          }));
-          await supabase.from('profile_achievements').insert(insertData);
-        }
-      }
-    } catch (dbErr) {
-      console.warn('[ProfileService] Database table persistence note:', dbErr);
-    }
   }
 
   notifyProfileListeners();
@@ -459,35 +477,41 @@ export const setUserDomainMemberships = async (userId: string, domainIds: string
   if (!userId) return false;
   const uniqueDomainIds = Array.from(new Set((domainIds || []).filter(Boolean)));
 
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
+
+  try {
+    // 1. Update profiles.domains array directly (authoritative source)
+    const { error: profErr } = await supabase
+      .from('profiles')
+      .update({ domains: uniqueDomainIds, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (profErr) throw profErr;
+
+    // 2. Safely sync to user_domains table if it exists
+    try {
+      await supabase.from('user_domains').delete().eq('user_id', userId);
+      if (uniqueDomainIds.length > 0) {
+        const rows = uniqueDomainIds.map((domain_id) => ({
+          user_id: userId,
+          domain_id: domain_id
+        }));
+        await supabase.from('user_domains').insert(rows);
+      }
+    } catch (tableErr) {
+      // user_domains table is optional
+    }
+  } catch (err: any) {
+    console.error('[ProfileService] setUserDomainMemberships error:', err?.message);
+    throw new Error(err?.message || 'Failed to update domain preferences in database.');
+  }
+
+  // 3. Update local read cache only on database success
   try {
     localStorage.setItem(`sync_user_domains_${userId}`, JSON.stringify(uniqueDomainIds));
   } catch (e) {}
-
-  if (isSupabaseConfigured) {
-    try {
-      // 1. Update profiles.domains array directly (authoritative source)
-      await supabase
-        .from('profiles')
-        .update({ domains: uniqueDomainIds, updated_at: new Date().toISOString() })
-        .eq('id', userId);
-
-      // 2. Safely sync to user_domains table if it exists
-      try {
-        await supabase.from('user_domains').delete().eq('user_id', userId);
-        if (uniqueDomainIds.length > 0) {
-          const rows = uniqueDomainIds.map((domain_id) => ({
-            user_id: userId,
-            domain_id: domain_id
-          }));
-          await supabase.from('user_domains').insert(rows);
-        }
-      } catch (tableErr) {
-        // user_domains table is optional
-      }
-    } catch (err) {
-      console.warn('[ProfileService] setUserDomainMemberships note:', err);
-    }
-  }
 
   notifyProfileListeners();
   return true;
@@ -557,14 +581,9 @@ export const upsertUserPrivateDetails = async (userId: string, privateData: any)
   if (!userId) return { success: false, serverSaved: false, isLocalOnly: false, error: 'Missing user ID' };
 
   const localCacheKey = `sync_profile_private_${userId}`;
-  try {
-    const existing = JSON.parse(localStorage.getItem(localCacheKey) || '{}');
-    const merged = { ...existing, ...privateData };
-    localStorage.setItem(localCacheKey, JSON.stringify(merged));
-  } catch (e) {}
 
   if (!isSupabaseConfigured) {
-    return { success: true, serverSaved: false, isLocalOnly: true, data: privateData };
+    return { success: false, serverSaved: false, isLocalOnly: false, error: 'Database service is not configured.' };
   }
 
   try {
@@ -603,13 +622,13 @@ export const upsertUserPrivateDetails = async (userId: string, privateData: any)
         error.message?.includes('relation') ||
         error.message?.includes('does not exist'))
     ) {
-      console.warn('[ProfileService] user_private_details table does not exist in DB yet. Saved to local cache.');
+      console.warn('[ProfileService] user_private_details table does not exist in DB yet.');
       return {
-        success: true,
+        success: false,
         serverSaved: false,
-        isLocalOnly: true,
+        isLocalOnly: false,
         pendingMigration: true,
-        warning: 'The remote user_private_details table is not yet migrated. Data is saved locally on this device only.',
+        error: 'The remote user_private_details table is not yet migrated.',
         data: payload
       };
     }
@@ -650,6 +669,11 @@ export const upsertUserPrivateDetails = async (userId: string, privateData: any)
       };
     }
 
+    // Update local read cache only on successful database write
+    try {
+      localStorage.setItem(localCacheKey, JSON.stringify(data || payload));
+    } catch (e) {}
+
     return { success: true, serverSaved: true, isLocalOnly: false, data: data || payload };
   } catch (err: any) {
     console.error('[ProfileService] upsertUserPrivateDetails exception:', err);
@@ -672,31 +696,6 @@ export const updateBasicProfile = async (userId: string, profileData: any): Prom
   // Protect privileged verification status from client update payloads
   const sanitizedProfileData = { ...profileData };
   delete sanitizedProfileData.is_verified;
-
-  // Persist structured wizard cache locally
-  try {
-    localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(sanitizedProfileData));
-  } catch (e) {}
-
-  // Persist location cache locally
-  if (sanitizedProfileData.locationData || sanitizedProfileData.location) {
-    try {
-      const locPayload = sanitizedProfileData.locationData || {
-        displayLocation: sanitizedProfileData.location,
-        placeName: sanitizedProfileData.location_place_name,
-        address: sanitizedProfileData.location_address,
-        area: sanitizedProfileData.location_area,
-        landmark: sanitizedProfileData.location_landmark,
-        city: sanitizedProfileData.location_city,
-        state: sanitizedProfileData.location_state,
-        country: sanitizedProfileData.location_country,
-        pincode: sanitizedProfileData.location_pincode,
-        latitude: sanitizedProfileData.location_latitude,
-        longitude: sanitizedProfileData.location_longitude
-      };
-      localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));
-    } catch (e) {}
-  }
 
   // Update domain memberships if provided
   if (sanitizedProfileData.domains && Array.isArray(sanitizedProfileData.domains)) {
@@ -797,6 +796,27 @@ export const updateBasicProfile = async (userId: string, profileData: any): Prom
       }
 
       if (!error && data) {
+        // Update local read cache only on verified database success
+        try {
+          localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(sanitizedProfileData));
+          if (sanitizedProfileData.locationData || sanitizedProfileData.location) {
+            const locPayload = sanitizedProfileData.locationData || {
+              displayLocation: sanitizedProfileData.location,
+              placeName: sanitizedProfileData.location_place_name,
+              address: sanitizedProfileData.location_address,
+              area: sanitizedProfileData.location_area,
+              landmark: sanitizedProfileData.location_landmark,
+              city: sanitizedProfileData.location_city,
+              state: sanitizedProfileData.location_state,
+              country: sanitizedProfileData.location_country,
+              pincode: sanitizedProfileData.location_pincode,
+              latitude: sanitizedProfileData.location_latitude,
+              longitude: sanitizedProfileData.location_longitude
+            };
+            localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));
+          }
+        } catch (e) {}
+
         notifyProfileListeners();
         return {
           ...data,
@@ -838,36 +858,9 @@ export const saveStepProfile = async (
   const sanitizedStepData = { ...stepData };
   delete sanitizedStepData.is_verified;
 
-  // Cache to localStorage
-  try {
-    const existing = JSON.parse(localStorage.getItem(`sync_profile_wizard_${userId}`) || '{}');
-    const merged = { ...existing, ...sanitizedStepData };
-    localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(merged));
-  } catch (e) {}
-
   // Handle domain memberships separately (Step 8)
   if (sanitizedStepData.domains && Array.isArray(sanitizedStepData.domains)) {
     await setUserDomainMemberships(userId, sanitizedStepData.domains);
-  }
-
-  // Handle location cache (Step 2)
-  if (sanitizedStepData.locationData || sanitizedStepData.location) {
-    try {
-      const locPayload = sanitizedStepData.locationData || {
-        displayLocation: sanitizedStepData.location,
-        placeName: sanitizedStepData.location_place_name,
-        address: sanitizedStepData.location_address,
-        area: sanitizedStepData.location_area,
-        landmark: sanitizedStepData.location_landmark,
-        city: sanitizedStepData.location_city,
-        state: sanitizedStepData.location_state,
-        country: sanitizedStepData.location_country,
-        pincode: sanitizedStepData.location_pincode,
-        latitude: sanitizedStepData.location_latitude,
-        longitude: sanitizedStepData.location_longitude
-      };
-      localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));
-    } catch (e) {}
   }
 
   // Check and isolate private fields
@@ -1022,6 +1015,30 @@ export const saveStepProfile = async (
       };
     }
 
+    // Update local read cache only on verified database success
+    try {
+      const existing = JSON.parse(localStorage.getItem(`sync_profile_wizard_${userId}`) || '{}');
+      const merged = { ...existing, ...sanitizedStepData };
+      localStorage.setItem(`sync_profile_wizard_${userId}`, JSON.stringify(merged));
+
+      if (sanitizedStepData.locationData || sanitizedStepData.location) {
+        const locPayload = sanitizedStepData.locationData || {
+          displayLocation: sanitizedStepData.location,
+          placeName: sanitizedStepData.location_place_name,
+          address: sanitizedStepData.location_address,
+          area: sanitizedStepData.location_area,
+          landmark: sanitizedStepData.location_landmark,
+          city: sanitizedStepData.location_city,
+          state: sanitizedStepData.location_state,
+          country: sanitizedStepData.location_country,
+          pincode: sanitizedStepData.location_pincode,
+          latitude: sanitizedStepData.location_latitude,
+          longitude: sanitizedStepData.location_longitude
+        };
+        localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));
+      }
+    } catch (e) {}
+
     notifyProfileListeners();
     const isPrivatePending = Boolean(privRes?.pendingMigration);
     return {
@@ -1076,7 +1093,7 @@ export const uploadProfilePhoto = async (
   const filePath = `${folderName}/${userId}/${uniqueTag}.${ext}`;
 
   if (isSupabaseConfigured) {
-    const bucketsToTry = ['profile-photos', 'avatars', 'post-media'];
+    const bucketsToTry = ['avatars', 'profile-photos', 'post-media'];
     const clientToUse = supabase;
 
     for (const bucket of bucketsToTry) {

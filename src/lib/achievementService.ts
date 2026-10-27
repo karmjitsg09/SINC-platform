@@ -66,7 +66,7 @@ export async function getAchievementsByUserId(userId: string | null | undefined)
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
-        .from('achievements')
+        .from('profile_achievements')
         .select('*')
         .eq('user_id', userId)
         .order('achievement_date', { ascending: false });
@@ -115,29 +115,25 @@ export async function createAchievement(arg1: any, arg2?: any): Promise<any> {
     created_at: new Date().toISOString()
   };
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('achievements')
-        .insert([newEntry])
-        .select()
-        .single();
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-      if (!error && data) {
-        const list = getLocalAchievements(userId);
-        saveLocalAchievements(userId, [data, ...list]);
-        notifyAchievementListeners();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase create achievement exception:', err);
-    }
+  const { data, error } = await supabase
+    .from('profile_achievements')
+    .insert([newEntry])
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[AchievementService] Supabase create achievement error:', error?.message);
+    throw new Error(error?.message || 'Failed to create achievement in database.');
   }
 
   const list = getLocalAchievements(userId);
-  saveLocalAchievements(userId, [newEntry, ...list]);
+  saveLocalAchievements(userId, [data, ...list.filter(a => a.id !== data.id)]);
   notifyAchievementListeners();
-  return newEntry;
+  return data;
 }
 
 export type { AchievementItem };
@@ -161,64 +157,34 @@ export async function updateAchievement(arg1: any, arg2: any, arg3?: any): Promi
           : updateData?.skills)
   };
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('achievements')
-        .update(cleanedData)
-        .eq('id', achievementId)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const userId = data.user_id || passedUserId;
-        if (userId) {
-          const list = getLocalAchievements(userId);
-          const updatedList = list.map((a) => (a.id === achievementId ? data : a));
-          saveLocalAchievements(userId, updatedList);
-        }
-        notifyAchievementListeners();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase update achievement exception:', err);
-    }
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
   }
 
-  // Local update fallback
-  let affectedUserId: string | null = passedUserId || null;
-  if (affectedUserId) {
-    const list = getLocalAchievements(affectedUserId);
-    const idx = list.findIndex((a: any) => a.id === achievementId);
-    if (idx !== -1) {
-      list[idx] = { ...list[idx], ...cleanedData, updated_at: new Date().toISOString() };
-      saveLocalAchievements(affectedUserId, list);
-      notifyAchievementListeners();
-      return list[idx];
-    }
+  let query = supabase
+    .from('profile_achievements')
+    .update(cleanedData)
+    .eq('id', achievementId);
+
+  if (passedUserId) {
+    query = query.eq('user_id', passedUserId);
   }
 
-  if (typeof window !== 'undefined') {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(ACHIEVEMENTS_CACHE_PREFIX)) {
-        try {
-          const list = JSON.parse(localStorage.getItem(key) || '[]');
-          const idx = list.findIndex((a: any) => a.id === achievementId);
-          if (idx !== -1) {
-            affectedUserId = key.replace(ACHIEVEMENTS_CACHE_PREFIX, '');
-            list[idx] = { ...list[idx], ...cleanedData, updated_at: new Date().toISOString() };
-            saveLocalAchievements(affectedUserId, list);
-            notifyAchievementListeners();
-            return list[idx];
-          }
-        } catch (e) {}
-      }
-    }
+  const { data, error } = await query.select().single();
+
+  if (error || !data) {
+    console.error('[AchievementService] Supabase update achievement error:', error?.message);
+    throw new Error(error?.message || 'Failed to update achievement in database.');
   }
 
+  const userId = data.user_id || passedUserId;
+  if (userId) {
+    const list = getLocalAchievements(userId);
+    const updatedList = list.map((a) => (a.id === achievementId ? data : a));
+    saveLocalAchievements(userId, updatedList);
+  }
   notifyAchievementListeners();
-  return { id: achievementId, ...cleanedData };
+  return data;
 }
 
 /**
@@ -228,21 +194,26 @@ export async function deleteAchievement(arg1: string, arg2?: string): Promise<bo
   const achievementId = arg2 ? arg2 : arg1;
   const userId = arg2 ? arg1 : undefined;
 
-  if (!achievementId) return false;
+  if (!achievementId) throw new Error('Achievement ID is required');
 
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from('achievements')
-        .delete()
-        .eq('id', achievementId);
+  if (!isSupabaseConfigured) {
+    throw new Error('Database service is not configured.');
+  }
 
-      if (error) {
-        console.warn('Supabase delete achievement error:', error);
-      }
-    } catch (err) {
-      console.warn('Supabase delete achievement exception:', err);
-    }
+  let query = supabase
+    .from('profile_achievements')
+    .delete()
+    .eq('id', achievementId);
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    console.error('[AchievementService] Supabase delete achievement error:', error.message);
+    throw new Error(error.message || 'Failed to delete achievement from database.');
   }
 
   if (userId) {
@@ -264,3 +235,9 @@ export async function deleteAchievement(arg1: string, arg2?: string): Promise<bo
   notifyAchievementListeners();
   return true;
 }
+
+export const clearAchievementCache = (userId?: string): void => {
+  if (userId && typeof window !== 'undefined') {
+    localStorage.removeItem(`${ACHIEVEMENTS_CACHE_PREFIX}${userId}`);
+  }
+};

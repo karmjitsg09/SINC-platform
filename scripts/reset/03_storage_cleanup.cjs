@@ -30,7 +30,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABAS
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 
 // Only user-upload buckets are targeted
-const USER_MEDIA_BUCKETS = ['post-media', 'updates-media'];
+const USER_MEDIA_BUCKETS = ['avatars', 'post-media', 'updates-media'];
 
 const args = process.argv.slice(2);
 const isConfirm = args.includes('--confirm');

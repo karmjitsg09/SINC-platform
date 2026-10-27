@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { getUpdates, deleteUpdate, subscribeToUpdates, ProfileItemUpdate } from '../lib/profileItemUpdateService';
 import { extractItemDetails, ITEM_TYPE_ICONS, shareUpdateToFeed } from '../lib/profileItemPostService';
 import ProfileItemUpdateModal from '../components/profile/ProfileItemUpdateModal';
@@ -46,6 +47,7 @@ export default function ItemUpdatesPage({
   onNavigateToPostView
 }: ItemUpdatesPageProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [updates, setUpdates] = useState<ProfileItemUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -89,10 +91,10 @@ export default function ItemUpdatesPage({
       await deleteUpdate(update.id, currentUser.id, itemType, itemId);
       setDeletingUpdate(null);
       loadUpdates();
-      setFeedbackMessage('Update deleted successfully.');
-      setTimeout(() => setFeedbackMessage(''), 3000);
+      toast.success('Update deleted successfully.');
     } catch (err: any) {
-      alert(err.message || 'Failed to delete update.');
+      console.error('[ItemUpdatesPage] Failed to delete update:', err);
+      toast.error(err?.message || 'Failed to delete update.');
     }
   };
 
@@ -108,14 +110,14 @@ export default function ItemUpdatesPage({
         caption: `Progress update on my ${itemType}: ${update.title || details.title}`
       });
       setSharedSuccessId(update.id);
-      setFeedbackMessage('Update shared to Feed successfully!');
+      toast.success('Update shared to Feed successfully!');
       setTimeout(() => {
         setSharedSuccessId(null);
         setSharingUpdateId(null);
-        setTimeout(() => setFeedbackMessage(''), 2500);
       }, 1500);
     } catch (err: any) {
-      alert(err.message || 'Failed to share update.');
+      console.error('[ItemUpdatesPage] Failed to share update:', err);
+      toast.error(err?.message || 'Failed to share update.');
       setSharingUpdateId(null);
     }
   };

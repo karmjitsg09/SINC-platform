@@ -143,8 +143,51 @@ function assertIsolatedTestEnvironment() {
   };
 }
 
+const PRODUCTION_PROJECT_REF = 'vctwzlsatqsuinmosnzo';
+
+/**
+ * Validates that a staging database URL does NOT point to the production database.
+ * Throws a fatal Error if vctwzlsatqsuinmosnzo is detected.
+ */
+function assertStagingDatabaseUrl(dbUrlRaw) {
+  if (!dbUrlRaw || typeof dbUrlRaw !== 'string' || dbUrlRaw.trim() === '') {
+    throw new Error('[FATAL_GUARD_BLOCK]: STAGING_DATABASE_URL is missing or empty.');
+  }
+
+  const cleanUrl = dbUrlRaw.replace(/^["']|["']$/g, '').trim();
+
+  // Fail-closed check: Never allow production project ref in any part of the URL
+  if (cleanUrl.toLowerCase().includes(PRODUCTION_PROJECT_REF.toLowerCase())) {
+    throw new Error(
+      `[FATAL_GUARD_BLOCK]: Target connection URL contains production project ref "${PRODUCTION_PROJECT_REF}".\n` +
+      'Writes to production via STAGING_DATABASE_URL are strictly prohibited!'
+    );
+  }
+
+  try {
+    const parsed = new URL(cleanUrl);
+    for (const disallowed of DISALLOWED_PRODUCTION_HOSTS) {
+      if (parsed.hostname.toLowerCase().includes(disallowed.toLowerCase())) {
+        throw new Error(`[FATAL_GUARD_BLOCK]: Target connection points to production host "${disallowed}".`);
+      }
+    }
+
+    return {
+      cleanUrl,
+      host: parsed.host,
+      isProduction: false
+    };
+  } catch (err) {
+    if (err.message.includes('[FATAL_GUARD_BLOCK]')) throw err;
+    throw new Error(`[FATAL_GUARD_BLOCK]: STAGING_DATABASE_URL is not a valid connection URL: ${err.message}`);
+  }
+}
+
 module.exports = {
   assertIsolatedTestEnvironment,
+  assertStagingDatabaseUrl,
+  PRODUCTION_PROJECT_REF,
   DISALLOWED_PRODUCTION_HOSTS,
   ALLOWED_LOCAL_TEST_HOSTS
 };
+

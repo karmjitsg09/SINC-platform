@@ -26,6 +26,11 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.staging
+.env.*
+backend/api/.env
+backend/api/.env.*
+
 
 # Supabase CLI home cache
 .supabase_home/

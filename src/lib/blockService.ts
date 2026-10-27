@@ -1,30 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { respondToFollowRequest } from './socialService';
 
-// In-memory / persistent localStorage fallback for blocks
-const STORAGE_PREFIX = 'sync_blocked_users_';
-
-function getLocalBlocks(userId: string | null | undefined): string[] {
-  if (!userId || typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    // Ignore parse error
-  }
-  return [];
-}
-
-function saveLocalBlocks(userId: string | null | undefined, blocks: string[]): void {
-  if (!userId || typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(blocks));
-  } catch (e) {
-    // Ignore storage error
-  }
-}
-
-// In-memory cache for fast sync checks
+// In-memory cache for fast sync checks, refreshed from the database
 const blockMemoryCache = new Map<string, boolean>(); // key: `${blockerId}_${blockedId}` -> boolean
 
 const blockListeners = new Set<() => void>();
@@ -50,7 +27,7 @@ export interface BlockStatusResult {
 }
 
 /**
- * Check if a block exists between two users.
+ * Check if a block exists between two users using the database as the source of truth.
  * Returns { isBlocked: boolean, blockedByMe: boolean, blockedByTarget: boolean }
  */
 export const checkBlockStatus = async (
@@ -61,18 +38,7 @@ export const checkBlockStatus = async (
     return { isBlocked: false, blockedByMe: false, blockedByTarget: false };
   }
 
-  // 1. Check in-memory fast cache first
-  const blockedByMeCache = blockMemoryCache.get(`${currentUserId}_${targetUserId}`);
-  const blockedByTargetCache = blockMemoryCache.get(`${targetUserId}_${currentUserId}`);
-  if (blockedByMeCache === true || blockedByTargetCache === true) {
-    return {
-      isBlocked: true,
-      blockedByMe: Boolean(blockedByMeCache),
-      blockedByTarget: Boolean(blockedByTargetCache)
-    };
-  }
-
-  // 2. Check Supabase if configured
+  // 1. Query Supabase (Authoritative source of truth)
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -82,34 +48,46 @@ export const checkBlockStatus = async (
           `and(blocker_user_id.eq.${currentUserId},blocked_user_id.eq.${targetUserId}),and(blocker_user_id.eq.${targetUserId},blocked_user_id.eq.${currentUserId})`
         );
 
-      if (!error && data && data.length > 0) {
-        let blockedByMe = false;
-        let blockedByTarget = false;
+      if (error) {
+        console.error('[BlockService] checkBlockStatus database query error:', error.message);
+        // Fall back to in-memory cache if database query fails
+        const blockedByMeCache = blockMemoryCache.get(`${currentUserId}_${targetUserId}`) === true;
+        const blockedByTargetCache = blockMemoryCache.get(`${targetUserId}_${currentUserId}`) === true;
+        return {
+          isBlocked: blockedByMeCache || blockedByTargetCache,
+          blockedByMe: blockedByMeCache,
+          blockedByTarget: blockedByTargetCache
+        };
+      }
+
+      let blockedByMe = false;
+      let blockedByTarget = false;
+
+      // Update in-memory cache with database reality
+      blockMemoryCache.set(`${currentUserId}_${targetUserId}`, false);
+      blockMemoryCache.set(`${targetUserId}_${currentUserId}`, false);
+
+      if (data && data.length > 0) {
         data.forEach((row: { blocker_user_id: string; blocked_user_id: string }) => {
           blockMemoryCache.set(`${row.blocker_user_id}_${row.blocked_user_id}`, true);
           if (row.blocker_user_id === currentUserId) blockedByMe = true;
           if (row.blocker_user_id === targetUserId) blockedByTarget = true;
         });
-        return {
-          isBlocked: true,
-          blockedByMe,
-          blockedByTarget
-        };
       }
-    } catch (e) {
-      // Fall through to local fallback
+
+      return {
+        isBlocked: blockedByMe || blockedByTarget,
+        blockedByMe,
+        blockedByTarget
+      };
+    } catch (e: any) {
+      console.error('[BlockService] checkBlockStatus database exception:', e);
     }
   }
 
-  // 3. Check persistent localStorage fallback
-  const myBlocks = getLocalBlocks(currentUserId);
-  const targetBlocks = getLocalBlocks(targetUserId);
-
-  const blockedByMe = myBlocks.includes(targetUserId);
-  const blockedByTarget = targetBlocks.includes(currentUserId);
-
-  if (blockedByMe) blockMemoryCache.set(`${currentUserId}_${targetUserId}`, true);
-  if (blockedByTarget) blockMemoryCache.set(`${targetUserId}_${currentUserId}`, true);
+  // Fallback to in-memory cache if Supabase not configured
+  const blockedByMe = blockMemoryCache.get(`${currentUserId}_${targetUserId}`) === true;
+  const blockedByTarget = blockMemoryCache.get(`${targetUserId}_${currentUserId}`) === true;
 
   return {
     isBlocked: blockedByMe || blockedByTarget,
@@ -119,7 +97,7 @@ export const checkBlockStatus = async (
 };
 
 /**
- * Synchronous helper for instant client-side checks
+ * Synchronous helper for instant client-side checks backed by memory cache
  */
 export const isBlockedSync = (
   currentUserId: string | null | undefined,
@@ -128,18 +106,12 @@ export const isBlockedSync = (
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) return false;
   if (blockMemoryCache.get(`${currentUserId}_${targetUserId}`) === true) return true;
   if (blockMemoryCache.get(`${targetUserId}_${currentUserId}`) === true) return true;
-
-  const myBlocks = getLocalBlocks(currentUserId);
-  if (myBlocks.includes(targetUserId)) return true;
-
-  const targetBlocks = getLocalBlocks(targetUserId);
-  if (targetBlocks.includes(currentUserId)) return true;
-
   return false;
 };
 
 /**
- * Block a target user
+ * Block a target user.
+ * Writes to the database FIRST. Only updates in-memory cache if the database write succeeds.
  */
 export const blockUser = async (
   currentUserId: string,
@@ -149,34 +121,40 @@ export const blockUser = async (
     return { success: false, error: 'Cannot block yourself or invalid user IDs' };
   }
 
-  // 1. Save locally first for instant consistency
-  const myBlocks = getLocalBlocks(currentUserId);
-  if (!myBlocks.includes(targetUserId)) {
-    myBlocks.push(targetUserId);
-    saveLocalBlocks(currentUserId, myBlocks);
+  if (!isSupabaseConfigured) {
+    return { success: false, error: 'Database service is not configured.' };
   }
-  blockMemoryCache.set(`${currentUserId}_${targetUserId}`, true);
 
-  // 2. Persist in Supabase
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from('blocked_users')
-        .insert([{ blocker_user_id: currentUserId, blocked_user_id: targetUserId }]);
-      if (error && error.code !== '23505') { // Ignore unique constraint violation
-        console.warn('[BlockService] Supabase blockUser error:', error.message);
+  try {
+    // 1. Write directly to the database first (Source of Truth)
+    const { error } = await supabase
+      .from('blocked_users')
+      .insert([{ blocker_user_id: currentUserId, blocked_user_id: targetUserId }]);
+
+    if (error) {
+      // 23505 is PostgreSQL unique constraint violation (already blocked in database)
+      if (error.code === '23505') {
+        blockMemoryCache.set(`${currentUserId}_${targetUserId}`, true);
+        notifyBlockStateChange();
+        return { success: true };
       }
-    } catch (e) {
-      console.warn('[BlockService] Supabase blockUser exception:', e);
+      console.error('[BlockService] Failed to block user in database:', error.message);
+      return { success: false, error: error.message || 'Failed to block user in database' };
     }
-  }
 
-  notifyBlockStateChange();
-  return { success: true };
+    // 2. Database write succeeded: update in-memory cache
+    blockMemoryCache.set(`${currentUserId}_${targetUserId}`, true);
+    notifyBlockStateChange();
+    return { success: true };
+  } catch (err: any) {
+    console.error('[BlockService] Database exception while blocking user:', err);
+    return { success: false, error: err?.message || 'Database error while blocking user' };
+  }
 };
 
 /**
- * Unblock a target user
+ * Unblock a target user.
+ * Deletes from the database FIRST. Only clears in-memory cache if database deletion succeeds.
  */
 export const unblockUser = async (
   currentUserId: string,
@@ -186,27 +164,31 @@ export const unblockUser = async (
     return { success: false, error: 'Invalid user IDs' };
   }
 
-  // 1. Remove from local storage
-  let myBlocks = getLocalBlocks(currentUserId);
-  myBlocks = myBlocks.filter((id) => id !== targetUserId);
-  saveLocalBlocks(currentUserId, myBlocks);
-  blockMemoryCache.delete(`${currentUserId}_${targetUserId}`);
-
-  // 2. Remove from Supabase
-  if (isSupabaseConfigured) {
-    try {
-      await supabase
-        .from('blocked_users')
-        .delete()
-        .eq('blocker_user_id', currentUserId)
-        .eq('blocked_user_id', targetUserId);
-    } catch (e) {
-      console.warn('[BlockService] Supabase unblockUser error:', e);
-    }
+  if (!isSupabaseConfigured) {
+    return { success: false, error: 'Database service is not configured.' };
   }
 
-  notifyBlockStateChange();
-  return { success: true };
+  try {
+    // 1. Delete from database first (Source of Truth)
+    const { error } = await supabase
+      .from('blocked_users')
+      .delete()
+      .eq('blocker_user_id', currentUserId)
+      .eq('blocked_user_id', targetUserId);
+
+    if (error) {
+      console.error('[BlockService] Failed to unblock user in database:', error.message);
+      return { success: false, error: error.message || 'Failed to unblock user in database' };
+    }
+
+    // 2. Database delete succeeded: clear in-memory cache
+    blockMemoryCache.delete(`${currentUserId}_${targetUserId}`);
+    notifyBlockStateChange();
+    return { success: true };
+  } catch (err: any) {
+    console.error('[BlockService] Database exception while unblocking user:', err);
+    return { success: false, error: err?.message || 'Database error while unblocking user' };
+  }
 };
 
 export interface BlockedUserProfile {
@@ -219,64 +201,74 @@ export interface BlockedUserProfile {
 }
 
 /**
- * Get list of blocked user profiles for the current user
+ * Get list of blocked user profiles for the current user directly from the database.
  */
 export const getBlockedUserList = async (currentUserId: string): Promise<BlockedUserProfile[]> => {
   if (!currentUserId) return [];
-  const localBlockIds = getLocalBlocks(currentUserId);
-  const blockedIds = [...localBlockIds];
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('blocked_users')
-        .select('blocked_user_id')
-        .eq('blocker_user_id', currentUserId);
-
-      if (!error && data) {
-        data.forEach((r: { blocked_user_id: string }) => {
-          if (r.blocked_user_id && !blockedIds.includes(r.blocked_user_id)) {
-            blockedIds.push(r.blocked_user_id);
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('[BlockService] getBlockedUserList fetch error:', e);
-    }
+  if (!isSupabaseConfigured) {
+    console.warn('[BlockService] Supabase not configured for getBlockedUserList');
+    return [];
   }
 
-  if (blockedIds.length === 0) return [];
+  try {
+    // 1. Try invoking SECURITY DEFINER function returning { id, username, name, avatar_url }
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_blocked_users');
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
-        .select('id, name, username, role, avatar_url, bio')
-        .in('id', blockedIds);
+    if (!rpcErr && Array.isArray(rpcData)) {
+      // Sync in-memory cache
+      rpcData.forEach((row: any) => {
+        if (row?.id) blockMemoryCache.set(`${currentUserId}_${row.id}`, true);
+      });
 
-      if (!pErr && profiles && profiles.length > 0) {
-        return profiles.map((p: any) => ({
-          id: p.id,
-          name: p.name || 'User',
-          username: p.username || 'user',
-          role: p.role || 'Member',
-          avatarUrl: p.avatar_url || null,
-          bio: p.bio || ''
-        }));
-      }
-    } catch (e) {
-      console.warn('[BlockService] getBlockedUserList profiles error:', e);
+      return rpcData.map((row: any) => ({
+        id: row.id,
+        name: row.name || 'Blocked Member',
+        username: row.username || (row.id ? row.id.substring(0, 8) : 'user'),
+        role: 'Member',
+        avatarUrl: row.avatar_url || null,
+        bio: ''
+      }));
     }
-  }
 
-  return blockedIds.map((id) => ({
-    id,
-    name: 'Blocked User',
-    username: 'user_' + id.slice(0, 6),
-    role: 'Member',
-    avatarUrl: null,
-    bio: ''
-  }));
+    if (rpcErr) {
+      console.warn('[BlockService] get_my_blocked_users RPC notice:', rpcErr.message);
+    }
+
+    // 2. Fallback to direct query if RPC unavailable
+    const { data, error } = await supabase
+      .from('blocked_users')
+      .select('blocked_user_id')
+      .eq('blocker_user_id', currentUserId);
+
+    if (error) {
+      console.warn('[BlockService] getBlockedUserList database query failed (safe fallback active):', error.message);
+      return [];
+    }
+
+    const blockedIds = (data || [])
+      .map((r: { blocked_user_id: string }) => r.blocked_user_id)
+      .filter(Boolean);
+
+    // Sync in-memory cache
+    blockedIds.forEach((id: string) => {
+      blockMemoryCache.set(`${currentUserId}_${id}`, true);
+    });
+
+    if (blockedIds.length === 0) return [];
+
+    return blockedIds.map((id: string) => ({
+      id,
+      name: 'Blocked Member',
+      username: id.substring(0, 8),
+      role: 'Member',
+      avatarUrl: null,
+      bio: ''
+    }));
+  } catch (e: any) {
+    console.warn('[BlockService] getBlockedUserList exception (safe fallback active):', e);
+    return [];
+  }
 };
 
 /**
@@ -291,8 +283,6 @@ export const rejectAndBlockUser = async (
     return { success: false, error: 'Missing required user IDs' };
   }
 
-  console.log('[BlockService] rejectAndBlockUser initiated:', { targetUserId, requestId, currentUserId });
-
   // 1. Try atomic Supabase RPC if available
   if (isSupabaseConfigured) {
     try {
@@ -302,28 +292,29 @@ export const rejectAndBlockUser = async (
       });
 
       if (!error && data && data.success) {
-        console.log('[BlockService] Supabase RPC reject_and_block_user succeeded');
-        // Record in local cache
-        const myBlocks = getLocalBlocks(currentUserId);
-        if (!myBlocks.includes(targetUserId)) {
-          myBlocks.push(targetUserId);
-          saveLocalBlocks(currentUserId, myBlocks);
-        }
         blockMemoryCache.set(`${currentUserId}_${targetUserId}`, true);
         notifyBlockStateChange();
         return { success: true };
       }
     } catch (e: any) {
-      console.warn('[BlockService] RPC reject_and_block_user fallback:', e?.message);
+      console.warn('[BlockService] RPC reject_and_block_user unavailable, falling back to database operations');
     }
   }
 
-  // 2. Coordinated fallback operations:
-  // Step A: Block the user
-  await blockUser(currentUserId, targetUserId);
+  // 2. Coordinated operations:
+  // Step A: Block user in database first
+  const blockResult = await blockUser(currentUserId, targetUserId);
+  if (!blockResult.success) {
+    return { success: false, error: blockResult.error || 'Failed to block user in database' };
+  }
 
   // Step B: Reject the follow request
-  const rejectRes = await respondToFollowRequest(requestId, currentUserId, targetUserId, 'rejected');
+  let rejectRes: any = null;
+  try {
+    rejectRes = await respondToFollowRequest(requestId, currentUserId, targetUserId, 'rejected');
+  } catch (err: any) {
+    console.error('[BlockService] respondToFollowRequest error during rejectAndBlock:', err);
+  }
 
   // Step C: Mark notifications read
   if (isSupabaseConfigured) {
@@ -335,7 +326,7 @@ export const rejectAndBlockUser = async (
         .eq('actor_id', targetUserId)
         .eq('type', 'follow_request');
     } catch (e) {
-      // Ignore notification update error
+      // Non-critical notification cleanup
     }
   }
 

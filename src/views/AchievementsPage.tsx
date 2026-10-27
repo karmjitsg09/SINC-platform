@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import ProfileAchievements from '../components/profile/ProfileAchievements';
 import AchievementModal from '../components/profile/AchievementModal';
 import ProfileItemPostModal from '../components/profile/ProfileItemPostModal';
@@ -20,6 +21,7 @@ export interface AchievementsPageProps {
 
 export default function AchievementsPage({ onBack, onViewAllUpdates }: AchievementsPageProps) {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [achievements, setAchievements] = useState<AchievementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +70,17 @@ export default function AchievementsPage({ onBack, onViewAllUpdates }: Achieveme
       if (editingAchievement?.id) {
         const updated = await updateAchievement(currentUser.id, editingAchievement.id, achievementData);
         setAchievements((prev) => prev.map((a) => (a.id === editingAchievement.id ? { ...a, ...updated } : a)));
+        toast.success('Achievement updated successfully.');
       } else {
         const created = await createAchievement(currentUser.id, achievementData);
         setAchievements((prev) => [created, ...prev.filter((a) => a.id !== created.id)]);
+        toast.success('Achievement added successfully.');
       }
       setShowAchievementModal(false);
       setEditingAchievement(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AchievementsPage] Save achievement error:', err);
-      alert('Failed to save achievement.');
+      toast.error(err?.message || 'Failed to save achievement.');
     }
   };
 
@@ -85,9 +89,10 @@ export default function AchievementsPage({ onBack, onViewAllUpdates }: Achieveme
     try {
       await deleteAchievement(currentUser.id, achievementId);
       setAchievements((prev) => prev.filter((a) => a.id !== achievementId));
-    } catch (err) {
+      toast.success('Achievement deleted successfully.');
+    } catch (err: any) {
       console.error('[AchievementsPage] Delete achievement error:', err);
-      alert('Failed to delete achievement.');
+      toast.error(err?.message || 'Failed to delete achievement.');
     }
   };
 

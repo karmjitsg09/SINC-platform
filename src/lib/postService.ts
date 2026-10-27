@@ -46,6 +46,7 @@ export interface FormattedPost {
   code_snippet: string | null;
   codeLanguage: string | null;
   code_language: string | null;
+  is_private?: boolean;
   created_at: string;
   [key: string]: any;
 }
@@ -113,6 +114,7 @@ export const formatPostRow = (p: any, mediaRows: any[] = []): FormattedPost => {
     code_snippet: p.code_snippet || p.codeSnippet || null,
     codeLanguage: p.code_language || p.codeLanguage || null,
     code_language: p.code_language || p.codeLanguage || null,
+    is_private: Boolean(p.is_private),
     created_at: p.created_at
   };
 };
@@ -196,6 +198,7 @@ export interface CreatePostParams {
   layout?: string;
   codeSnippet?: string | null;
   codeLanguage?: string | null;
+  is_private?: boolean;
   onProgress?: ((pct: number, msg: string) => void) | null;
 }
 
@@ -213,6 +216,7 @@ export const createPost = async ({
   layout = 'single', // 'single' | 'collage' | 'carousel'
   codeSnippet: _codeSnippet = null,
   codeLanguage: _codeLanguage = null,
+  is_private = false,
   onProgress = null
 }: CreatePostParams): Promise<FormattedPost> => {
   const cleanDomain = (domain || 'tech').toLowerCase();
@@ -248,7 +252,8 @@ export const createPost = async ({
     image_url: null as string | null,
     video_url: null as string | null,
     domain: cleanDomain,
-    post_type: effectiveType
+    post_type: effectiveType,
+    is_private: Boolean(is_private)
   };
 
   const { data: newPost, error: insertError } = await supabase
@@ -632,4 +637,57 @@ export const deletePost = async (
   notifyListeners();
 
   return { success: true, postId };
+};
+
+// ==========================================
+// 8. UPDATE POST (OWNER ONLY)
+// ==========================================
+export const updatePost = async (
+  postId: string,
+  userId: string,
+  updates: {
+    content?: string;
+    domain?: string;
+    is_private?: boolean;
+    title?: string;
+  }
+): Promise<FormattedPost> => {
+  if (!postId) throw new Error('Post ID is required for editing.');
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const effectiveUserId = userId || authUser?.id;
+  if (!effectiveUserId) throw new Error('You must be signed in to edit a post.');
+
+  // Verify ownership
+  const { data: post, error: fetchError } = await supabase
+    .from('posts')
+    .select('id, user_id')
+    .eq('id', postId)
+    .single();
+
+  if (fetchError || !post) throw new Error('Post could not be found.');
+  if (post.user_id !== effectiveUserId && (!authUser || post.user_id !== authUser.id)) {
+    throw new Error('You can only edit your own posts.');
+  }
+
+  const payload: any = {};
+  if (updates.content !== undefined) payload.content = updates.content.trim();
+  if (updates.domain !== undefined) payload.domain = updates.domain.toLowerCase();
+  if (updates.is_private !== undefined) payload.is_private = updates.is_private;
+  if (updates.title !== undefined) payload.title = updates.title;
+
+  const { data: updatedPost, error: updateError } = await supabase
+    .from('posts')
+    .update(payload)
+    .eq('id', postId)
+    .select('*, profiles:user_id(id, name, username, role, avatar_url)')
+    .single();
+
+  if (updateError) {
+    console.error('[PostService] updatePost error:', updateError);
+    throw updateError;
+  }
+
+  const [formatted] = await attachPostMedia([updatedPost]);
+  notifyListeners();
+  return formatted;
 };

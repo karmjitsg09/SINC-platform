@@ -32,9 +32,7 @@ async function runWebPushTests() {
     // TEST 1: Service Worker File & Handler Verification
     // ---------------------------------------------------------------
     console.log('[TEST 1] Verifying Service Worker implementation (public/sw.js)...');
-    const swPath = fs.existsSync(path.resolve(__dirname, '../../frontend/public/sw.js'))
-      ? path.resolve(__dirname, '../../frontend/public/sw.js')
-      : path.resolve(__dirname, '../public/sw.js');
+    const swPath = path.resolve(__dirname, '../../public/sw.js');
     if (!fs.existsSync(swPath)) {
       throw new Error('public/sw.js does not exist');
     }
@@ -158,9 +156,7 @@ async function runWebPushTests() {
     // TEST 5: Backend Dispatch Authorization & Self-Notification Suppression
     // ---------------------------------------------------------------
     console.log('\n[TEST 5] Testing Server-side Push Dispatch Security & Constraints...');
-    const pushDispatcherPath = fs.existsSync(path.resolve(__dirname, '../../frontend/src/lib/serverPushDispatcher.cjs'))
-      ? '../../frontend/src/lib/serverPushDispatcher.cjs'
-      : '../src/lib/serverPushDispatcher.cjs';
+    const pushDispatcherPath = path.resolve(__dirname, '../../src/lib/serverPushDispatcher.cjs');
     const { sendPushNotification, registerLocalSubscription, getLocalSubscriptions } = require(pushDispatcherPath);
 
     // Test A: Self notification suppression
@@ -255,12 +251,8 @@ async function runWebPushTests() {
     // TEST 8: Direct Message & Follow Request Push Trigger Integration
     // ---------------------------------------------------------------
     console.log('\n[TEST 8] Testing Application Event Hooks (DM & Follows)...');
-    const messageServicePath = fs.existsSync(path.resolve(__dirname, '../../frontend/src/messaging/services/messageService.js'))
-      ? path.resolve(__dirname, '../../frontend/src/messaging/services/messageService.js')
-      : path.resolve(__dirname, '../src/messaging/services/messageService.js');
-    const notifServicePath = fs.existsSync(path.resolve(__dirname, '../../frontend/src/notifications/services/notificationService.js'))
-      ? path.resolve(__dirname, '../../frontend/src/notifications/services/notificationService.js')
-      : path.resolve(__dirname, '../src/notifications/services/notificationService.js');
+    const messageServicePath = path.resolve(__dirname, '../../src/messaging/services/messageService.ts');
+    const notifServicePath = path.resolve(__dirname, '../../src/notifications/services/notificationService.ts');
 
     const msgSrc = fs.readFileSync(messageServicePath, 'utf8');
     const notifSrc = fs.readFileSync(notifServicePath, 'utf8');

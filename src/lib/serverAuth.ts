@@ -11,6 +11,8 @@
  */
 
 import crypto from 'crypto';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+type JWTVerifyGetKey = ReturnType<typeof createRemoteJWKSet>;
 
 export type ServerAuthResult =
   | {
@@ -25,43 +27,59 @@ export type ServerAuthResult =
       error: string;
     };
 
+export interface VerifyServerAuthOptions {
+  jwks?: any;
+  jwtSecret?: string;
+  supabaseUrl?: string;
+  allowedAlgorithms?: string[];
+}
+
 /**
- * Confirmed Supabase JWT Signing Mode: HS256 (Symmetric HMAC-SHA256)
- *
- * CRITICAL ARCHITECTURAL NOTICE:
- * SINC is explicitly configured for symmetric HS256 verification using SUPABASE_JWT_SECRET.
- * Rotating the Supabase project to asymmetric signing keys (RS256 or ES256) will break
- * server authentication until this verifier is updated to fetch public keys via JWKS.
+ * Supported Supabase JWT Signing Modes:
+ * - Asymmetric: ES256 (Staging project standard ECDSA P-256 via public JWKS)
+ * - Symmetric: HS256 (Supported when SUPABASE_JWT_SECRET is explicitly configured)
  */
-export const CONFIRMED_JWT_SIGNING_ALGORITHM = 'HS256' as const;
+export const SUPPORTED_JWT_SIGNING_ALGORITHMS = ['ES256', 'HS256'] as const;
+export const CONFIRMED_JWT_SIGNING_ALGORITHM = 'ES256' as const;
+
+let cachedJWKS: JWTVerifyGetKey | null = null;
+let cachedJWKSUrl: string | null = null;
+
+export function getRemoteJWKSet(jwksUrl: string): JWTVerifyGetKey {
+  if (cachedJWKS && cachedJWKSUrl === jwksUrl) {
+    return cachedJWKS;
+  }
+  cachedJWKS = createRemoteJWKSet(new URL(jwksUrl), {
+    cooldownDuration: 30000,
+    cacheMaxAge: 600000 // 10 minutes
+  });
+  cachedJWKSUrl = jwksUrl;
+  return cachedJWKS;
+}
+
+export function resetRemoteJWKSetCache(): void {
+  cachedJWKS = null;
+  cachedJWKSUrl = null;
+}
 
 let hasLoggedJwtModeNotice = false;
 export function assertJwtConfiguration(): void {
   if (hasLoggedJwtModeNotice) return;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const secret = process.env.SUPABASE_JWT_SECRET;
-  if (!secret) {
-    console.warn('[ServerAuth] WARNING: SUPABASE_JWT_SECRET is not configured. Web Push API will fail closed.');
+  if (!url && !secret) {
+    console.warn('[ServerAuth] WARNING: Neither SUPABASE_URL (for JWKS) nor SUPABASE_JWT_SECRET is configured. Verification will fail closed.');
   } else {
     console.log(
-      `[ServerAuth] JWT signing mode verified: ${CONFIRMED_JWT_SIGNING_ALGORITHM} (Symmetric HMAC-SHA256). ` +
-      'NOTE: Rotating Supabase project to asymmetric keys (RS256/ES256) will break authentication until JWKS verification is deployed.'
+      `[ServerAuth] JWT verification configured: ES256 (JWKS via ${url || 'unconfigured'})` +
+      (secret ? ' + HS256 (Symmetric HMAC fallback)' : ' (asymmetric only; HS256 disabled)')
     );
   }
   hasLoggedJwtModeNotice = true;
 }
 
-export function verifyServerAuth(req: Request): ServerAuthResult {
+export async function verifyServerAuth(req: Request, options?: VerifyServerAuthOptions): Promise<ServerAuthResult> {
   assertJwtConfiguration();
-
-  // 1. Mandatory verification configuration — fails closed if secret is missing in any environment
-  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-  if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.trim() === '') {
-    return {
-      authenticated: false,
-      status: 500,
-      error: 'Server configuration error: SUPABASE_JWT_SECRET required'
-    };
-  }
 
   const authHeader = req.headers.get('authorization');
   if (!authHeader || typeof authHeader !== 'string') {
@@ -98,7 +116,7 @@ export function verifyServerAuth(req: Request): ServerAuthResult {
     };
   }
 
-  // 2. Decode and validate header
+  // 1. Decode and validate header
   let header: any;
   try {
     const headerStr = Buffer.from(parts[0], 'base64url').toString('utf8');
@@ -119,12 +137,20 @@ export function verifyServerAuth(req: Request): ServerAuthResult {
     };
   }
 
-  // Enforce supported signing algorithm — only HS256 is supported for symmetric HMAC
-  if (!header.alg || header.alg !== 'HS256') {
+  if (!header.alg || header.alg.toLowerCase() === 'none') {
     return {
       authenticated: false,
       status: 401,
-      error: `Unauthorized: Unsupported signing algorithm "${header.alg || 'none'}". Expected HS256.`
+      error: 'Unauthorized: Algorithm "none" is not permitted'
+    };
+  }
+
+  const alg = String(header.alg).toUpperCase();
+  if (alg !== 'ES256' && alg !== 'HS256') {
+    return {
+      authenticated: false,
+      status: 401,
+      error: `Unauthorized: Unsupported signing algorithm "${header.alg}". Expected ES256 or HS256.`
     };
   }
 
@@ -136,44 +162,95 @@ export function verifyServerAuth(req: Request): ServerAuthResult {
     };
   }
 
-  // 3. Cryptographic signature check (mandatory HMAC-SHA256)
-  try {
-    const expectedSignature = crypto
-      .createHmac('sha256', jwtSecret)
-      .update(`${parts[0]}.${parts[1]}`)
-      .digest('base64url');
+  let payload: any;
 
-    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
-    const actualBuf = Buffer.from(parts[2], 'utf8');
+  // 2. Cryptographic signature check
+  if (alg === 'HS256') {
+    const jwtSecret = options?.jwtSecret || process.env.SUPABASE_JWT_SECRET;
+    if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.trim() === '') {
+      return {
+        authenticated: false,
+        status: 500,
+        error: 'Server configuration error: SUPABASE_JWT_SECRET required'
+      };
+    }
 
-    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', jwtSecret)
+        .update(`${parts[0]}.${parts[1]}`)
+        .digest('base64url');
+
+      const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+      const actualBuf = Buffer.from(parts[2], 'utf8');
+
+      if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+        return {
+          authenticated: false,
+          status: 401,
+          error: 'Unauthorized: Invalid token signature'
+        };
+      }
+
+      const jsonStr = Buffer.from(parts[1], 'base64url').toString('utf8');
+      payload = JSON.parse(jsonStr);
+    } catch {
       return {
         authenticated: false,
         status: 401,
-        error: 'Unauthorized: Invalid token signature'
+        error: 'Unauthorized: Cryptographic signature verification failed'
       };
     }
-  } catch {
-    return {
-      authenticated: false,
-      status: 401,
-      error: 'Unauthorized: Cryptographic signature verification failed'
-    };
+  } else if (alg === 'ES256') {
+    const supabaseUrl =
+      options?.supabaseUrl ||
+      process.env.SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL;
+
+    let keySource: any = options?.jwks;
+    if (!keySource) {
+      if (!supabaseUrl || typeof supabaseUrl !== 'string' || supabaseUrl.trim() === '') {
+        return {
+          authenticated: false,
+          status: 500,
+          error: 'Server configuration error: SUPABASE_URL required for JWKS verification'
+        };
+      }
+      const jwksUrl = `${supabaseUrl.replace(/\/+$/, '')}/auth/v1/.well-known/jwks.json`;
+      keySource = getRemoteJWKSet(jwksUrl);
+    }
+
+    try {
+      const verifyOpts: any = {
+        algorithms: ['ES256']
+      };
+      if (!options?.jwks && supabaseUrl) {
+        verifyOpts.issuer = `${supabaseUrl.replace(/\/+$/, '')}/auth/v1`;
+      } else if (options?.supabaseUrl) {
+        verifyOpts.issuer = `${options.supabaseUrl.replace(/\/+$/, '')}/auth/v1`;
+      }
+
+      const verified = await jwtVerify(clean, keySource, verifyOpts);
+      payload = verified.payload;
+    } catch (err: any) {
+      const errMsg = err?.message || 'Verification failed';
+      if (errMsg.toLowerCase().includes('expired') || err.code === 'ERR_JWT_EXPIRED') {
+        return {
+          authenticated: false,
+          status: 401,
+          error: 'Unauthorized: Session token has expired'
+        };
+      }
+      return {
+        authenticated: false,
+        status: 401,
+        error: `Unauthorized: Invalid token signature (${errMsg})`
+      };
+    }
   }
 
-  // 4. Decode and validate payload claims
-  let payload: any;
-  try {
-    const jsonStr = Buffer.from(parts[1], 'base64url').toString('utf8');
-    payload = JSON.parse(jsonStr);
-  } catch {
-    return {
-      authenticated: false,
-      status: 401,
-      error: 'Unauthorized: Failed to parse token payload'
-    };
-  }
-
+  // 3. Validate payload claims
   if (!payload || typeof payload !== 'object') {
     return {
       authenticated: false,
@@ -182,7 +259,6 @@ export function verifyServerAuth(req: Request): ServerAuthResult {
     };
   }
 
-  // Expiration validation
   if (!payload.exp || typeof payload.exp !== 'number') {
     return {
       authenticated: false,
@@ -199,7 +275,6 @@ export function verifyServerAuth(req: Request): ServerAuthResult {
     };
   }
 
-  // Subject (userId) validation
   if (!payload.sub || typeof payload.sub !== 'string' || payload.sub.trim() === '') {
     return {
       authenticated: false,
@@ -208,7 +283,6 @@ export function verifyServerAuth(req: Request): ServerAuthResult {
     };
   }
 
-  // Audience & Role validation
   if (payload.aud && payload.aud !== 'authenticated') {
     return {
       authenticated: false,

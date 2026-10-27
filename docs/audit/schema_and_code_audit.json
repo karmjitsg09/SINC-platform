@@ -1,0 +1,1245 @@
+{
+  "tableMismatchesCount": 23,
+  "tableMismatches": [
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 69,
+      "table": "achievements",
+      "snippet": ".from('achievements')"
+    },
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 121,
+      "table": "achievements",
+      "snippet": ".from('achievements')"
+    },
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 167,
+      "table": "achievements",
+      "snippet": ".from('achievements')"
+    },
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 236,
+      "table": "achievements",
+      "snippet": ".from('achievements')"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 69,
+      "table": "certifications",
+      "snippet": ".from('certifications')"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 122,
+      "table": "certifications",
+      "snippet": ".from('certifications')"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 168,
+      "table": "certifications",
+      "snippet": ".from('certifications')"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 237,
+      "table": "certifications",
+      "snippet": ".from('certifications')"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 75,
+      "table": "education",
+      "snippet": ".from('education')"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 129,
+      "table": "education",
+      "snippet": ".from('education')"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 175,
+      "table": "education",
+      "snippet": ".from('education')"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 244,
+      "table": "education",
+      "snippet": ".from('education')"
+    },
+    {
+      "file": "src\\lib\\experienceService.ts",
+      "line": 91,
+      "table": "experience",
+      "snippet": ".from('experience')"
+    },
+    {
+      "file": "src\\lib\\experienceService.ts",
+      "line": 147,
+      "table": "experience",
+      "snippet": ".from('experience')"
+    },
+    {
+      "file": "src\\lib\\experienceService.ts",
+      "line": 225,
+      "table": "experience",
+      "snippet": ".from('experience')"
+    },
+    {
+      "file": "src\\lib\\experienceService.ts",
+      "line": 269,
+      "table": "experience",
+      "snippet": ".from('experience')"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 157,
+      "table": "post-media",
+      "snippet": ".from('post-media')"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 169,
+      "table": "post-media",
+      "snippet": ".from('post-media')"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 614,
+      "table": "post-media",
+      "snippet": ".from('post-media')"
+    },
+    {
+      "file": "src\\lib\\projectService.ts",
+      "line": 90,
+      "table": "projects",
+      "snippet": ".from('projects')"
+    },
+    {
+      "file": "src\\lib\\projectService.ts",
+      "line": 147,
+      "table": "projects",
+      "snippet": ".from('projects')"
+    },
+    {
+      "file": "src\\lib\\projectService.ts",
+      "line": 221,
+      "table": "projects",
+      "snippet": ".from('projects')"
+    },
+    {
+      "file": "src\\lib\\projectService.ts",
+      "line": 263,
+      "table": "projects",
+      "snippet": ".from('projects')"
+    }
+  ],
+  "columnMismatchesCount": 89,
+  "columnMismatches": [
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 262,
+      "table": "post_likes",
+      "column": "profile",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 262,
+      "table": "post_likes",
+      "column": "name",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 262,
+      "table": "post_likes",
+      "column": "username",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 262,
+      "table": "post_likes",
+      "column": "role",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 262,
+      "table": "post_likes",
+      "column": "avatar_url)",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 311,
+      "table": "post_comments",
+      "column": "profile",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 311,
+      "table": "post_comments",
+      "column": "name",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 311,
+      "table": "post_comments",
+      "column": "username",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 311,
+      "table": "post_comments",
+      "column": "role",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 311,
+      "table": "post_comments",
+      "column": "avatar_url)",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 360,
+      "table": "post_comments",
+      "column": "profile",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 360,
+      "table": "post_comments",
+      "column": "name",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 360,
+      "table": "post_comments",
+      "column": "username",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 360,
+      "table": "post_comments",
+      "column": "role",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 360,
+      "table": "post_comments",
+      "column": "avatar_url)",
+      "selectStr": "*, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 550,
+      "table": "post_shares",
+      "column": "user_id",
+      "selectStr": "id, user_id"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 768,
+      "table": "post_likes",
+      "column": "profile",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 768,
+      "table": "post_likes",
+      "column": "name",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 768,
+      "table": "post_likes",
+      "column": "username",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 768,
+      "table": "post_likes",
+      "column": "role",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 768,
+      "table": "post_likes",
+      "column": "avatar_url)",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 773,
+      "table": "post_comments",
+      "column": "profile",
+      "selectStr": "id, created_at, user_id, content, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 773,
+      "table": "post_comments",
+      "column": "name",
+      "selectStr": "id, created_at, user_id, content, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 773,
+      "table": "post_comments",
+      "column": "username",
+      "selectStr": "id, created_at, user_id, content, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 773,
+      "table": "post_comments",
+      "column": "role",
+      "selectStr": "id, created_at, user_id, content, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 773,
+      "table": "post_comments",
+      "column": "avatar_url)",
+      "selectStr": "id, created_at, user_id, content, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 778,
+      "table": "post_shares",
+      "column": "sender",
+      "selectStr": "id, created_at, sender_id, recipient_id, sender:sender_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 778,
+      "table": "post_shares",
+      "column": "name",
+      "selectStr": "id, created_at, sender_id, recipient_id, sender:sender_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 778,
+      "table": "post_shares",
+      "column": "username",
+      "selectStr": "id, created_at, sender_id, recipient_id, sender:sender_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 778,
+      "table": "post_shares",
+      "column": "role",
+      "selectStr": "id, created_at, sender_id, recipient_id, sender:sender_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 778,
+      "table": "post_shares",
+      "column": "avatar_url)",
+      "selectStr": "id, created_at, sender_id, recipient_id, sender:sender_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 783,
+      "table": "post_saves",
+      "column": "profile",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 783,
+      "table": "post_saves",
+      "column": "name",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 783,
+      "table": "post_saves",
+      "column": "username",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 783,
+      "table": "post_saves",
+      "column": "role",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 783,
+      "table": "post_saves",
+      "column": "avatar_url)",
+      "selectStr": "id, created_at, user_id, profile:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 345,
+      "table": "posts",
+      "column": "profiles",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 345,
+      "table": "posts",
+      "column": "name",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 345,
+      "table": "posts",
+      "column": "username",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 345,
+      "table": "posts",
+      "column": "role",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 345,
+      "table": "posts",
+      "column": "avatar_url)",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 404,
+      "table": "posts",
+      "column": "profiles",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 404,
+      "table": "posts",
+      "column": "name",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 404,
+      "table": "posts",
+      "column": "username",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 404,
+      "table": "posts",
+      "column": "role",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 404,
+      "table": "posts",
+      "column": "avatar_url)",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 443,
+      "table": "posts",
+      "column": "profiles",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 443,
+      "table": "posts",
+      "column": "name",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 443,
+      "table": "posts",
+      "column": "username",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 443,
+      "table": "posts",
+      "column": "role",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 443,
+      "table": "posts",
+      "column": "avatar_url)",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 541,
+      "table": "posts",
+      "column": "profiles",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 541,
+      "table": "posts",
+      "column": "name",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 541,
+      "table": "posts",
+      "column": "username",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 541,
+      "table": "posts",
+      "column": "role",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 541,
+      "table": "posts",
+      "column": "avatar_url)",
+      "selectStr": "*, profiles:user_id(id, name, username, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 272,
+      "table": "profile_projects",
+      "column": "username",
+      "selectStr": "id, username"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 594,
+      "table": "user_private_details",
+      "column": "profile_setup_completed_steps",
+      "selectStr": "profile_setup_completed_steps"
+    },
+    {
+      "file": "src\\lib\\serverAuth.ts",
+      "line": 733,
+      "table": "posts",
+      "column": "author_id",
+      "selectStr": "id, created_at, content, author_id"
+    },
+    {
+      "file": "src\\lib\\serverAuth.ts",
+      "line": 1303,
+      "table": "push_idempotency_keys",
+      "column": "key",
+      "selectStr": "key"
+    },
+    {
+      "file": "src\\lib\\serverAuth.ts",
+      "line": 1314,
+      "table": "push_idempotency_keys",
+      "column": "status",
+      "selectStr": "status, result, expires_at"
+    },
+    {
+      "file": "src\\lib\\serverAuth.ts",
+      "line": 1314,
+      "table": "push_idempotency_keys",
+      "column": "result",
+      "selectStr": "status, result, expires_at"
+    },
+    {
+      "file": "src\\lib\\serverAuth.ts",
+      "line": 1337,
+      "table": "push_idempotency_keys",
+      "column": "key",
+      "selectStr": "key"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 360,
+      "table": "follow_requests",
+      "column": "name",
+      "selectStr": "id, name, username, avatar_url, role"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 360,
+      "table": "follow_requests",
+      "column": "username",
+      "selectStr": "id, name, username, avatar_url, role"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 360,
+      "table": "follow_requests",
+      "column": "avatar_url",
+      "selectStr": "id, name, username, avatar_url, role"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 360,
+      "table": "follow_requests",
+      "column": "role",
+      "selectStr": "id, name, username, avatar_url, role"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 636,
+      "table": "conversations",
+      "column": "conversation_id",
+      "selectStr": "conversation_id"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 695,
+      "table": "conversations",
+      "column": "conversation_members",
+      "selectStr": "*, conversation_members(user_id, profiles(*)), messages(*)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 695,
+      "table": "conversations",
+      "column": "profiles",
+      "selectStr": "*, conversation_members(user_id, profiles(*)), messages(*)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 695,
+      "table": "conversations",
+      "column": "messages",
+      "selectStr": "*, conversation_members(user_id, profiles(*)), messages(*)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 785,
+      "table": "messages",
+      "column": "profiles",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 785,
+      "table": "messages",
+      "column": "name",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 785,
+      "table": "messages",
+      "column": "role",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 785,
+      "table": "messages",
+      "column": "avatar_url)",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 966,
+      "table": "posts",
+      "column": "profiles",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 966,
+      "table": "posts",
+      "column": "name",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 966,
+      "table": "posts",
+      "column": "role",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 966,
+      "table": "posts",
+      "column": "avatar_url)",
+      "selectStr": "*, profiles:user_id(id, name, role, avatar_url)"
+    },
+    {
+      "file": "src\\lib\\updatesService.ts",
+      "line": 89,
+      "table": "updates",
+      "column": "update_id",
+      "selectStr": "update_id"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 79,
+      "table": "domain_messages",
+      "column": "profiles",
+      "selectStr": "id, domain_id, channel_id, user_id, content, created_at, profiles:user_id(id, name, avatar_url, username)"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 79,
+      "table": "domain_messages",
+      "column": "name",
+      "selectStr": "id, domain_id, channel_id, user_id, content, created_at, profiles:user_id(id, name, avatar_url, username)"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 79,
+      "table": "domain_messages",
+      "column": "avatar_url",
+      "selectStr": "id, domain_id, channel_id, user_id, content, created_at, profiles:user_id(id, name, avatar_url, username)"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 79,
+      "table": "domain_messages",
+      "column": "username)",
+      "selectStr": "id, domain_id, channel_id, user_id, content, created_at, profiles:user_id(id, name, avatar_url, username)"
+    },
+    {
+      "file": "src\\messaging\\services\\messageService.ts",
+      "line": 99,
+      "table": "conversations",
+      "column": "user_id",
+      "selectStr": "user_id"
+    },
+    {
+      "file": "src\\notifications\\services\\notificationService.ts",
+      "line": 239,
+      "table": "notifications",
+      "column": "name",
+      "selectStr": "id, name, username, role, avatar_url"
+    },
+    {
+      "file": "src\\notifications\\services\\notificationService.ts",
+      "line": 239,
+      "table": "notifications",
+      "column": "username",
+      "selectStr": "id, name, username, role, avatar_url"
+    },
+    {
+      "file": "src\\notifications\\services\\notificationService.ts",
+      "line": 239,
+      "table": "notifications",
+      "column": "role",
+      "selectStr": "id, name, username, role, avatar_url"
+    },
+    {
+      "file": "src\\notifications\\services\\notificationService.ts",
+      "line": 239,
+      "table": "notifications",
+      "column": "avatar_url",
+      "selectStr": "id, name, username, role, avatar_url"
+    }
+  ],
+  "localStorageUsagesCount": 24,
+  "localStorageUsages": [
+    {
+      "file": "src\\App.tsx",
+      "line": 1027,
+      "snippet": "localStorage.setItem('sinc_show_bottom_nav', String(next));"
+    },
+    {
+      "file": "src\\App.tsx",
+      "line": 1038,
+      "snippet": "localStorage.setItem('sinc_show_vertical_rail', String(next));"
+    },
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 40,
+      "snippet": "localStorage.setItem(`${ACHIEVEMENTS_CACHE_PREFIX}${userId}`, JSON.stringify(sortAchievements(achList)));"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 40,
+      "snippet": "localStorage.setItem(`${CERTIFICATIONS_CACHE_PREFIX}${userId}`, JSON.stringify(sortCertifications(certList)));"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 46,
+      "snippet": "localStorage.setItem(`${EDUCATION_CACHE_PREFIX}${userId}`, JSON.stringify(sortEducation(educationList)));"
+    },
+    {
+      "file": "src\\lib\\experienceService.ts",
+      "line": 75,
+      "snippet": "localStorage.setItem(`${EXPERIENCE_CACHE_PREFIX}${userId}`, JSON.stringify(sortExperiences(experiences)));"
+    },
+    {
+      "file": "src\\lib\\locationService.ts",
+      "line": 308,
+      "snippet": "localStorage.setItem(`${LOCATION_STORAGE_PREFIX}${userId}`, JSON.stringify(locationData));"
+    },
+    {
+      "file": "src\\lib\\profileItemUpdateService.ts",
+      "line": 79,
+      "snippet": "localStorage.setItem(getLocalCacheKey(itemType, itemId), JSON.stringify(sorted));"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 262,
+      "snippet": "localStorage.setItem(getStorageKey(userId), JSON.stringify(payload));"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 463,
+      "snippet": "localStorage.setItem(`sync_user_domains_${userId}`, JSON.stringify(uniqueDomainIds));"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 544,
+      "snippet": "localStorage.setItem(localCacheKey, JSON.stringify(data));"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 563,
+      "snippet": "localStorage.setItem(localCacheKey, JSON.stringify(merged));"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 697,
+      "snippet": "localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 869,
+      "snippet": "localStorage.setItem(`sync_profile_location_${userId}`, JSON.stringify(locPayload));"
+    },
+    {
+      "file": "src\\lib\\projectService.ts",
+      "line": 75,
+      "snippet": "localStorage.setItem(getStorageKey(userId), JSON.stringify(projects));"
+    },
+    {
+      "file": "src\\lib\\pushNotificationService.ts",
+      "line": 241,
+      "snippet": "localStorage.setItem("
+    },
+    {
+      "file": "src\\messaging\\services\\conversationService.ts",
+      "line": 380,
+      "snippet": "localStorage.setItem(`read_${currentUserId}_${conversationId}`, readTime);"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 106,
+      "snippet": "localStorage.setItem(storageKey, JSON.stringify(formatted));"
+    },
+    {
+      "file": "src\\views\\DomainChat.tsx",
+      "line": 148,
+      "snippet": "localStorage.setItem(`sync_domain_chat_${conversationKey}`, JSON.stringify(next));"
+    },
+    {
+      "file": "src\\views\\Profile.tsx",
+      "line": 477,
+      "snippet": "localStorage.setItem(`sync_profile_location_${currentUser.id}`, JSON.stringify(updates.locationData || { displayLocation: updates.location }));"
+    },
+    {
+      "file": "src\\views\\ProfileDetails.tsx",
+      "line": 256,
+      "snippet": "localStorage.setItem(`sync_verification_req_${currentUser.id}`, 'pending');"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 262,
+      "snippet": "localStorage.setItem('sinc_push_preferences', JSON.stringify(next));"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 541,
+      "snippet": "localStorage.setItem('sinc_show_bottom_nav', String(next));"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 573,
+      "snippet": "localStorage.setItem('sinc_show_vertical_rail', String(next));"
+    }
+  ],
+  "swallowedErrorsCount": 70,
+  "swallowedErrors": [
+    {
+      "file": "src\\App.tsx",
+      "line": 192,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\App.tsx",
+      "line": 209,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\App.tsx",
+      "line": 221,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\App.tsx",
+      "line": 381,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\App.tsx",
+      "line": 1029,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\App.tsx",
+      "line": 1040,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 58,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 176,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 203,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 326,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 366,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 440,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 562,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 624,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 629,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\context\\AuthContext.tsx",
+      "line": 634,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 215,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\achievementService.ts",
+      "line": 259,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 216,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\certificationService.ts",
+      "line": 260,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 223,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\educationService.ts",
+      "line": 267,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 239,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 253,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 397,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 474,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 627,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 665,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postInteractionService.ts",
+      "line": 732,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 73,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\postService.ts",
+      "line": 501,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 453,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 464,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 508,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 545,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 564,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 679,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 698,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 846,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 870,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\profileService.ts",
+      "line": 949,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\pushNotificationService.ts",
+      "line": 255,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\lib\\pushNotificationService.ts",
+      "line": 309,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\lib\\pushNotificationService.ts",
+      "line": 374,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\sinc-intro.ts",
+      "line": 616,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\lib\\sinc-intro.ts",
+      "line": 626,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\lib\\sinc-intro.ts",
+      "line": 633,
+      "snippet": "} catch (_) {}"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 345,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\lib\\socialService.ts",
+      "line": 554,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 71,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 108,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\messaging\\services\\domainMessageService.ts",
+      "line": 316,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\DomainChat.tsx",
+      "line": 54,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\DomainChat.tsx",
+      "line": 149,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\ForgotPassword.tsx",
+      "line": 42,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\MessageDetail.tsx",
+      "line": 382,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\MessagesPage.tsx",
+      "line": 65,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\MessagesPage.tsx",
+      "line": 338,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Profile.tsx",
+      "line": 168,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Profile.tsx",
+      "line": 175,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Profile.tsx",
+      "line": 184,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Profile.tsx",
+      "line": 479,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\ProfileDetails.tsx",
+      "line": 101,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\ProfileDetails.tsx",
+      "line": 105,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\ProfileDetails.tsx",
+      "line": 114,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 200,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 264,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 543,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 575,
+      "snippet": "} catch (e) {}"
+    },
+    {
+      "file": "src\\views\\Settings.tsx",
+      "line": 607,
+      "snippet": "} catch (e) {}"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ const { unregisterLocalSubscription } = require('../../../lib/serverPushDispatch
 export async function POST(req: NextRequest) {
   try {
     // 1. Verify caller authentication
-    const auth = verifyServerAuth(req);
+    const auth = await verifyServerAuth(req);
     if (!auth.authenticated) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
