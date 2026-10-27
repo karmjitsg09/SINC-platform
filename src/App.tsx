@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useCentralAnimationController, saveReturnUrl } from './lib/animationController';
 import TopHeader from './components/TopHeader';
 import SidebarNavigation from './components/SidebarNavigation';
 import DomainShortcutRail from './components/DomainShortcutRail';
@@ -104,20 +105,42 @@ export function MainAppContent() {
 
   const [activeTab, setActiveTab] = useState(initialRoute.tab || 'home');
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
-  const [startupTimedOut, setStartupTimedOut] = useState(false);
 
-  useEffect(() => {
-    if (!loadingSession) {
-      setStartupTimedOut(false);
-      return;
+  const handleNavigateToReturnUrl = useCallback((url: string) => {
+    const parsed = parseRoute(url);
+    if (parsed.tab === 'post-view' && parsed.activePostId) {
+      setActivePostId(parsed.activePostId);
+      setActiveTab('post-view');
+    } else if (parsed.tab === 'domains') {
+      setActiveTab('domains');
+      if (parsed.activeDomainId) setActiveDomainId(parsed.activeDomainId);
+      if (parsed.domainSubView) setDomainSubView(parsed.domainSubView);
+      if (parsed.channelId) setSelectedChannel({ id: parsed.channelId, title: parsed.channelId });
+    } else if (parsed.tab === 'messages') {
+      setActiveTab('messages');
+      if (parsed.conversationId) setSelectedConversation({ id: parsed.conversationId });
+      if (parsed.messagesSubView) setMessagesSubView(parsed.messagesSubView);
+    } else if (parsed.tab === 'profile') {
+      setActiveTab('profile');
+      if (parsed.profileSubView) setProfileSubView(parsed.profileSubView);
+      if (parsed.targetUserId) setSelectedProfileUser({ id: parsed.targetUserId });
+    } else {
+      setActiveTab(parsed.tab || 'home');
     }
-    const timer = setTimeout(() => {
-      if (loadingSession) {
-        setStartupTimedOut(true);
-      }
-    }, 12000);
-    return () => clearTimeout(timer);
-  }, [loadingSession]);
+    pushRoute(parsed);
+  }, []);
+
+  const {
+    state: animState,
+    startupTimedOut,
+    handleRetry,
+    handleGoToSignIn
+  } = useCentralAnimationController({
+    isAuthenticated,
+    loadingSession,
+    authRoute,
+    onNavigateToReturnUrl: handleNavigateToReturnUrl
+  });
 
   const [activeDomainId, setActiveDomainId] = useState(initialRoute.activeDomainId || 'tech');
 
@@ -327,7 +350,7 @@ export function MainAppContent() {
     }
   }, []);
 
-  // Sync auth routes when authentication state changes
+  // Sync auth routes when authentication state changes and preserve safe deep link return URLs
   useEffect(() => {
     if (!loadingSession) {
       const lower = window.location.pathname.toLowerCase();
@@ -337,6 +360,8 @@ export function MainAppContent() {
         }
       } else {
         if (lower !== '/login' && lower !== '/signup' && lower !== '/forgot-password') {
+          const fullPath = window.location.pathname + window.location.search + window.location.hash;
+          saveReturnUrl(fullPath);
           window.history.replaceState({ authRoute: 'login' }, '', '/login');
         }
       }
@@ -350,9 +375,9 @@ export function MainAppContent() {
     }
   }, [isAuthenticated, user?.isNewUser, user?.onboarding_completed]);
 
-  // Neutral initialization screen until client mount and session check completes
-  if (loadingSession) {
-    if (startupTimedOut) {
+  // 1. BOOTSTRAPPING & ERROR States
+  if (animState === 'BOOTSTRAPPING' || animState === 'ERROR') {
+    if (startupTimedOut || animState === 'ERROR') {
       return (
         <div className="app-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-app, #080E18)', padding: '24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', maxWidth: '420px', textAlign: 'center' }}>
@@ -365,7 +390,7 @@ export function MainAppContent() {
               <button
                 type="button"
                 id="startup-retry-btn"
-                onClick={() => window.location.reload()}
+                onClick={handleRetry}
                 style={{
                   padding: '10px 20px',
                   borderRadius: '8px',
@@ -382,17 +407,7 @@ export function MainAppContent() {
               <button
                 type="button"
                 id="startup-login-btn"
-                onClick={() => {
-                  try {
-                    for (let i = localStorage.length - 1; i >= 0; i--) {
-                      const key = localStorage.key(i);
-                      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-                        localStorage.removeItem(key);
-                      }
-                    }
-                  } catch (_) {}
-                  window.location.href = '/login';
-                }}
+                onClick={handleGoToSignIn}
                 style={{
                   padding: '10px 20px',
                   borderRadius: '8px',
@@ -421,16 +436,45 @@ export function MainAppContent() {
     );
   }
 
-  if (!isAuthenticated) {
+  // 2. UNAUTHENTICATED_INTRO: Welcome film is playing. Login page must not be visible underneath or flash before film starts.
+  if (animState === 'UNAUTHENTICATED_INTRO') {
+    return (
+      <div
+        className="app-shell"
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        aria-hidden="true"
+      />
+    );
+  }
+
+  // 3. Unauthenticated views (Login, SignUp, ForgotPassword)
+  if (!isAuthenticated || animState === 'LOGIN_PAGE' || animState === 'SIGNUP_PAGE' || animState === 'FORGOT_PASSWORD_PAGE') {
     return (
       <div className="app-shell">
-        {authRoute === 'signup' && <SignUp />}
-        {authRoute === 'forgot-password' && (
+        {(animState === 'SIGNUP_PAGE' || authRoute === 'signup') && <SignUp />}
+        {(animState === 'FORGOT_PASSWORD_PAGE' || authRoute === 'forgot-password') && (
           <Suspense fallback={<PageLoadingFallback />}>
             <ForgotPassword />
           </Suspense>
         )}
-        {authRoute === 'login' && <Login />}
+        {(animState === 'LOGIN_PAGE' || (authRoute === 'login' && animState !== 'SIGNUP_PAGE' && animState !== 'FORGOT_PASSWORD_PAGE')) && <Login />}
+      </div>
+    );
+  }
+
+  // 4. Logo animation playing (POST_LOGIN_LOGO or AUTHENTICATED_ENTRY_LOGO): Keep static logo screen while animation overlay runs
+  if (animState === 'POST_LOGIN_LOGO' || animState === 'AUTHENTICATED_ENTRY_LOGO') {
+    return (
+      <div className="app-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-app, #080E18)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <SincLogo size={72} alt="SINC Logo" priority={true} />
+        </div>
       </div>
     );
   }
@@ -1226,17 +1270,6 @@ export function MainAppContent() {
   );
 }
 
-function AuthenticatedIntroWatcher() {
-  const { isAuthenticated, loadingSession, authEvent, authEventType, consumeAuthEvent } = useAuth();
-  return (
-    <SincIntro
-      signedIn={!loadingSession && isAuthenticated}
-      authEvent={authEvent}
-      authEventType={authEventType}
-      consumeAuthEvent={consumeAuthEvent}
-    />
-  );
-}
 
 export default function App() {
   return <MainAppContent />;

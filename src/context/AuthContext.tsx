@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectUrl } from '../lib/authConfig';
 import { resetSincIntroSession } from '../lib/sinc-intro';
+import { markPendingLogin, clearPendingLogin, clearTabInitialized, isPendingLogin } from '../lib/animationController';
 import { queryClient } from '../lib/queryClient';
 import { useNavigationStore } from '../stores/useNavigationStore';
 import { disconnectSocket } from '../lib/socketService';
@@ -289,12 +290,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
     let safetyTimeoutId: NodeJS.Timeout | null = null;
 
-    // Safety safeguard: Never keep the app waiting longer than 3.5 seconds for initial session check
+    // Safety safeguard: 12-second timeout aligned with system fallback
     safetyTimeoutId = setTimeout(() => {
       if (isMounted) {
         setLoadingSession(false);
       }
-    }, 3500);
+    }, 12000);
 
     async function initAuth() {
       if (isSupabaseConfigured) {
@@ -326,6 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const hasOAuthHash = window.location.hash.includes('access_token=') || window.location.hash.includes('refresh_token=');
               if (pendingOAuth === '1' || hasOAuthHash) {
                 isOAuthReturn = true;
+                markPendingLogin();
                 sessionStorage.removeItem('sinc_pending_oauth');
               }
             } catch (_) {}
@@ -366,6 +368,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               if (sessionStorage.getItem('sinc_pending_oauth') === '1') {
                 isOAuth = true;
+                markPendingLogin();
                 sessionStorage.removeItem('sinc_pending_oauth');
               }
             } catch (_) {}
@@ -394,8 +397,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   };
                   setUser(fallbackProfile);
                 }
+                const newlyLoggedIn = isOAuth || isPendingLogin();
                 if (!authEventRef.current) {
-                  setAuthEvent(isOAuth ? 'login' : (event === 'SIGNED_IN' ? 'login' : 'session_restored'));
+                  setAuthEvent(newlyLoggedIn ? 'login' : 'session_restored');
                 }
                 setIsAuthenticated(true);
                 setLoadingSession(false);
@@ -442,6 +446,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       try {
         sessionStorage.setItem('sinc_pending_oauth', '1');
+        markPendingLogin();
       } catch (e) {}
       const redirectUrl = getOAuthRedirectUrl();
 
@@ -487,6 +492,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
+        markPendingLogin();
         const profile = await fetchUserProfile(data.user);
         setUser(profile);
         setAuthEvent('login');
@@ -535,6 +541,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user && data.session) {
+        markPendingLogin();
         // Trigger handle_new_user (migration 004) is the authoritative single creator
         // of public.profiles and public.user_private_details.
         const profile = await fetchUserProfile(data.user);
@@ -621,8 +628,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAllUserLocalCache(user?.id);
     } catch (_) {}
 
-    // 1. Reset animation session state
+    // 1. Reset animation session state and per-tab markers
     resetSincIntroSession();
+    clearTabInitialized();
+    clearPendingLogin();
 
     // 2. Clear TanStack Query server cache to prevent private data leakage
     try {

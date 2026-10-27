@@ -5,7 +5,6 @@ import QueryProvider from '@/providers/QueryProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
-import AuthenticatedIntroWatcher from '@/components/common/AuthenticatedIntroWatcher';
 import SocketInitializer from '@/components/common/SocketInitializer';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
@@ -46,7 +45,6 @@ export default function RootLayout({
             <AuthProvider>
               <ThemeProvider>
                 <ToastProvider>
-                  <AuthenticatedIntroWatcher />
                   <SocketInitializer />
                   {children}
                 </ToastProvider>

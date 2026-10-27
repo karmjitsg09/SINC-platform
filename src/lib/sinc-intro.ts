@@ -623,6 +623,8 @@ export function resetSincIntroSession(options: SincIntroOptions = {}): void {
   try {
     window.sessionStorage.removeItem(o.sessionKey);
     window.localStorage.removeItem(o.welcomeKey);
+    window.sessionStorage.removeItem('sinc_tab_initialized');
+    window.sessionStorage.removeItem('sinc_pending_login');
   } catch (_) {}
 }
 
@@ -732,7 +734,7 @@ async function run(options: SincIntroOptions): Promise<PlayIntroResult> {
     document.documentElement.style.overflow = "hidden";
     (document.body || document.documentElement).appendChild(root);
   }
-  if (mode === "welcome") store("local", o.welcomeKey, "1");
+  // Welcome film is governed by authentication state rather than a permanent first-time flag
 
   const renderer = createSincIntroRenderer(images, { mode, fontFamily: o.fontFamily, background: o.background, makeCanvas: o.makeCanvas });
 
