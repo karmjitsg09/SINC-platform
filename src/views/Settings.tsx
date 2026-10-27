@@ -23,7 +23,11 @@ import {
   Send,
   RefreshCw,
   ChevronRight,
-  Play
+  Play,
+  Copy,
+  Pencil,
+  KeyRound,
+  Clock
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { getUserPrivateDetails, upsertUserPrivateDetails } from '../lib/profileService';
@@ -90,6 +94,25 @@ export default function Settings({
   const [blockedList, setBlockedList] = useState<BlockedUser[]>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
+
+  // Copy User ID feedback state
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyId = () => {
+    if (currentUser?.id && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(currentUser.id);
+      setCopiedId(true);
+      toast.success('User ID copied to clipboard');
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
+  const getInitials = (name: string): string => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   // Load privacy settings from user_private_details
   useEffect(() => {
@@ -711,76 +734,179 @@ export default function Settings({
                 </div>
               </div>
 
+              {/* Main Account Profile Card */}
               <div className="settings-card">
-                <div className="account-preview-header">
-                  <div className="account-avatar-wrap">
-                    {currentProfile?.avatar_url || currentUser?.user_metadata?.avatar_url ? (
-                      <img
-                        src={(currentProfile?.avatar_url || currentUser?.user_metadata?.avatar_url) ?? undefined}
-                        alt="Profile avatar"
-                        className="account-avatar-img"
-                      />
-                    ) : (
-                      <div className="account-avatar-placeholder">
-                        <User size={28} />
+                <div className="account-profile-header">
+                  <div className="account-profile-identity">
+                    <div className="account-avatar-wrap">
+                      {currentProfile?.avatar_url || currentUser?.user_metadata?.avatar_url ? (
+                        <img
+                          src={(currentProfile?.avatar_url || currentUser?.user_metadata?.avatar_url) ?? undefined}
+                          alt="Profile avatar"
+                          className="account-avatar-img"
+                        />
+                      ) : (
+                        <div className="account-avatar-placeholder">
+                          {getInitials(currentProfile?.name || currentUser?.user_metadata?.full_name || 'Member')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="account-details">
+                      <h3 className="account-name">
+                        {currentProfile?.name || currentUser?.user_metadata?.full_name || 'Authenticated Member'}
+                      </h3>
+                      <p className="account-handle">
+                        @{currentProfile?.username || currentUser?.email?.split('@')[0] || 'member'}
+                      </p>
+                      <div className="account-badge-wrap">
+                        <span className="account-badge">
+                          <Sparkles size={11} />
+                          <span>{currentProfile?.role || 'SINC Contributor'}</span>
+                        </span>
                       </div>
-                    )}
+                    </div>
                   </div>
-                  <div className="account-details">
-                    <h3 className="account-name">
-                      {currentProfile?.name || currentUser?.user_metadata?.full_name || 'Authenticated Member'}
-                    </h3>
-                    <p className="account-handle">
-                      @{currentProfile?.username || currentUser?.email?.split('@')[0] || 'member'}
-                    </p>
-                    <span className="account-badge">
-                      {currentProfile?.role || 'SINC Contributor'}
-                    </span>
-                  </div>
-                  <div className="account-actions">
-                    {onOpenEditProfile && (
+                  {onOpenEditProfile && (
+                    <div className="account-profile-actions">
                       <button
                         type="button"
                         onClick={onOpenEditProfile}
-                        className="btn-primary-sm"
+                        className="btn-edit-profile"
+                        id="settings-edit-profile-btn"
+                        aria-label="Edit your public profile details"
                       >
-                        Edit Profile
+                        <Pencil size={14} />
+                        <span>Edit Profile</span>
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="account-meta-grid">
-                  <div className="account-meta-item">
-                    <div className="meta-label">
-                      <Mail size={14} />
-                      <span>Email Address</span>
+                <div className="account-card-divider" />
+
+                <div className="account-info-grid">
+                  {/* Email Address */}
+                  <div className="account-info-item">
+                    <div className="account-info-icon-wrap">
+                      <Mail size={16} />
                     </div>
-                    <div className="meta-val">{currentUser?.email || 'Not available'}</div>
+                    <div className="account-info-body">
+                      <div className="account-info-label-row">
+                        <span className="account-info-label">Email Address</span>
+                        {currentUser?.email && (
+                          <span className="account-status-pill verified">
+                            <CheckCircle2 size={11} />
+                            <span>Verified</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="account-info-val" title={currentUser?.email || 'Not available'}>
+                        {currentUser?.email || 'Not available'}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="account-meta-item">
-                    <div className="meta-label">
-                      <Shield size={14} />
-                      <span>User ID</span>
+                  {/* User ID */}
+                  <div className="account-info-item">
+                    <div className="account-info-icon-wrap">
+                      <Shield size={16} />
                     </div>
-                    <div className="meta-val code-font">{currentUser?.id || 'Anonymous'}</div>
+                    <div className="account-info-body">
+                      <div className="account-info-label-row">
+                        <span className="account-info-label">User ID</span>
+                        {currentUser?.id && (
+                          <button
+                            type="button"
+                            onClick={handleCopyId}
+                            className="account-copy-btn"
+                            title="Copy User ID to clipboard"
+                            aria-label="Copy User ID to clipboard"
+                          >
+                            {copiedId ? (
+                              <>
+                                <Check size={11} style={{ color: '#10B981' }} />
+                                <span style={{ color: '#10B981' }}>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={11} />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      <div className="account-info-val code-font" title={currentUser?.id || 'Anonymous'}>
+                        {currentUser?.id || 'Anonymous'}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="account-meta-item">
-                    <div className="meta-label">
-                      <Calendar size={14} />
-                      <span>Member Since</span>
+                  {/* Member Since */}
+                  <div className="account-info-item">
+                    <div className="account-info-icon-wrap">
+                      <Calendar size={16} />
                     </div>
-                    <div className="meta-val">
-                      {currentUser?.created_at
-                        ? new Date(currentUser.created_at).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })
-                        : 'Active Member'}
+                    <div className="account-info-body">
+                      <div className="account-info-label-row">
+                        <span className="account-info-label">Member Since</span>
+                      </div>
+                      <div className="account-info-val">
+                        {currentUser?.created_at
+                          ? new Date(currentUser.created_at).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })
+                          : 'Active Member'}
+                      </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security & Credentials Summary Card */}
+              <div className="settings-card">
+                <h3 className="card-heading">Authentication & Session Security</h3>
+                <p className="card-subheading">
+                  Active authentication provider and session security status for this account.
+                </p>
+
+                <div className="security-info-grid">
+                  <div className="security-item-card">
+                    <div className="security-item-left">
+                      <div className="security-item-icon">
+                        <KeyRound size={16} />
+                      </div>
+                      <div>
+                        <div className="security-item-label">Sign-In Provider</div>
+                        <div className="security-item-val">
+                          {currentUser?.app_metadata?.provider === 'google' || currentUser?.identities?.some((i: any) => i.provider === 'google')
+                            ? 'Google OAuth 2.0'
+                            : 'Email & Password'}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="security-status-badge">
+                      <CheckCircle2 size={12} />
+                      <span>Active</span>
+                    </span>
+                  </div>
+
+                  <div className="security-item-card">
+                    <div className="security-item-left">
+                      <div className="security-item-icon">
+                        <Lock size={16} />
+                      </div>
+                      <div>
+                        <div className="security-item-label">Session Protection</div>
+                        <div className="security-item-val">Encrypted Session Tokens</div>
+                      </div>
+                    </div>
+                    <span className="security-status-badge">
+                      <Shield size={12} />
+                      <span>Protected</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1213,7 +1339,9 @@ export default function Settings({
                   </div>
                 ) : blockedList.length === 0 ? (
                   <div className="blocked-empty-state">
-                    <UserX size={36} className="text-muted" />
+                    <div className="blocked-empty-icon-wrap">
+                      <UserX size={28} />
+                    </div>
                     <h4 className="empty-title">No blocked accounts</h4>
                     <p className="empty-desc">
                       You haven't blocked any members yet. When you reject a follow request with "Reject and Block",
